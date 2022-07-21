@@ -1,3 +1,19 @@
+/*
+ * Copyright 2022 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.google.homesampleapp
 
 import androidx.test.espresso.Espresso.onView
@@ -21,9 +37,18 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.time.Duration
 
+/**
+ * Test to verify e2e commissioning of a Matter device in the Home sample app.
+ *
+ * Before running this test, make sure that
+ * 1) The Matter device is running and advertising on the same network as the app. The SETUP_CODE
+ *    below should match with the set up code of the Matter device.
+ * 2) You only have one Home structure in the Google home app.
+ */
+
 @RunWith(AndroidJUnit4::class)
 @LargeTest
-class DeviceActionTest {
+class AddDeviceTest {
 
     private val TEN_SECONDS = Duration.ofSeconds(10).toMillis()
     private val TWO_MINUTES = Duration.ofSeconds(120).toMillis()
@@ -31,6 +56,8 @@ class DeviceActionTest {
     private val TRY_WITH_SETUP_CODE_BUTTON = By.text("Try with setup code")
     private val ENTER_SETUP_CODE_TITLE = By.textContains("Enter setup code")
     private val SETUP_CODE_TEXTBOX = UiSelector().className("android.widget.EditText").instance(0)
+
+    /** The SETUP_CODE should match the one used for the Matter device **/
     private val SETUP_CODE = "749701123365521327687"
     private val NEXT_BUTTON = By.text("Next")
     private val CONNECT_ACCOUNT_TITLE = By.text("Connect .* your Google Account".toPattern())
