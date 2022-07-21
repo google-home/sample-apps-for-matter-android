@@ -32,6 +32,8 @@ class DeviceActionTest {
     private val SETUP_CODE_TEXTBOX = UiSelector().className("android.widget.EditText").instance(0)
     private val SETUP_CODE = "749701123365521327687"
     private val NEXT_BUTTON = By.text("Next")
+    private val CONNECT_ACCOUNT_TITLE = By.text("Connect .* your Google Account".toPattern())
+    private val AGREE_BUTTON = By.text("I Agree")
     private lateinit var device: UiDevice
 
     @get:Rule
@@ -67,9 +69,17 @@ class DeviceActionTest {
         nextButton.click()
     }
 
+    fun clickIAgree() {
+        // Verify the connect to your Google Account screen.
+        assertNotNull(device.wait(Until.hasObject(CONNECT_ACCOUNT_TITLE), TEN_SECONDS))
+        // Click on "I agree"
+        device.wait(Until.findObject(AGREE_BUTTON), TEN_SECONDS).click()
+    }
+
     @Test
     fun addDevice() {
         triggerScanForQRCode()
         enterSetupCode()
+        clickIAgree()
     }
 }
