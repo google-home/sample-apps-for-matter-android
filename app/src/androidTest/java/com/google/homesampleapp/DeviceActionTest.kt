@@ -26,6 +26,7 @@ import java.time.Duration
 class DeviceActionTest {
 
     private val TEN_SECONDS = Duration.ofSeconds(10).toMillis()
+    private val TWO_MINUTES = Duration.ofSeconds(120).toMillis()
     private val SCAN_QR_CODE_TITLE = By.text("Scan the QR code")
     private val TRY_WITH_SETUP_CODE_BUTTON = By.text("Try with setup code")
     private val ENTER_SETUP_CODE_TITLE = By.textContains("Enter setup code")
@@ -34,6 +35,9 @@ class DeviceActionTest {
     private val NEXT_BUTTON = By.text("Next")
     private val CONNECT_ACCOUNT_TITLE = By.text("Connect .* your Google Account".toPattern())
     private val AGREE_BUTTON = By.text("I Agree")
+    private val DONE_BUTTON = By.text("Done")
+    private val DEVICE_NAME = "Test light"
+    private val DEVICE_NAME_TEXTBOX = UiSelector().className("android.widget.EditText").instance(0)
     private lateinit var device: UiDevice
 
     @get:Rule
@@ -76,10 +80,24 @@ class DeviceActionTest {
         device.wait(Until.findObject(AGREE_BUTTON), TEN_SECONDS).click()
     }
 
+    fun completeSetUp() {
+        // Verify that the device is successfully commissioned and is ready.
+        assertNotNull(device.wait(Until.hasObject(DONE_BUTTON), TWO_MINUTES))
+        // Enter the device name.
+        device.findObject(DEVICE_NAME_TEXTBOX).setText(DEVICE_NAME)
+        // Click done.
+        device.wait(Until.findObject(DONE_BUTTON), TEN_SECONDS).click()
+        // Verify the light is present on Matterhorn
+        assertNotNull(device.wait(Until.hasObject(By.text(DEVICE_NAME)), TEN_SECONDS))
+    }
+
     @Test
     fun addDevice() {
         triggerScanForQRCode()
         enterSetupCode()
         clickIAgree()
+        completeSetUp()
+        // Prevent abrupt shutdown of app
+        Thread.sleep(5000)
     }
 }
