@@ -19,9 +19,8 @@ package com.google.homesampleapp
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.databinding.DataBindingUtil.setContentView
-import dagger.hilt.android.AndroidEntryPoint
-import com.google.homesampleapp.R
 import com.google.homesampleapp.databinding.ActivityMainBinding
+import dagger.hilt.android.AndroidEntryPoint
 
 /** Main Activity for the "Google Home Sample App for Matter" (GHSAFM). */
 @AndroidEntryPoint

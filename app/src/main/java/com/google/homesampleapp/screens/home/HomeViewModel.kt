@@ -184,8 +184,7 @@ constructor(
             .setCommissioningService(ComponentName(context, AppCommissioningService::class.java))
     if (isMultiAdminCommissioning) {
       val manualPairingCode =
-          intent.getStringExtra(
-              "com.google.android.gms.home.matter.EXTRA_MANUAL_PAIRING_CODE")
+          intent.getStringExtra("com.google.android.gms.home.matter.EXTRA_MANUAL_PAIRING_CODE")
       commissionRequestBuilder.setOnboardingPayload(manualPairingCode)
     }
     val commissioningRequest = commissionRequestBuilder.build()
@@ -209,6 +208,7 @@ constructor(
   }
 
   // Called by the fragment in Step 5 of the Device Commissioning flow.
+  // TODO: need to introspect the device and update information according to what we discover.
   fun commissionDeviceSucceeded(activityResult: ActivityResult, message: String) {
     val result =
         CommissioningResult.fromIntentSenderResult(activityResult.resultCode, activityResult.data)
@@ -238,11 +238,38 @@ constructor(
         if (roomName != null) updatedDeviceBuilder.room = roomName
         devicesRepository.updateDevice(updatedDeviceBuilder.build())
         _commissionDeviceStatus.postValue(TaskStatus.Completed(message))
+
+        // Introspect the device.
+        val deviceMatterInfoList = clustersHelper.fetchDeviceMatterInfo(deviceId, 0)
+        for (deviceMatterInfo in deviceMatterInfoList) {
+          Timber.d("*** MATTER DEVICE INFO ***")
+          Timber.d("[${deviceMatterInfo}]")
+        }
       } catch (e: Exception) {
         Timber.e(e)
       }
     }
   }
+
+  /**
+   * Introspect the device to learn about its capabilities and properly interact with it. See this
+   * description of the Mater Device Data Model:
+   * https://developers.home.google.com/matter/primer/device-data-model.
+   *
+   * The Descriptor Cluster is used for introspection. The Root Device Type is defined on Endpoint
+   * 0. Reading its Descriptor Cluster will provide the client the visibility to traverse the full
+   * tree of available Endpoints and perform applicable operations. We use the information found on
+   * the Descriptor Cluster to model the Device (light, switch, pump, thermostat), and specific
+   * features implemented by that particular instance of the Device, showing the correct UI to the
+   * user. Given a specific node, we get the device descriptor and do the following
+   * - get the list of parts (endpoints) of the node
+   * - for each endpoint (besides 0)
+   * - get the device list attribute --> learn about device types supported
+   * - get the server list attributes --> states held by the node
+   * - get the client list attribute --> stateless and its responsibility is to initiate
+   * Interactions with a remote Server Cluster
+   */
+  fun introspectDevice() {}
 
   // Called by the fragment in Step 5 of the Device Commissioning flow.
   fun commissionDeviceFailed(message: String) {
@@ -262,8 +289,12 @@ constructor(
         devicesStateRepository.updateDeviceState(deviceUiModel.device.deviceId, true, isOn)
       } else {
         Timber.d("Handling real device")
-        clustersHelper.setOnOffDeviceStateOnOffCluster(deviceUiModel.device.deviceId, isOn, 1)
-        devicesStateRepository.updateDeviceState(deviceUiModel.device.deviceId, true, isOn)
+        try {
+          clustersHelper.setOnOffDeviceStateOnOffCluster(deviceUiModel.device.deviceId, isOn, 1)
+          devicesStateRepository.updateDeviceState(deviceUiModel.device.deviceId, true, isOn)
+        } catch (e: Throwable) {
+          Timber.e("Failed setting on/off state")
+        }
       }
     }
   }
@@ -287,17 +318,18 @@ constructor(
           if (device.name.startsWith(DUMMY_DEVICE_NAME_PREFIX)) {
             return@forEach
           }
-          Timber.d("runDevicesPeriodicPing deviceId [${device.deviceId}]")
-          var isOn = clustersHelper.getDeviceStateOnOffCluster(device.deviceId, 1)
-          val isOnline: Boolean
-          if (isOn == null) {
-            Timber.e("runDevicesPeriodicUpdate: flakiness with mDNS")
+          var isOn: Boolean
+          var isOnline: Boolean
+          try {
+            Timber.d("runDevicesPeriodicPing deviceId [${device.deviceId}]")
+            isOn = clustersHelper.getDeviceStateOnOffCluster(device.deviceId, 1)
+            Timber.d("[device ping] response [${isOn}]")
+            isOnline = true
+          } catch (e: Throwable) {
+            Timber.d("[device ping] failed with [${e}]")
             isOn = false
             isOnline = false
-          } else {
-            isOnline = true
           }
-          Timber.d("runDevicesPeriodicPing deviceId [${device.deviceId}] [${isOnline}] [${isOn}]")
           // TODO: only need to do it if state has changed
           devicesStateRepository.updateDeviceState(
               device.deviceId, isOnline = isOnline, isOn = isOn)

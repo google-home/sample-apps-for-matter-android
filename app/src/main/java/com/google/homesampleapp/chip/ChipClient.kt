@@ -67,8 +67,7 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
             }
 
             override fun onConnectionFailure(nodeId: Long, error: Exception) {
-              val errorMessage =
-                  "Unable to get connected device with nodeId $nodeId. mDNS flakiness???"
+              val errorMessage = "Unable to get connected device with nodeId $nodeId."
               Timber.e(errorMessage, error)
               continuation.resumeWithException(IllegalStateException(errorMessage))
             }

@@ -20,7 +20,6 @@ import android.app.Activity.RESULT_OK
 import android.content.res.Resources
 import android.graphics.drawable.Drawable
 import android.os.Bundle
-import android.text.Html
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -41,6 +40,7 @@ import com.google.homesampleapp.OPEN_COMMISSIONING_WINDOW_API
 import com.google.homesampleapp.OpenCommissioningWindowApi
 import com.google.homesampleapp.PERIODIC_UPDATE_INTERVAL_DEVICE_SCREEN_SECONDS
 import com.google.homesampleapp.R
+import com.google.homesampleapp.R.id.*
 import com.google.homesampleapp.TaskStatus.InProgress
 import com.google.homesampleapp.data.DevicesStateRepository
 import com.google.homesampleapp.databinding.FragmentDeviceBinding
@@ -81,6 +81,10 @@ class DeviceFragment : Fragment() {
 
   // The Activity launcher that launches the "shareDevice" activity in Google Play Services.
   private lateinit var shareDeviceLauncher: ActivityResultLauncher<IntentSenderRequest>
+
+  // The current state of the device
+  var isOnline = false
+  var isOn = false
 
   // -----------------------------------------------------------------------------------------------
   // Lifecycle functions
@@ -150,21 +154,8 @@ class DeviceFragment : Fragment() {
       findNavController().popBackStack()
     }
 
-    // Info / Inspect device menu button
-    val description = getString(R.string.inspect_description)
-    val descriptionHtml = Html.fromHtml(description, Html.FROM_HTML_MODE_LEGACY)
     binding.topAppBar.setOnMenuItemClickListener {
-      MaterialAlertDialogBuilder(requireContext())
-          .setTitle(
-              getString(
-                  R.string.inspect_device_name,
-                  selectedDeviceViewModel.selectedDeviceLiveData.value?.device?.name))
-          .setMessage(descriptionHtml)
-          .setPositiveButton(resources.getString(R.string.ok)) { _, _ ->
-            viewModel.inspectDescriptorCluster(
-                selectedDeviceViewModel.selectedDeviceLiveData.value!!)
-          }
-          .show()
+      processInpectDeviceInfo()
       true
     }
 
@@ -213,10 +204,22 @@ class DeviceFragment : Fragment() {
             // TODO: to be investigated
             requireView()
                 .findNavController()
-                .navigate(R.id.action_deviceFragment_to_homeFragment, bundle)
+                .navigate(action_deviceFragment_to_homeFragment, bundle)
             viewModel.removeDevice(deviceId!!)
           }
           .show()
+    }
+  }
+
+  private fun processInpectDeviceInfo() {
+    if (!isOnline) {
+      MaterialAlertDialogBuilder(requireContext())
+          .setTitle("Inspect Device")
+          .setMessage("Device is offline, cannot be inspected.")
+          .setPositiveButton(resources.getString(R.string.ok)) { _, _ -> }
+          .show()
+    } else {
+      findNavController().navigate(R.id.action_deviceFragment_to_inspectFragment)
     }
   }
 
@@ -226,8 +229,6 @@ class DeviceFragment : Fragment() {
   private fun setupObservers() {
     // Generic status about actions processed in this screen.
     devicesStateRepository.lastUpdatedDeviceState.observe(viewLifecycleOwner) {
-      Timber.d(
-          "devicesStateRepository.lastUpdatedDeviceState.observe: [${devicesStateRepository.lastUpdatedDeviceState.value}]")
       updateDeviceInfo(devicesStateRepository.lastUpdatedDeviceState.value)
     }
 
@@ -281,20 +282,27 @@ class DeviceFragment : Fragment() {
   // UI update functions
 
   private fun updateDeviceInfo(deviceState: DeviceState?) {
+    // The DeviceUiModel is not updated whenever we observe changes in the state of the device.
+    // This is an issue for the "Inspect Device" onClick listener which relies on the device
+    // state to decide whether to show a dialog stating that the device is offline and therefore
+    // the inspect screen cannot be shown, or go show the inspect information (when device is
+    // online).
+    // This is why the sate of the device is cached in local variables.
     if (selectedDeviceViewModel.selectedDeviceIdLiveData.value == -1L) {
       // Device was just removed, nothing to do. We'll move to HomeFragment.
+      isOnline = false
       return
     }
     val deviceUiModel = selectedDeviceViewModel.selectedDeviceLiveData.value
 
     // Device state
     deviceUiModel?.let {
-      val isOnline =
+      isOnline =
           when (deviceState) {
             null -> deviceUiModel.isOnline
             else -> deviceState.online
           }
-      val isOn =
+      isOn =
           when (deviceState) {
             null -> deviceUiModel.isOn
             else -> deviceState.on

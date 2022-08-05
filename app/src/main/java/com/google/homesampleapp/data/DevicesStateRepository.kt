@@ -32,8 +32,7 @@ import kotlinx.coroutines.flow.first
 import timber.log.Timber
 
 /**
- * Singleton repository that updates the dynamic state of the devices on the
- * homesampleapp fabric.
+ * Singleton repository that updates the dynamic state of the devices on the homesampleapp fabric.
  */
 @Singleton
 class DevicesStateRepository @Inject constructor(@ApplicationContext context: Context) {
@@ -59,7 +58,6 @@ class DevicesStateRepository @Inject constructor(@ApplicationContext context: Co
     get() = _lastUpdatedDeviceState
 
   suspend fun addDeviceState(deviceId: Long, isOnline: Boolean, isOn: Boolean) {
-    Timber.d("addDeviceState: deviceId [${deviceId}] [${isOnline}] [${isOn}]")
     val newDeviceState =
         DeviceState.newBuilder()
             .setDeviceId(deviceId)
@@ -75,7 +73,6 @@ class DevicesStateRepository @Inject constructor(@ApplicationContext context: Co
   }
 
   suspend fun updateDeviceState(deviceId: Long, isOnline: Boolean, isOn: Boolean) {
-    Timber.d("begin updateDeviceState: deviceId [${deviceId}] [${isOnline}] [${isOn}]")
     val newDeviceState =
         DeviceState.newBuilder()
             .setDeviceId(deviceId)
@@ -86,17 +83,13 @@ class DevicesStateRepository @Inject constructor(@ApplicationContext context: Co
 
     val devicesState = devicesStateFlow.first()
     val devicesStateCount = devicesState.devicesStateCount
-    Timber.d("devicesStateCount [${devicesStateCount}]")
     var updateDone = false
     for (index in 0 until devicesStateCount) {
       val deviceState = devicesState.getDevicesState(index)
-      Timber.d("[${index}] [${deviceState}]")
       if (deviceId == deviceState.deviceId) {
         devicesStateDataStore.updateData { devicesStateList ->
           devicesStateList.toBuilder().setDevicesState(index, newDeviceState).build()
         }
-        Timber.d(
-            "update done! updateDeviceState: deviceId [${deviceId}] [${isOnline}] [${isOn}]\ndevices [${getAllDevicesState()}]")
         _lastUpdatedDeviceState.value = newDeviceState
         updateDone = true
         break
