@@ -112,9 +112,7 @@ class HomeFragment : Fragment() {
             viewModel.updateDeviceStateOn(deviceUiModel, onOffSwitch?.isChecked!!)
           })
 
-  // The ActivityResult launcher that launches the "commissionDevice" activity in Google Play
-  // Services.
-  private lateinit var commissionDeviceLauncher: ActivityResultLauncher<IntentSenderRequest>
+  // CODELAB: commissionDeviceLauncher declaration
 
   // -----------------------------------------------------------------------------------------------
   // Lifecycle functions
@@ -128,19 +126,9 @@ class HomeFragment : Fragment() {
     // at step 2 (in the viewModel) when the user triggers the "Add Device" action and the
     // Google Play Services (GPS) API (commissioningClient.commissionDevice()) returns the
     // IntentSender to be used to launch the proper activity in GPS.
-    commissionDeviceLauncher =
-        registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
-          // Commission Device Step 5.
-          // The Commission Device activity in GPS has completed.
-          val resultCode = result.resultCode
-          Timber.d("GOT result for commissioningLauncher: resultCode [${resultCode}]")
-          if (resultCode == Activity.RESULT_OK) {
-            viewModel.commissionDeviceSucceeded(
-                result, getString(R.string.commission_device_status_success))
-          } else {
-            viewModel.commissionDeviceFailed(getString(R.string.status_failed_with, resultCode))
-          }
-        }
+
+    // CODELAB: commissionDeviceLauncher definition
+
   }
 
   override fun onCreateView(
@@ -273,25 +261,13 @@ class HomeFragment : Fragment() {
       updateUi(devicesUiModel)
     }
 
-    // The current status of the share device action.
-    viewModel.commissionDeviceStatus.observe(viewLifecycleOwner) { status ->
-      Timber.d("commissionDeviceStatus.observe: status [${status}]")
-      // TODO: disable the "add device button", update the result text view, etc.
-    }
+    // CODELAB: commissionDeviceStatus
 
     // Commission Device Step 2.
     // The fragment observes the livedata for commissionDeviceIntentSender which
     // is updated in the ViewModel in step 3 of the Commission Device flow.
-    viewModel.commissionDeviceIntentSender.observe(viewLifecycleOwner) { sender ->
-      Timber.d("commissionDeviceIntentSender.observe is called with sender [${sender}]")
-      if (sender != null) {
-        // Commission Device Step 4: Launch the activity described in the IntentSender that
-        // was returned in Step 3 where the viewModel calls the GPS API to commission
-        // the device.
-        Timber.d("*** Calling commissionDeviceLauncher.launch")
-        commissionDeviceLauncher.launch(IntentSenderRequest.Builder(sender).build())
-      }
-    }
+
+    // CODELAB: commissionDeviceIntentSender
   }
 
   // -----------------------------------------------------------------------------------------------

@@ -93,18 +93,9 @@ class DeviceFragment : Fragment() {
     // at step 3 (in the viewModel) when the user triggers the "Share Device" action and the
     // Google Play Services (GPS) API (commissioningClient.shareDevice()) returns the IntentSender
     // to be used to launch the proper activity in GPS.
-    shareDeviceLauncher =
-        registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
-          // Share Device Step 5.
-          // The Share Device activity in GPS has completed.
-          val resultCode = result.resultCode
-          Timber.d("Got result for shareDeviceLauncher: resultCode [[${resultCode}]")
-          if (resultCode == RESULT_OK) {
-            viewModel.shareDeviceSucceeded(getString(R.string.share_device_status_success))
-          } else {
-            viewModel.shareDeviceFailed(getString(R.string.status_failed_with, resultCode))
-          }
-        }
+
+    // CODELAB: shareDeviceLauncher definition
+
   }
 
   override fun onCreateView(

@@ -173,35 +173,8 @@ constructor(
    * After using the sender, [consumeCommissionDeviceIntentSender()] should be called to avoid
    * receiving the sender again after a configuration change.
    */
-  fun commissionDevice(intent: Intent, context: Context) {
-    Timber.d("commissionDevice")
-    _commissionDeviceStatus.postValue(TaskStatus.InProgress)
 
-    val isMultiAdminCommissioning = isMultiAdminCommissioning(intent)
-
-    val commissionRequestBuilder =
-        CommissioningRequest.builder()
-            .setCommissioningService(ComponentName(context, AppCommissioningService::class.java))
-    if (isMultiAdminCommissioning) {
-      val manualPairingCode =
-          intent.getStringExtra(
-              "com.google.android.gms.home.matter.EXTRA_MANUAL_PAIRING_CODE")
-      commissionRequestBuilder.setOnboardingPayload(manualPairingCode)
-    }
-    val commissioningRequest = commissionRequestBuilder.build()
-
-    Matter.getCommissioningClient(context)
-        .commissionDevice(commissioningRequest)
-        .addOnSuccessListener { result ->
-          // Communication with fragment is via livedata
-          _commissionDeviceStatus.postValue(TaskStatus.InProgress)
-          _commissionDeviceIntentSender.postValue(result)
-        }
-        .addOnFailureListener { error ->
-          _commissionDeviceStatus.postValue(TaskStatus.Failed(error))
-          Timber.e(error)
-        }
-  }
+  // CODELAB: commissionDevice
 
   /** Consumes the value in [_commissionDeviceIntentSender] and sets it back to null. */
   fun consumeCommissionDeviceIntentSender() {

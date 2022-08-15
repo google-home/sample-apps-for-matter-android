@@ -96,29 +96,9 @@ constructor(
    * the sender again after a configuration change.
    */
   fun shareDevice(activity: FragmentActivity) {
-    _shareDeviceStatus.postValue(TaskStatus.InProgress)
-    val shareDeviceRequest =
-        ShareDeviceRequest.builder()
-            .setDeviceDescriptor(DeviceDescriptor.builder().build())
-            .setDeviceName("temp device name")
-            .setCommissioningWindow(
-                CommissioningWindow.builder()
-                    .setDiscriminator(Discriminator.forLongValue(123))
-                    .setPasscode(11223344)
-                    .setWindowOpenMillis(SystemClock.elapsedRealtime())
-                    .setDurationSeconds(180)
-                    .build())
-            .build()
 
-    Matter.getCommissioningClient(activity)
-        .shareDevice(shareDeviceRequest)
-        .addOnSuccessListener { result ->
-          Timber.d("Success on CommissioningClient.shareDevice(): result [${result}]")
-          // Communication with fragment is via livedata
-          _shareDeviceStatus.postValue(TaskStatus.Completed("Received IntentSender."))
-          _shareDeviceIntentSender.postValue(result)
-        }
-        .addOnFailureListener { error -> _shareDeviceStatus.postValue(TaskStatus.Failed(error)) }
+    // CODELAB: shareDevice
+
   }
 
   // Called by the fragment in Step 5 of the Device Sharing flow.
@@ -157,13 +137,7 @@ constructor(
         Timber.d("Handling test device")
         devicesStateRepository.updateDeviceState(deviceId, true, isOn)
       } else {
-        Timber.d("Handling real device")
-        try {
-          clustersHelper.setOnOffDeviceStateOnOffCluster(deviceUiModel.device.deviceId, isOn, 1)
-          devicesStateRepository.updateDeviceState(deviceUiModel.device.deviceId, true, isOn)
-        } catch (e: Throwable) {
-          Timber.e("Failed setting on/off state")
-        }
+        // CODELAB: toggle
       }
     }
   }
