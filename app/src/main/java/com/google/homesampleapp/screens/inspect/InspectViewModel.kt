@@ -50,23 +50,9 @@ constructor(
       try {
         val currentDevice: Device = devicesRepository.getDevice(deviceId)
         // Introspect the device.
-        val deviceMatterInfoList = clustersHelper.fetchDeviceMatterInfo(deviceId, 0)
+        val deviceMatterInfoList = clustersHelper.fetchAllDeviceMatterInfo(deviceId)
+        Timber.d("*** deviceMatterInfoList: [${deviceMatterInfoList}] *****")
         _instrospectionInfo.postValue(deviceMatterInfoList)
-        for (deviceMatterInfo in deviceMatterInfoList) {
-          Timber.d("[${deviceMatterInfo}]")
-          // FIXME: Does it make sense to get the descriptor cluster on endpoints other than 0?
-          val deviceMatterInfoListEndpoint =
-              clustersHelper.fetchDeviceMatterInfo(deviceId, deviceMatterInfo.endpoint)
-          if (deviceMatterInfoListEndpoint.isEmpty()) {
-            Timber.d("No parts in ${deviceMatterInfo.endpoint}")
-          } else {
-            for (deviceMatterInfoEndpoint in deviceMatterInfoListEndpoint) {
-              Timber.d(
-                  "*** FIXME: MATTER DEVICE INFO ENDPOINT [${deviceMatterInfoEndpoint.endpoint}***")
-              Timber.d("[${deviceMatterInfoEndpoint}]")
-            }
-          }
-        }
       } catch (e: Exception) {
         Timber.d("*** EXCEPTION GETTING DEVICE MATTER INFO *****")
         Timber.e(e)

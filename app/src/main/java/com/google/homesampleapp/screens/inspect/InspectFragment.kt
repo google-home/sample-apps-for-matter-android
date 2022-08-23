@@ -122,39 +122,51 @@ class InspectFragment : Fragment() {
   private fun updateIntrospectionInfo(deviceMatterInfoList: List<DeviceMatterInfo>) {
     val linearLayout = binding.inspectInfoLayout
     linearLayout.removeAllViews()
+    val ignore = StringBuilder()
     if (deviceMatterInfoList.isEmpty()) {
       addTextView(
           "Oops... We could not retrieve any information from the Descriptor Cluster. " +
               "This is probably because the device just recently turned \"offline\".",
-          com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
+          com.google.android.material.R.style.TextAppearance_Material3_BodyMedium,
+          ignore)
       return
     }
     // Add the Descriptor Cluster Title
     addTextView(
         "Descriptor Cluster",
-        com.google.android.material.R.style.TextAppearance_Material3_TitleLarge)
+        com.google.android.material.R.style.TextAppearance_Material3_TitleLarge,
+        ignore)
+
     // For each endpoint
     for (deviceMatterInfo in deviceMatterInfoList) {
+      val sb = StringBuilder()
+
       // Endpoint ID
       addTextView(
           "Endpoint ${deviceMatterInfo.endpoint}",
-          com.google.android.material.R.style.TextAppearance_Material3_TitleMedium)
+          com.google.android.material.R.style.TextAppearance_Material3_TitleMedium,
+          sb)
       // Device Types
       addTextView(
-          "Device Types", com.google.android.material.R.style.TextAppearance_Material3_TitleSmall)
+          "Device Types",
+          com.google.android.material.R.style.TextAppearance_Material3_TitleSmall,
+          sb)
       for (deviceType in deviceMatterInfo.types) {
         val hex = String.format("0x%04X", deviceType)
         val typeString = MatterConstants.DeviceTypesMap.getOrDefault(deviceType, "Unknown")
         addTextView(
             "[${hex}] ${typeString}",
-            com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
+            com.google.android.material.R.style.TextAppearance_Material3_BodyMedium,
+            sb)
       }
       // Server Clusters
       addTextView(
           "Server Clusters",
-          com.google.android.material.R.style.TextAppearance_Material3_TitleSmall)
+          com.google.android.material.R.style.TextAppearance_Material3_TitleSmall,
+          sb)
       if (deviceMatterInfo.serverClusters.isEmpty()) {
-        addTextView("None", com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
+        addTextView(
+            "None", com.google.android.material.R.style.TextAppearance_Material3_BodyMedium, sb)
       } else {
         for (serverCluster in deviceMatterInfo.serverClusters) {
           val hex = String.format("0x%04X", serverCluster)
@@ -162,15 +174,18 @@ class InspectFragment : Fragment() {
               MatterConstants.ClustersMap.getOrDefault(serverCluster, "Unknown")
           addTextView(
               "[${hex}] ${serverClusterString}",
-              com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
+              com.google.android.material.R.style.TextAppearance_Material3_BodyMedium,
+              sb)
         }
       }
       // Client Clusters
       addTextView(
           "Client Clusters",
-          com.google.android.material.R.style.TextAppearance_Material3_TitleSmall)
+          com.google.android.material.R.style.TextAppearance_Material3_TitleSmall,
+          sb)
       if (deviceMatterInfo.clientClusters.isEmpty()) {
-        addTextView("None", com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
+        addTextView(
+            "None", com.google.android.material.R.style.TextAppearance_Material3_BodyMedium, sb)
       } else {
         for (clientCluster in deviceMatterInfo.clientClusters) {
           val hex = String.format("0x%04X", clientCluster)
@@ -178,16 +193,27 @@ class InspectFragment : Fragment() {
               MatterConstants.ClustersMap.getOrDefault(clientCluster, "Unknown")
           addTextView(
               "[${hex}] ${clientClusterString}",
-              com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
+              com.google.android.material.R.style.TextAppearance_Material3_BodyMedium,
+              sb)
         }
       }
+      // Parts List (endpoints)
+      addTextView(
+          "Parts list", com.google.android.material.R.style.TextAppearance_Material3_TitleSmall, sb)
+      addTextView(
+          "${deviceMatterInfo.parts}",
+          com.google.android.material.R.style.TextAppearance_Material3_BodyMedium,
+          sb)
+
+      Timber.d("**** DEVICE MATTER INFO: ${sb}")
     }
   }
 
-  private fun addTextView(text: String, style: Int) {
+  private fun addTextView(text: String, style: Int, stringBuilder: StringBuilder) {
     val textView = TextView(requireContext())
     textView.text = text
     textView.setTextAppearance(style)
     binding.inspectInfoLayout.addView(textView)
+    stringBuilder.append("\n${text}")
   }
 }

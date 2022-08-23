@@ -33,7 +33,8 @@ data class DeviceMatterInfo(
     val endpoint: Int,
     val types: List<Long>,
     val serverClusters: List<Any>,
-    val clientClusters: List<Any>
+    val clientClusters: List<Any>,
+    val parts: List<Any>?
 )
 
 /** Singleton to facilitate access to Clusters functionality. */
@@ -43,9 +44,10 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
   // -----------------------------------------------------------------------------------------------
   // Convenience functions
 
-  /** Fetches MatterDeviceInfo for each endpoint supported by the device. */
-  suspend fun fetchDeviceMatterInfo(nodeId: Long, endpoint: Int): List<DeviceMatterInfo> {
-    Timber.d("fetchDeviceMatterInfo(): nodeId [${nodeId}]")
+  // Recursively fetch device information for all endpoints on the device,
+  // starting with the root endpoint 0.
+  suspend fun fetchAllDeviceMatterInfo(nodeId: Long): List<DeviceMatterInfo> {
+    Timber.d("fetchAllDeviceMatterInfo(): nodeId [${nodeId}]")
     val matterDeviceInfoList = arrayListOf<DeviceMatterInfo>()
     val connectedDevicePtr =
         try {
@@ -55,42 +57,51 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
           return emptyList()
         }
 
+    fetchEndpointInfo(connectedDevicePtr, matterDeviceInfoList, 0)
+    return matterDeviceInfoList
+  }
+
+  // Recursively fetch endpoints information.
+  suspend fun fetchEndpointInfo(
+      connectedDevicePtr: Long,
+      matterDeviceInfoList: MutableList<DeviceMatterInfo>,
+      endpoint: Int
+  ) {
+    // Get the endpoint's list of parts (nested endpoints).
     val partsListAttribute = readDescriptorClusterPartsListAttribute(connectedDevicePtr, endpoint)
     Timber.d("partsListAttribute [${partsListAttribute}]")
 
     // For each part (endpoint)
     partsListAttribute?.forEach { part ->
       Timber.d("part [$part] is [${part.javaClass}]")
-      val endpoint =
+      val nestedEndpoint =
           when (part) {
             is Int -> part.toInt()
             else -> return@forEach
           }
-      Timber.d("Processing part [$part]")
-
-      // DeviceListAttribute
-      val deviceListAttribute =
-          readDescriptorClusterDeviceListAttribute(connectedDevicePtr, endpoint)
-      val types = arrayListOf<Long>()
-      deviceListAttribute.forEach { types.add(it.type) }
-
-      // ServerListAttribute
-      val serverListAttribute =
-          readDescriptorClusterServerListAttribute(connectedDevicePtr, endpoint)
-      val serverClusters = arrayListOf<Any>()
-      serverListAttribute.forEach { serverClusters.add(it) }
-
-      // ClientListAttribute
-      val clientListAttribute =
-          readDescriptorClusterClientListAttribute(connectedDevicePtr, endpoint)
-      val clientClusters = arrayListOf<Any>()
-      clientListAttribute.forEach { clientClusters.add(it) }
-
-      // Build the DeviceMatterInfo
-      val deviceMatterInfo = DeviceMatterInfo(endpoint, types, serverClusters, clientClusters)
-      matterDeviceInfoList.add(deviceMatterInfo)
+      // Recursive call.
+      fetchEndpointInfo(connectedDevicePtr, matterDeviceInfoList, nestedEndpoint)
     }
-    return matterDeviceInfoList
+
+    // Endpoint specific information
+    val deviceListAttribute = readDescriptorClusterDeviceListAttribute(connectedDevicePtr, endpoint)
+    val types = arrayListOf<Long>()
+    deviceListAttribute.forEach { types.add(it.type) }
+
+    // ServerListAttribute
+    val serverListAttribute = readDescriptorClusterServerListAttribute(connectedDevicePtr, endpoint)
+    val serverClusters = arrayListOf<Any>()
+    serverListAttribute.forEach { serverClusters.add(it) }
+
+    // ClientListAttribute
+    val clientListAttribute = readDescriptorClusterClientListAttribute(connectedDevicePtr, endpoint)
+    val clientClusters = arrayListOf<Any>()
+    clientListAttribute.forEach { clientClusters.add(it) }
+
+    // Build the DeviceMatterInfo
+    val deviceMatterInfo =
+        DeviceMatterInfo(endpoint, types, serverClusters, clientClusters, partsListAttribute)
+    matterDeviceInfoList.add(deviceMatterInfo)
   }
 
   // -----------------------------------------------------------------------------------------------

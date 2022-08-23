@@ -240,7 +240,7 @@ constructor(
         _commissionDeviceStatus.postValue(TaskStatus.Completed(message))
 
         // Introspect the device.
-        val deviceMatterInfoList = clustersHelper.fetchDeviceMatterInfo(deviceId, 0)
+        val deviceMatterInfoList = clustersHelper.fetchAllDeviceMatterInfo(deviceId)
         for (deviceMatterInfo in deviceMatterInfoList) {
           Timber.d("*** MATTER DEVICE INFO ***")
           Timber.d("[${deviceMatterInfo}]")
