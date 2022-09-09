@@ -1,7 +1,7 @@
 # Google Home Sample App for Matter
 
 The **Google Home Sample App for Matter** (GHSA for Matter) provides a concrete example of how to
-use the [Home Mobile SDK](https://developers.home.google.com/matter/eap/sdk/home-mobile) to make it
+use the [Home Mobile SDK](https://developers.home.google.com/matter/apis/home) to make it
 easy to commission and share [Matter](https://developers.home.google.com/matter/overview) devices
 across Apps and ecosystems. It also demonstrates how to use commissioning and Cluster libraries
 from the
@@ -13,17 +13,16 @@ smart home application for Matter devices.
 It can also be used as a learning tool to better understand key Matter concepts, as well as a tool
 to debug and troubleshoot interactions with Matter devices.
 
-> **Warning:** GHSA for Matter is currently restricted to EAP Partners. There is still work to be
-> done on this sample app, but we are making it available at this point to allow partners to get a
-> headstart on learning how to use the Home Mobile SDK.
+> **Warning:** There is still work to be done on this sample app, but we are making it available
+> at this point to allow developers to get a headstart on learning how to use the Home Mobile SDK.
 
 ## Get started
 
 For an overview of the user interface and features, refer to
-the [Google Home Sample App for Matter Guide](https://developers.home.google.com/matter/eap/samples/matter-app).
+the [Google Home Sample App for Matter Guide](https://developers.home.google.com/samples/matter-app).
 
 To review code samples and start building, refer to
-the [Build an Android App for Matter](https://developers.home.google.com/matter/eap/codelabs/matter-sample-app)
+the [Build an Android App for Matter](https://developers.home.google.com/codelabs/matter-sample-app)
 Codelab.
 
 ## Version
