@@ -16,6 +16,38 @@ to debug and troubleshoot interactions with Matter devices.
 > **Warning:** There is still work to be done on this sample app, but we are making it available
 > at this point to allow developers to get a headstart on learning how to use the Home Mobile SDK.
 
+## Clone the repository
+
+The Sample app GitHub repository includes third party libraries from the
+[Matter repo (`connectedhomeip`)](https://github.com/project-chip/connectedhomeip).
+These native libraries are over 50MB, and require the use of Git Large File
+Storage (LFS).
+
+To clone the repository, complete the following steps:
+
+1.  Install [Git LFS](https://git-lfs.github.com/).
+
+2.  Initialize Git LFS.
+
+    ```console
+    $ git lfs install
+    ```
+
+    When complete, the console displays the following:
+
+    ```console
+    Updated Git hooks.
+    Git LFS initialized.
+    ```
+
+3.  Once Git LFS is installed and initialized, you're ready to clone the
+    repository. When cloning completes, Git checks out the `main` branch
+    and downloads the native libraries for you.
+
+    ```console
+    $ git clone https://github.com/google-home/sample-app-for-matter-android.git
+    ```
+
 ## Get started
 
 For an overview of the user interface and features, refer to
