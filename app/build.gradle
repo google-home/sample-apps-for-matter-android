@@ -113,9 +113,10 @@ dependencies {
 
 protobuf {
     protoc {
-        // artifact = "com.google.protobuf:protoc:3.14.0"
         // For Apple M1 Chip
-        artifact = 'com.google.protobuf:protoc:3.14.0:osx-x86_64'
+        def isMac = System.properties['os.name'].toLowerCase().contains('mac')
+        def protocDepSuffix = isMac ? ":osx-x86_64" : ""
+        artifact = "com.google.protobuf:protoc:3.14.0" + protocDepSuffix
     }
 
     // Generates the java Protobuf-lite code for the Protobufs in this project. See
