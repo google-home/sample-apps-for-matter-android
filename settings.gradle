@@ -10,7 +10,6 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url("/tmp/mobile-sdk/") }
     }
 }
 rootProject.name = "GHSAFM"
