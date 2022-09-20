@@ -320,8 +320,8 @@ class DeviceFragment : Fragment() {
           getString(
               R.string.share_device_info,
               formatTimestamp(deviceUiModel.device.dateCommissioned!!, null),
-              deviceUiModel.device.vendorId,
               deviceUiModel.device.deviceId.toString(),
+              deviceUiModel.device.vendorId,
               deviceUiModel.device.productId,
               deviceUiModel.device.deviceType.displayString())
     }
