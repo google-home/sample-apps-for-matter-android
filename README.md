@@ -57,6 +57,9 @@ To review code samples and start building, refer to
 the [Build an Android App for Matter](https://developers.home.google.com/codelabs/matter-sample-app)
 Codelab.
 
+To make sure that your device has the latest Matter support, review the
+[Verify Matter Modules & Services](https://developers.home.google.com/matter/verify-services) guide.
+
 ## Version
 
 Google Home Sample App for Matter follows the [Semantic](http://semver.org/)
