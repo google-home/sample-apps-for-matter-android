@@ -110,7 +110,10 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
               continuation.resumeWithException(error)
             }
           })
+      
+      // Temporary workaround to remove interface indexes from ipAddress
       ipAddress = ipAddress.replaceAll("%.*", "")
+      
       chipDeviceController.establishPaseConnection(deviceId, ipAddress, port, setupPinCode)
     }
   }
