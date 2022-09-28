@@ -112,6 +112,7 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
           })
       
       // Temporary workaround to remove interface indexes from ipAddress
+      // due to https://github.com/project-chip/connectedhomeip/pull/19394/files
       ipAddress = ipAddress.replaceAll("%.*", "")
       
       chipDeviceController.establishPaseConnection(deviceId, ipAddress, port, setupPinCode)
