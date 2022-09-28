@@ -25,6 +25,7 @@ import androidx.lifecycle.*
 import com.google.android.gms.home.matter.Matter
 import com.google.android.gms.home.matter.commissioning.CommissioningRequest
 import com.google.android.gms.home.matter.commissioning.CommissioningResult
+import com.google.android.gms.home.matter.commissioning.DeviceInfo
 import com.google.homesampleapp.*
 import com.google.homesampleapp.chip.ClustersHelper
 import com.google.homesampleapp.commissioning.AppCommissioningService
@@ -183,9 +184,18 @@ constructor(
         CommissioningRequest.builder()
             .setCommissioningService(ComponentName(context, AppCommissioningService::class.java))
     if (isMultiAdminCommissioning) {
+      val deviceName = intent.getStringExtra("com.google.android.gms.home.matter.EXTRA_DEVICE_NAME")
+      commissionRequestBuilder.setDeviceNameHint(deviceName)
+
+      val vendorId = intent.getIntExtra("com.google.android.gms.home.matter.EXTRA_VENDOR_ID", -1)
+      val productId = intent.getIntExtra("com.google.android.gms.home.matter.EXTRA_PRODUCT_ID", -1)
+      val deviceType =
+          intent.getIntExtra("com.google.android.gms.home.matter.EXTRA_DEVICE_Type", -1)
+      val deviceInfo = DeviceInfo.builder().setProductId(productId).setVendorId(vendorId).build()
+      commissionRequestBuilder.setDeviceInfo(deviceInfo)
+
       val manualPairingCode =
-          intent.getStringExtra(
-              "com.google.android.gms.home.matter.EXTRA_MANUAL_PAIRING_CODE")
+          intent.getStringExtra("com.google.android.gms.home.matter.EXTRA_MANUAL_PAIRING_CODE")
       commissionRequestBuilder.setOnboardingPayload(manualPairingCode)
     }
     val commissioningRequest = commissionRequestBuilder.build()
