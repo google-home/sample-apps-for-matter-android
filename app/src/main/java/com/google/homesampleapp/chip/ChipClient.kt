@@ -110,6 +110,7 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
               continuation.resumeWithException(error)
             }
           })
+      ipAddress = ipAddress.replaceAll("%.*", "");
       chipDeviceController.establishPaseConnection(deviceId, ipAddress, port, setupPinCode)
     }
   }
