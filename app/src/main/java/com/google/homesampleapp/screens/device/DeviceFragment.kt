@@ -93,6 +93,7 @@ class DeviceFragment : Fragment() {
     // at step 3 (in the viewModel) when the user triggers the "Share Device" action and the
     // Google Play Services (GPS) API (commissioningClient.shareDevice()) returns the IntentSender
     // to be used to launch the proper activity in GPS.
+    // CODELAB: shareDeviceLauncher definition
     shareDeviceLauncher =
         registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
           // Share Device Step 5.
@@ -105,6 +106,7 @@ class DeviceFragment : Fragment() {
             viewModel.shareDeviceFailed(getString(R.string.status_failed_with, resultCode))
           }
         }
+    // CODELAB SECTION END
   }
 
   override fun onCreateView(

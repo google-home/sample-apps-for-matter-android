@@ -174,6 +174,7 @@ constructor(
    * After using the sender, [consumeCommissionDeviceIntentSender()] should be called to avoid
    * receiving the sender again after a configuration change.
    */
+  // CODELAB: commissionDevice
   fun commissionDevice(intent: Intent, context: Context) {
     Timber.d("commissionDevice")
     _commissionDeviceStatus.postValue(TaskStatus.InProgress)
@@ -212,6 +213,7 @@ constructor(
           Timber.e(error)
         }
   }
+  // CODELAB SECTION END
 
   /** Consumes the value in [_commissionDeviceIntentSender] and sets it back to null. */
   fun consumeCommissionDeviceIntentSender() {

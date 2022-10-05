@@ -114,7 +114,9 @@ class HomeFragment : Fragment() {
 
   // The ActivityResult launcher that launches the "commissionDevice" activity in Google Play
   // Services.
+  // CODELAB: commissionDeviceLauncher declaration
   private lateinit var commissionDeviceLauncher: ActivityResultLauncher<IntentSenderRequest>
+  // CODELAB SECTION END
 
   // -----------------------------------------------------------------------------------------------
   // Lifecycle functions
@@ -128,6 +130,7 @@ class HomeFragment : Fragment() {
     // at step 2 (in the viewModel) when the user triggers the "Add Device" action and the
     // Google Play Services (GPS) API (commissioningClient.commissionDevice()) returns the
     // IntentSender to be used to launch the proper activity in GPS.
+    // CODELAB: commissionDeviceLauncher definition
     commissionDeviceLauncher =
         registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
           // Commission Device Step 5.
@@ -141,6 +144,7 @@ class HomeFragment : Fragment() {
             viewModel.commissionDeviceFailed(getString(R.string.status_failed_with, resultCode))
           }
         }
+    // CODELAB SECTION END
   }
 
   override fun onCreateView(
@@ -274,14 +278,17 @@ class HomeFragment : Fragment() {
     }
 
     // The current status of the share device action.
+    // CODELAB: commissionDeviceStatus
     viewModel.commissionDeviceStatus.observe(viewLifecycleOwner) { status ->
       Timber.d("commissionDeviceStatus.observe: status [${status}]")
       // TODO: disable the "add device button", update the result text view, etc.
     }
+    // CODELAB SECTION END
 
     // Commission Device Step 2.
     // The fragment observes the livedata for commissionDeviceIntentSender which
     // is updated in the ViewModel in step 3 of the Commission Device flow.
+    // CODELAB: commissionDeviceIntentSender
     viewModel.commissionDeviceIntentSender.observe(viewLifecycleOwner) { sender ->
       Timber.d("commissionDeviceIntentSender.observe is called with sender [${sender}]")
       if (sender != null) {
@@ -292,6 +299,7 @@ class HomeFragment : Fragment() {
         commissionDeviceLauncher.launch(IntentSenderRequest.Builder(sender).build())
       }
     }
+    // CODELAB SECTION END
   }
 
   // -----------------------------------------------------------------------------------------------
