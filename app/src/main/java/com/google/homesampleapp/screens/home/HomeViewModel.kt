@@ -25,6 +25,7 @@ import androidx.lifecycle.*
 import com.google.android.gms.home.matter.Matter
 import com.google.android.gms.home.matter.commissioning.CommissioningRequest
 import com.google.android.gms.home.matter.commissioning.CommissioningResult
+import com.google.android.gms.home.matter.commissioning.DeviceInfo
 import com.google.homesampleapp.*
 import com.google.homesampleapp.chip.ClustersHelper
 import com.google.homesampleapp.commissioning.AppCommissioningService
@@ -173,7 +174,6 @@ constructor(
    * After using the sender, [consumeCommissionDeviceIntentSender()] should be called to avoid
    * receiving the sender again after a configuration change.
    */
-
   // CODELAB: commissionDevice
 
   /** Consumes the value in [_commissionDeviceIntentSender] and sets it back to null. */

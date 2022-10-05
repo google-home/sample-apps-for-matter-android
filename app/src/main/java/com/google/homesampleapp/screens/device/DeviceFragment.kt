@@ -93,9 +93,7 @@ class DeviceFragment : Fragment() {
     // at step 3 (in the viewModel) when the user triggers the "Share Device" action and the
     // Google Play Services (GPS) API (commissioningClient.shareDevice()) returns the IntentSender
     // to be used to launch the proper activity in GPS.
-
     // CODELAB: shareDeviceLauncher definition
-
   }
 
   override fun onCreateView(
@@ -311,8 +309,8 @@ class DeviceFragment : Fragment() {
           getString(
               R.string.share_device_info,
               formatTimestamp(deviceUiModel.device.dateCommissioned!!, null),
-              deviceUiModel.device.vendorId,
               deviceUiModel.device.deviceId.toString(),
+              deviceUiModel.device.vendorId,
               deviceUiModel.device.productId,
               deviceUiModel.device.deviceType.displayString())
     }

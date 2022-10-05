@@ -96,9 +96,7 @@ constructor(
    * the sender again after a configuration change.
    */
   fun shareDevice(activity: FragmentActivity) {
-
     // CODELAB: shareDevice
-
   }
 
   // Called by the fragment in Step 5 of the Device Sharing flow.
