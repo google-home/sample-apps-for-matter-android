@@ -112,6 +112,8 @@ class HomeFragment : Fragment() {
             viewModel.updateDeviceStateOn(deviceUiModel, onOffSwitch?.isChecked!!)
           })
 
+  // The ActivityResult launcher that launches the "commissionDevice" activity in Google Play
+  // Services.
   // CODELAB: commissionDeviceLauncher declaration
 
   // -----------------------------------------------------------------------------------------------
@@ -126,9 +128,7 @@ class HomeFragment : Fragment() {
     // at step 2 (in the viewModel) when the user triggers the "Add Device" action and the
     // Google Play Services (GPS) API (commissioningClient.commissionDevice()) returns the
     // IntentSender to be used to launch the proper activity in GPS.
-
     // CODELAB: commissionDeviceLauncher definition
-
   }
 
   override fun onCreateView(
@@ -261,12 +261,12 @@ class HomeFragment : Fragment() {
       updateUi(devicesUiModel)
     }
 
+    // The current status of the share device action.
     // CODELAB: commissionDeviceStatus
 
     // Commission Device Step 2.
     // The fragment observes the livedata for commissionDeviceIntentSender which
     // is updated in the ViewModel in step 3 of the Commission Device flow.
-
     // CODELAB: commissionDeviceIntentSender
   }
 

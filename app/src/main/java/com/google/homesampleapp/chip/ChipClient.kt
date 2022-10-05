@@ -28,6 +28,7 @@ import chip.platform.DiagnosticDataProviderImpl
 import chip.platform.NsdManagerServiceResolver
 import chip.platform.PreferencesConfigurationManager
 import chip.platform.PreferencesKeyValueStoreManager
+import com.google.homesampleapp.stripLinkLocalInIpAddress
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -110,7 +111,11 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
               continuation.resumeWithException(error)
             }
           })
-      chipDeviceController.establishPaseConnection(deviceId, ipAddress, port, setupPinCode)
+
+      // Temporary workaround to remove interface indexes from ipAddress
+      // due to https://github.com/project-chip/connectedhomeip/pull/19394/files
+      chipDeviceController.establishPaseConnection(
+          deviceId, stripLinkLocalInIpAddress(ipAddress), port, setupPinCode)
     }
   }
 

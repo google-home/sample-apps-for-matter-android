@@ -50,12 +50,26 @@ To clone the repository, complete the following steps:
 
 ## Get started
 
-For an overview of the user interface and features, refer to
-the [Google Home Sample App for Matter Guide](https://developers.home.google.com/samples/matter-app).
-
-To review code samples and start building, refer to
-the [Build an Android App for Matter](https://developers.home.google.com/codelabs/matter-sample-app)
-Codelab.
+*   To make sure that your device has the latest Matter support, review the
+    [Verify Matter Modules & Services](https://developers.home.google.com/matter/verify-services)
+    guide.
+*   Build a Matter device with On/Off capabilities. This sample  app works with a virtual device
+    and an ESP32.
+    *   [Build a Matter Virtual Device](https://developers.home.google.com/codelabs/matter-device-virtual)
+        with the `rootnode_dimmablelight_bCwGYSDpoe` app. When you
+        [Create a Matter integration](https://developers.home.google.com/matter/integration/create)
+        in the [Home Developer Console](https://console.home.google.com/projects),
+        use `0xFFF1` as your Vendor ID and `0x8000` as your Product ID.
+    *   [Build an Espressif Device](https://developers.home.google.com/matter/vendors/espressif)
+        with the `all-clusters-app`. When you
+        [Create a Matter integration](https://developers.home.google.com/matter/integration/create)
+        in the [Home Developer Console](https://console.home.google.com/projects),
+        use `0xFFF1` as your Vendor ID and `0x8001` as your Product ID.
+*   For an overview of the user interface and features, refer to
+    the [Google Home Sample App for Matter Guide](https://developers.home.google.com/samples/matter-app).
+*   To review code samples and start building, refer to
+    the [Build an Android App for Matter](https://developers.home.google.com/codelabs/matter-sample-app)
+    Codelab.        
 
 ## Version
 
