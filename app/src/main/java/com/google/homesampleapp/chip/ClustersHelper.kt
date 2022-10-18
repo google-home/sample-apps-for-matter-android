@@ -124,12 +124,12 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
   suspend fun readDescriptorClusterDeviceListAttribute(
       devicePtr: Long,
       endpoint: Int
-  ): List<ChipStructs.DescriptorClusterDeviceType> {
+  ): List<ChipStructs.DescriptorClusterDeviceTypeStruct> {
     return suspendCoroutine { continuation ->
       getDescriptorClusterForDevice(devicePtr, endpoint)
-          .readDeviceListAttribute(
-              object : ChipClusters.DescriptorCluster.DeviceListAttributeCallback {
-                override fun onSuccess(values: List<ChipStructs.DescriptorClusterDeviceType>) {
+          .readDeviceTypeListAttribute(
+              object : ChipClusters.DescriptorCluster.DeviceTypeListAttributeCallback {
+                override fun onSuccess(values: List<ChipStructs.DescriptorClusterDeviceTypeStruct>) {
                   continuation.resume(values)
                 }
                 override fun onError(ex: Exception) {
