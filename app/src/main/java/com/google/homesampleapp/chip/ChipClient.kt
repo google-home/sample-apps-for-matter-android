@@ -22,7 +22,14 @@ import chip.devicecontroller.ControllerParams
 import chip.devicecontroller.GetConnectedDeviceCallbackJni.GetConnectedDeviceCallback
 import chip.devicecontroller.NetworkCredentials
 import chip.devicecontroller.PaseVerifierParams
-import chip.platform.*
+import chip.platform.AndroidBleManager
+import chip.platform.AndroidChipPlatform
+import chip.platform.PreferencesConfigurationManager
+import chip.platform.PreferencesKeyValueStoreManager
+import chip.platform.NsdManagerServiceResolver
+import chip.platform.NsdManagerServiceBrowser
+import chip.platform.ChipMdnsCallbackImpl
+import chip.platform.DiagnosticDataProviderImpl
 
 import com.google.homesampleapp.stripLinkLocalInIpAddress
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -112,13 +119,13 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
               continuation.resumeWithException(error)
             }
 
-            override fun onReadCommissioningInfo(p0: Int, p1: Int, p2: Int, p3: Int) {
-              super.onReadCommissioningInfo(p0, p1, p2, p3)
+            override fun onReadCommissioningInfo(vendorId: Int, productId: Int, wifiEndpointId: Int, threadEndpointId: Int) {
+              super.onReadCommissioningInfo(vendorId, productId, wifiEndpointId, threadEndpointId)
               continuation.resume(Unit)
             }
 
-            override fun onCommissioningStatusUpdate(p0: Long, p1: String?, p2: Int) {
-              super.onCommissioningStatusUpdate(p0, p1, p2)
+            override fun onCommissioningStatusUpdate(nodeId: Long, stage: String?, errorCode: Int) {
+              super.onCommissioningStatusUpdate(nodeId, stage, errorCode)
               continuation.resume(Unit)
             }
           })
