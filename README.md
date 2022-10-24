@@ -48,6 +48,18 @@ To clone the repository, complete the following steps:
     $ git clone https://github.com/google-home/sample-app-for-matter-android.git
     ```
 
+## Releases
+
+There are multiple releases available for this sample app. Before proceding, make sure you
+download the correct one for your use case.
+
+*   **Release [v1.0.3](https://github.com/google-home/sample-app-for-matter-android/releases/tag/v1.0.3)**
+    — Use this release with the [Google Developer Preview](https://developers.home.google.com/matter/get-started).
+*   **Release [v1.1.0](https://github.com/google-home/sample-app-for-matter-android/releases/tag/v1.1.0)**
+    — This release is intended for Google testing use. Do NOT use it with the Google Developer Preview.
+*   **Release [v1.2.0](https://github.com/google-home/sample-app-for-matter-android/releases/tag/v1.2.0)**
+    — This release is intended for Google testing use. Do NOT use it with the Google Developer Preview.  
+
 ## Get started
 
 *   To make sure that your device has the latest Matter support, review the
