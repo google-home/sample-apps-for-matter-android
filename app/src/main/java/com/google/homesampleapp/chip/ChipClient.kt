@@ -24,13 +24,12 @@ import chip.devicecontroller.NetworkCredentials
 import chip.devicecontroller.PaseVerifierParams
 import chip.platform.AndroidBleManager
 import chip.platform.AndroidChipPlatform
-import chip.platform.PreferencesConfigurationManager
-import chip.platform.PreferencesKeyValueStoreManager
-import chip.platform.NsdManagerServiceResolver
-import chip.platform.NsdManagerServiceBrowser
 import chip.platform.ChipMdnsCallbackImpl
 import chip.platform.DiagnosticDataProviderImpl
-
+import chip.platform.NsdManagerServiceBrowser
+import chip.platform.NsdManagerServiceResolver
+import chip.platform.PreferencesConfigurationManager
+import chip.platform.PreferencesKeyValueStoreManager
 import com.google.homesampleapp.stripLinkLocalInIpAddress
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -57,9 +56,9 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
         NsdManagerServiceResolver(context),
         NsdManagerServiceBrowser(context),
         ChipMdnsCallbackImpl(),
-        DiagnosticDataProviderImpl(context)
-    )
-    ChipDeviceController(ControllerParams.newBuilder().setUdpListenPort(0).setControllerVendorId(VENDOR_ID).build())
+        DiagnosticDataProviderImpl(context))
+    ChipDeviceController(
+        ControllerParams.newBuilder().setUdpListenPort(0).setControllerVendorId(VENDOR_ID).build())
   }
 
   /**
@@ -119,7 +118,12 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
               continuation.resumeWithException(error)
             }
 
-            override fun onReadCommissioningInfo(vendorId: Int, productId: Int, wifiEndpointId: Int, threadEndpointId: Int) {
+            override fun onReadCommissioningInfo(
+                vendorId: Int,
+                productId: Int,
+                wifiEndpointId: Int,
+                threadEndpointId: Int
+            ) {
               super.onReadCommissioningInfo(vendorId, productId, wifiEndpointId, threadEndpointId)
               continuation.resume(Unit)
             }

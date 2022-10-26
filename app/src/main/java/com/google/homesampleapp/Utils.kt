@@ -183,15 +183,18 @@ fun <T> MutableList<T>.mapButReplace(targetItem: T, newItem: T) = map {
 }
 
 /**
- * Strip the link-local portion of an IP Address.
- * Was needed to handle https://github.com/google-home/sample-app-for-matter-android/issues/15.
- * For example:
+ * Strip the link-local portion of an IP Address. Was needed to handle
+ * https://github.com/google-home/sample-app-for-matter-android/issues/15. For example:
+ * ```
  *    "fe80::84b1:c2f6:b1b7:67d4%wlan0"
+ * ```
  * becomes
+ * ```
  *    ""fe80::84b1:c2f6:b1b7:67d4"
+ * ```
  * The "%wlan0" at the end of the link-local ip address is stripped.
  */
-fun stripLinkLocalInIpAddress(ipAddress: String) : String {
+fun stripLinkLocalInIpAddress(ipAddress: String): String {
   return ipAddress.replace("%.*".toRegex(), "")
 }
 
