@@ -25,7 +25,24 @@ import timber.log.Timber
 class GHSAFMApplication : Application() {
   override fun onCreate() {
     super.onCreate()
+
     // Setup Timber for logging.
-    Timber.plant(Timber.DebugTree())
+    Timber.plant(
+        object : Timber.DebugTree() {
+          // Override [log] to add a "global prefix" prefix to the tag.
+          override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
+            super.log(priority, "GHSAFM-$tag", message, t)
+          }
+
+          // Override [createStackElementTag] to include additional information to the tag.
+          // (e.g. a "method name" to the tag).
+          /**
+           * Not enabled for now, but leaving here since it may be useful when debugging. override
+           * fun createStackElementTag(element: StackTraceElement): String { return String.format(
+           * "%s:%s", super.createStackElementTag(element), element.methodName, ) }
+           */
+        })
+
+    Timber.d("GHSAFM application created!")
   }
 }
