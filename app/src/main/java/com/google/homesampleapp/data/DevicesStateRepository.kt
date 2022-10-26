@@ -32,8 +32,7 @@ import kotlinx.coroutines.flow.first
 import timber.log.Timber
 
 /**
- * Singleton repository that updates the dynamic state of the devices on the
- * homesampleapp fabric.
+ * Singleton repository that updates the dynamic state of the devices on the homesampleapp fabric.
  */
 @Singleton
 class DevicesStateRepository @Inject constructor(@ApplicationContext context: Context) {
