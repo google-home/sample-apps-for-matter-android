@@ -29,8 +29,7 @@ import kotlinx.coroutines.flow.first
 import timber.log.Timber
 
 /**
- * Singleton repository that updates and persists the set of devices in the
- * homesampleapp fabric.
+ * Singleton repository that updates and persists the set of devices in the homesampleapp fabric.
  */
 @Singleton
 class DevicesRepository @Inject constructor(@ApplicationContext context: Context) {
