@@ -27,7 +27,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import com.google.homesampleapp.R
-import com.google.homesampleapp.chip.DeviceMatterInfo
+import com.google.homesampleapp.chip.DeviceEndpointInfo
 import com.google.homesampleapp.chip.MatterConstants
 import com.google.homesampleapp.data.DevicesStateRepository
 import com.google.homesampleapp.databinding.FragmentInspectBinding
@@ -97,7 +97,7 @@ class InspectFragment : Fragment() {
     }
 
     // Observer on introspection information
-    viewModel.instrospectionInfo.observe(viewLifecycleOwner) { updateIntrospectionInfo(it) }
+    viewModel.introspectionInfo.observe(viewLifecycleOwner) { updateIntrospectionInfo(it) }
   }
 
   // -----------------------------------------------------------------------------------------------
@@ -119,11 +119,13 @@ class InspectFragment : Fragment() {
     viewModel.inspectDevice(deviceUiModel?.device?.deviceId!!)
   }
 
-  private fun updateIntrospectionInfo(deviceMatterInfoList: List<DeviceMatterInfo>) {
+  private fun updateIntrospectionInfo(deviceEndpointInfoList: List<DeviceEndpointInfo>) {
     val linearLayout = binding.inspectInfoLayout
     linearLayout.removeAllViews()
     val ignore = StringBuilder()
-    if (deviceMatterInfoList.isEmpty()) {
+    val sb = StringBuilder()
+
+    if (deviceEndpointInfoList.isEmpty()) {
       addTextView(
           "Oops... We could not retrieve any information from the Descriptor Cluster. " +
               "This is probably because the device just recently turned \"offline\".",
@@ -138,8 +140,7 @@ class InspectFragment : Fragment() {
         ignore)
 
     // For each endpoint
-    for (deviceMatterInfo in deviceMatterInfoList) {
-      val sb = StringBuilder()
+    for (deviceMatterInfo in deviceEndpointInfoList) {
 
       // Endpoint ID
       addTextView(
@@ -204,9 +205,11 @@ class InspectFragment : Fragment() {
           "${deviceMatterInfo.parts}",
           com.google.android.material.R.style.TextAppearance_Material3_BodyMedium,
           sb)
-
-      Timber.d("**** DEVICE MATTER INFO: ${sb}")
     }
+    Timber.d("**** DEVICE MATTER INFO: ${sb}")
+
+    // Fabrics (linked services)
+    // FIXME: TBD
   }
 
   private fun addTextView(text: String, style: Int, stringBuilder: StringBuilder) {

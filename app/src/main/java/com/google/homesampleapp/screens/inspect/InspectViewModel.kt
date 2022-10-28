@@ -19,7 +19,7 @@ package com.google.homesampleapp.screens.inspect
 import androidx.lifecycle.*
 import com.google.homesampleapp.*
 import com.google.homesampleapp.chip.ClustersHelper
-import com.google.homesampleapp.chip.DeviceMatterInfo
+import com.google.homesampleapp.chip.DeviceEndpointInfo
 import com.google.homesampleapp.data.DevicesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -36,9 +36,9 @@ constructor(
 ) : ViewModel() {
 
   /** Introspection device info from the clusters. */
-  private val _instrospectionInfo = MutableLiveData<List<DeviceMatterInfo>>()
-  val instrospectionInfo: LiveData<List<DeviceMatterInfo>>
-    get() = _instrospectionInfo
+  private val _introspectionInfo = MutableLiveData<List<DeviceEndpointInfo>>()
+  val introspectionInfo: LiveData<List<DeviceEndpointInfo>>
+    get() = _introspectionInfo
 
   // -----------------------------------------------------------------------------------------------
   // Inspect device
@@ -50,13 +50,16 @@ constructor(
       try {
         val currentDevice: Device = devicesRepository.getDevice(deviceId)
         // Introspect the device.
-        val deviceMatterInfoList = clustersHelper.fetchAllDeviceMatterInfo(deviceId)
-        Timber.d("*** deviceMatterInfoList: [${deviceMatterInfoList}] *****")
-        _instrospectionInfo.postValue(deviceMatterInfoList)
+        //val deviceMatterInfoList = clustersHelper.fetchAllDeviceEndpointsInfo(deviceId)
+        //Timber.d("*** deviceMatterInfoList: [${deviceMatterInfoList}] *****")
+        val fabricsInfo = clustersHelper.fetchAllFabricsInfo(deviceId)
+        Timber.d("*** fabricsInfo: [${fabricsInfo}] *****")
+        // FIXME have the fragment show the fabg
+        //_introspectionInfo.postValue(deviceMatterInfoList)
       } catch (e: Exception) {
         Timber.d("*** EXCEPTION GETTING DEVICE MATTER INFO *****")
         Timber.e(e)
-        _instrospectionInfo.postValue(emptyList())
+        _introspectionInfo.postValue(emptyList())
       }
     }
   }
@@ -65,7 +68,7 @@ constructor(
   fun inspectApplicationBasicCluster(nodeId: Long) {
     Timber.d("inspectApplicationBasicCluster: nodeId [${nodeId}]")
     viewModelScope.launch {
-      val attributeList = clustersHelper.readApplicationBasicClusterAttributeList(nodeId, 1)
+      val attributeList = clustersHelper.readApplicationBasicClusterAttributeList(nodeId, 0)
       attributeList.forEach { Timber.d("inspectDevice attribute: [$it]") }
     }
   }

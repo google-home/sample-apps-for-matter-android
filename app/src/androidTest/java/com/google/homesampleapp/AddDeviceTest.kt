@@ -40,10 +40,12 @@ import org.junit.runner.RunWith
 /**
  * Test to verify e2e commissioning of a Matter device in the Home sample app.
  *
- * Before running this test, make sure that
- * - The Matter device is running and advertising on the same network as the app. The SETUP_CODE
- * below should match with the set up code of the Matter device.
- * - You only have one Home structure in the Google home app.
+ * Before running this test, make sure that 1) The Matter device is running and advertising on the
+ * same network as the app. The SETUP_CODE
+ * ```
+ *    below should match with the set up code of the Matter device.
+ * ```
+ * 2) You only have one Home structure in the Google home app.
  */
 @RunWith(AndroidJUnit4::class)
 @LargeTest

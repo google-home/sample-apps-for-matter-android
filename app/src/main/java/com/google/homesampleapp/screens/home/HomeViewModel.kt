@@ -25,6 +25,7 @@ import androidx.lifecycle.*
 import com.google.android.gms.home.matter.Matter
 import com.google.android.gms.home.matter.commissioning.CommissioningRequest
 import com.google.android.gms.home.matter.commissioning.CommissioningResult
+import com.google.android.gms.home.matter.commissioning.DeviceInfo
 import com.google.homesampleapp.*
 import com.google.homesampleapp.chip.ClustersHelper
 import com.google.homesampleapp.commissioning.AppCommissioningService
@@ -173,6 +174,7 @@ constructor(
    * After using the sender, [consumeCommissionDeviceIntentSender()] should be called to avoid
    * receiving the sender again after a configuration change.
    */
+  // CODELAB: commissionDevice
   fun commissionDevice(intent: Intent, context: Context) {
     Timber.d("commissionDevice")
     _commissionDeviceStatus.postValue(TaskStatus.InProgress)
@@ -183,6 +185,16 @@ constructor(
         CommissioningRequest.builder()
             .setCommissioningService(ComponentName(context, AppCommissioningService::class.java))
     if (isMultiAdminCommissioning) {
+      val deviceName = intent.getStringExtra("com.google.android.gms.home.matter.EXTRA_DEVICE_NAME")
+      commissionRequestBuilder.setDeviceNameHint(deviceName)
+
+      val vendorId = intent.getIntExtra("com.google.android.gms.home.matter.EXTRA_VENDOR_ID", -1)
+      val productId = intent.getIntExtra("com.google.android.gms.home.matter.EXTRA_PRODUCT_ID", -1)
+      val deviceType =
+          intent.getIntExtra("com.google.android.gms.home.matter.EXTRA_DEVICE_Type", -1)
+      val deviceInfo = DeviceInfo.builder().setProductId(productId).setVendorId(vendorId).build()
+      commissionRequestBuilder.setDeviceInfo(deviceInfo)
+
       val manualPairingCode =
           intent.getStringExtra("com.google.android.gms.home.matter.EXTRA_MANUAL_PAIRING_CODE")
       commissionRequestBuilder.setOnboardingPayload(manualPairingCode)
@@ -201,6 +213,7 @@ constructor(
           Timber.e(error)
         }
   }
+  // CODELAB SECTION END
 
   /** Consumes the value in [_commissionDeviceIntentSender] and sets it back to null. */
   fun consumeCommissionDeviceIntentSender() {
@@ -240,7 +253,7 @@ constructor(
         _commissionDeviceStatus.postValue(TaskStatus.Completed(message))
 
         // Introspect the device.
-        val deviceMatterInfoList = clustersHelper.fetchAllDeviceMatterInfo(deviceId)
+        val deviceMatterInfoList = clustersHelper.fetchAllDeviceEndpointsInfo(deviceId)
         for (deviceMatterInfo in deviceMatterInfoList) {
           Timber.d("*** MATTER DEVICE INFO ***")
           Timber.d("[${deviceMatterInfo}]")

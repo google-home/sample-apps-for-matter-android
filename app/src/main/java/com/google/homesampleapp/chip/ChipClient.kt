@@ -18,6 +18,7 @@ package com.google.homesampleapp.chip
 
 import android.content.Context
 import chip.devicecontroller.ChipDeviceController
+import chip.devicecontroller.ControllerParams
 import chip.devicecontroller.GetConnectedDeviceCallbackJni.GetConnectedDeviceCallback
 import chip.devicecontroller.NetworkCredentials
 import chip.devicecontroller.PaseVerifierParams
@@ -25,9 +26,11 @@ import chip.platform.AndroidBleManager
 import chip.platform.AndroidChipPlatform
 import chip.platform.ChipMdnsCallbackImpl
 import chip.platform.DiagnosticDataProviderImpl
+import chip.platform.NsdManagerServiceBrowser
 import chip.platform.NsdManagerServiceResolver
 import chip.platform.PreferencesConfigurationManager
 import chip.platform.PreferencesKeyValueStoreManager
+import com.google.homesampleapp.stripLinkLocalInIpAddress
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -40,6 +43,9 @@ import timber.log.Timber
 @Singleton
 class ChipClient @Inject constructor(@ApplicationContext context: Context) {
 
+  /* 0xFFF4 is a test vendor ID, replace with your assigned company ID */
+  private val VENDOR_ID = 0xFFF4
+
   // Lazily instantiate [ChipDeviceController] and hold a reference to it.
   private val chipDeviceController: ChipDeviceController by lazy {
     ChipDeviceController.loadJni()
@@ -48,9 +54,11 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
         PreferencesKeyValueStoreManager(context),
         PreferencesConfigurationManager(context),
         NsdManagerServiceResolver(context),
+        NsdManagerServiceBrowser(context),
         ChipMdnsCallbackImpl(),
         DiagnosticDataProviderImpl(context))
-    ChipDeviceController()
+    ChipDeviceController(
+        ControllerParams.newBuilder().setUdpListenPort(0).setControllerVendorId(VENDOR_ID).build())
   }
 
   /**
@@ -108,8 +116,27 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
               super.onError(error)
               continuation.resumeWithException(error)
             }
+
+            override fun onReadCommissioningInfo(
+                vendorId: Int,
+                productId: Int,
+                wifiEndpointId: Int,
+                threadEndpointId: Int
+            ) {
+              super.onReadCommissioningInfo(vendorId, productId, wifiEndpointId, threadEndpointId)
+              continuation.resume(Unit)
+            }
+
+            override fun onCommissioningStatusUpdate(nodeId: Long, stage: String?, errorCode: Int) {
+              super.onCommissioningStatusUpdate(nodeId, stage, errorCode)
+              continuation.resume(Unit)
+            }
           })
-      chipDeviceController.establishPaseConnection(deviceId, ipAddress, port, setupPinCode)
+
+      // Temporary workaround to remove interface indexes from ipAddress
+      // due to https://github.com/project-chip/connectedhomeip/pull/19394/files
+      chipDeviceController.establishPaseConnection(
+          deviceId, stripLinkLocalInIpAddress(ipAddress), port, setupPinCode)
     }
   }
 

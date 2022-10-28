@@ -96,6 +96,7 @@ constructor(
    * the sender again after a configuration change.
    */
   fun shareDevice(activity: FragmentActivity) {
+    // CODELAB: shareDevice
     _shareDeviceStatus.postValue(TaskStatus.InProgress)
     val shareDeviceRequest =
         ShareDeviceRequest.builder()
@@ -119,6 +120,7 @@ constructor(
           _shareDeviceIntentSender.postValue(result)
         }
         .addOnFailureListener { error -> _shareDeviceStatus.postValue(TaskStatus.Failed(error)) }
+    // CODELAB SECTION END
   }
 
   // Called by the fragment in Step 5 of the Device Sharing flow.
@@ -157,6 +159,7 @@ constructor(
         Timber.d("Handling test device")
         devicesStateRepository.updateDeviceState(deviceId, true, isOn)
       } else {
+        // CODELAB: toggle
         Timber.d("Handling real device")
         try {
           clustersHelper.setOnOffDeviceStateOnOffCluster(deviceUiModel.device.deviceId, isOn, 1)
@@ -164,6 +167,7 @@ constructor(
         } catch (e: Throwable) {
           Timber.e("Failed setting on/off state")
         }
+        // CODELAB SECTION END
       }
     }
   }

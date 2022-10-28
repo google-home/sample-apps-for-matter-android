@@ -29,12 +29,12 @@ import timber.log.Timber
  * Encapsulates the information of interest when querying a Matter device just after it has been
  * commissioned.
  */
-data class DeviceMatterInfo(
+data class DeviceEndpointInfo(
     val endpoint: Int,
     val types: List<Long>,
     val serverClusters: List<Any>,
     val clientClusters: List<Any>,
-    val parts: List<Any>?
+    val parts: List<Any>?,
 )
 
 /** Singleton to facilitate access to Clusters functionality. */
@@ -42,13 +42,13 @@ data class DeviceMatterInfo(
 class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
 
   // -----------------------------------------------------------------------------------------------
-  // Convenience functions
+  // Convenience function for extracting information about all the endpoints of the device.
 
   // Recursively fetch device information for all endpoints on the device,
   // starting with the root endpoint 0.
-  suspend fun fetchAllDeviceMatterInfo(nodeId: Long): List<DeviceMatterInfo> {
-    Timber.d("fetchAllDeviceMatterInfo(): nodeId [${nodeId}]")
-    val matterDeviceInfoList = arrayListOf<DeviceMatterInfo>()
+  suspend fun fetchAllDeviceEndpointsInfo(nodeId: Long): List<DeviceEndpointInfo> {
+    Timber.d("fetchAllDeviceEndpointsInfo(): nodeId [${nodeId}]")
+    val deviceEndpointInfoList = arrayListOf<DeviceEndpointInfo>()
     val connectedDevicePtr =
         try {
           chipClient.getConnectedDevicePointer(nodeId)
@@ -57,15 +57,15 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
           return emptyList()
         }
 
-    fetchEndpointInfo(connectedDevicePtr, matterDeviceInfoList, 0)
-    return matterDeviceInfoList
+    fetchEndpointInfo(connectedDevicePtr, deviceEndpointInfoList, 0)
+    return deviceEndpointInfoList
   }
 
   // Recursively fetch endpoints information.
   suspend fun fetchEndpointInfo(
-      connectedDevicePtr: Long,
-      matterDeviceInfoList: MutableList<DeviceMatterInfo>,
-      endpoint: Int
+    connectedDevicePtr: Long,
+    deviceEndpointInfoList: MutableList<DeviceEndpointInfo>,
+    endpoint: Int
   ) {
     // Get the endpoint's list of parts (nested endpoints).
     val partsListAttribute = readDescriptorClusterPartsListAttribute(connectedDevicePtr, endpoint)
@@ -80,7 +80,7 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
             else -> return@forEach
           }
       // Recursive call.
-      fetchEndpointInfo(connectedDevicePtr, matterDeviceInfoList, nestedEndpoint)
+      fetchEndpointInfo(connectedDevicePtr, deviceEndpointInfoList, nestedEndpoint)
     }
 
     // Endpoint specific information
@@ -98,10 +98,29 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
     val clientClusters = arrayListOf<Any>()
     clientListAttribute.forEach { clientClusters.add(it) }
 
-    // Build the DeviceMatterInfo
-    val deviceMatterInfo =
-        DeviceMatterInfo(endpoint, types, serverClusters, clientClusters, partsListAttribute)
-    matterDeviceInfoList.add(deviceMatterInfo)
+    // Build the DeviceEndpointInfo
+    val deviceEndpointInfo =
+        DeviceEndpointInfo(endpoint, types, serverClusters, clientClusters, partsListAttribute)
+    deviceEndpointInfoList.add(deviceEndpointInfo)
+  }
+
+  // -----------------------------------------------------------------------------------------------
+  // Convenience function for extracting information about all the fabrics the device is
+  // commissioned to.
+
+  // Fetch all the fabrics information the device is commissioned to.
+  suspend fun fetchAllFabricsInfo(nodeId: Long): List<ChipStructs.OperationalCredentialsClusterFabricDescriptor> {
+    Timber.d("fetchAllFabricsInfo(): nodeId [${nodeId}]")
+    val deviceEndpointInfoList = arrayListOf<ChipStructs.OperationalCredentialsClusterFabricDescriptor>()
+    val connectedDevicePtr =
+      try {
+        chipClient.getConnectedDevicePointer(nodeId)
+      } catch (e: IllegalStateException) {
+        Timber.e("Can't get connectedDevicePointer.")
+        return emptyList()
+      }
+
+    return readFabricsAttribute(connectedDevicePtr)
   }
 
   // -----------------------------------------------------------------------------------------------
@@ -142,12 +161,14 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
   suspend fun readDescriptorClusterDeviceListAttribute(
       devicePtr: Long,
       endpoint: Int
-  ): List<ChipStructs.DescriptorClusterDeviceType> {
+  ): List<ChipStructs.DescriptorClusterDeviceTypeStruct> {
     return suspendCoroutine { continuation ->
       getDescriptorClusterForDevice(devicePtr, endpoint)
-          .readDeviceListAttribute(
-              object : ChipClusters.DescriptorCluster.DeviceListAttributeCallback {
-                override fun onSuccess(values: List<ChipStructs.DescriptorClusterDeviceType>) {
+          .readDeviceTypeListAttribute(
+              object : ChipClusters.DescriptorCluster.DeviceTypeListAttributeCallback {
+                override fun onSuccess(
+                    values: List<ChipStructs.DescriptorClusterDeviceTypeStruct>
+                ) {
                   continuation.resume(values)
                 }
                 override fun onError(ex: Exception) {
@@ -424,5 +445,29 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
       endpoint: Int
   ): ChipClusters.AdministratorCommissioningCluster {
     return ChipClusters.AdministratorCommissioningCluster(devicePtr, endpoint)
+  }
+
+  // -----------------------------------------------------------------------------------------------
+  // OperationalCredentialsCluster functions
+
+  private suspend fun readFabricsAttribute(connectedDevicePtr: Long): List<ChipStructs.OperationalCredentialsClusterFabricDescriptor> {
+            return suspendCoroutine { continuation ->
+              getOperationalCredentialsClusterForDevice(connectedDevicePtr)
+                .readFabricsAttribute(
+                  object : ChipClusters.OperationalCredentialsCluster.FabricsAttributeCallback {
+                    override fun onSuccess(values: MutableList<ChipStructs.OperationalCredentialsClusterFabricDescriptor>) {
+              continuation.resume(values)
+            }
+            override fun onError(ex: Exception) {
+              continuation.resumeWithException(ex)
+            }
+          })
+    }
+  }
+
+  private fun getOperationalCredentialsClusterForDevice(
+    devicePtr: Long
+  ): ChipClusters.OperationalCredentialsCluster {
+    return ChipClusters.OperationalCredentialsCluster(devicePtr, 0 /* FIXME: always 0? */)
   }
 }
