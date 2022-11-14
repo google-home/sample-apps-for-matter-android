@@ -191,7 +191,7 @@ constructor(
       val vendorId = intent.getIntExtra("com.google.android.gms.home.matter.EXTRA_VENDOR_ID", -1)
       val productId = intent.getIntExtra("com.google.android.gms.home.matter.EXTRA_PRODUCT_ID", -1)
       val deviceType =
-          intent.getIntExtra("com.google.android.gms.home.matter.EXTRA_DEVICE_Type", -1)
+          intent.getIntExtra("com.google.android.gms.home.matter.EXTRA_DEVICE_TYPE", -1)
       val deviceInfo = DeviceInfo.builder().setProductId(productId).setVendorId(vendorId).build()
       commissionRequestBuilder.setDeviceInfo(deviceInfo)
 
@@ -209,8 +209,9 @@ constructor(
           _commissionDeviceIntentSender.postValue(result)
         }
         .addOnFailureListener { error ->
-          _commissionDeviceStatus.postValue(TaskStatus.Failed(error))
           Timber.e(error)
+          _commissionDeviceStatus.postValue(
+              TaskStatus.Failed("Failed to to get the IntentSender.", error))
         }
   }
   // CODELAB SECTION END
@@ -258,7 +259,7 @@ constructor(
 
   // Called by the fragment in Step 5 of the Device Commissioning flow.
   fun commissionDeviceFailed(message: String) {
-    _commissionDeviceStatus.postValue(TaskStatus.Failed(Throwable(message)))
+    _commissionDeviceStatus.postValue(TaskStatus.Failed(message, Throwable(message)))
   }
 
   /** Updates the status of [commissionDeviceStatus] to success with the given message. */

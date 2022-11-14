@@ -21,6 +21,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.databinding.DataBindingUtil.setContentView
 import com.google.homesampleapp.databinding.ActivityMainBinding
 import dagger.hilt.android.AndroidEntryPoint
+import timber.log.Timber
 
 /** Main Activity for the "Google Home Sample App for Matter" (GHSAFM). */
 @AndroidEntryPoint
@@ -30,12 +31,12 @@ class MainActivity : AppCompatActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+    initContextDependentConstants()
+
     binding = setContentView(this, R.layout.activity_main)
 
     // Useful to see which preferences are set under the hood by Matter libraries.
     displayPreferences(this)
-
-    initContextDependentConstants()
   }
 
   /**
@@ -46,6 +47,9 @@ class MainActivity : AppCompatActivity() {
     // versionName is set in build.gradle.
     val packageInfo = packageManager.getPackageInfo(packageName, 0)
     VERSION_NAME = packageInfo.versionName
+    Timber.i(
+        "==============================\nVersion ${VERSION_NAME}\n" +
+            "==============================")
 
     // Strings associated with DeviceTypes
     setDeviceTypeStrings(
