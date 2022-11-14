@@ -36,6 +36,7 @@ import androidx.navigation.findNavController
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.homesampleapp.ALLOW_DEVICE_SHARING_ON_DUMMY_DEVICE
+import com.google.homesampleapp.BackgroundWorkAlertDialogAction
 import com.google.homesampleapp.DeviceState
 import com.google.homesampleapp.ON_OFF_SWITCH_DISABLED_WHEN_DEVICE_OFFLINE
 import com.google.homesampleapp.PERIODIC_UPDATE_INTERVAL_DEVICE_SCREEN_SECONDS
@@ -81,6 +82,9 @@ class DeviceFragment : Fragment() {
 
   // The Activity launcher that launches the "shareDevice" activity in Google Play Services.
   private lateinit var shareDeviceLauncher: ActivityResultLauncher<IntentSenderRequest>
+
+  // Background work dialog.
+  private lateinit var backgroundWorkAlertDialog: AlertDialog
 
   // Error alert dialog.
   private lateinit var errorAlertDialog: AlertDialog
@@ -151,6 +155,9 @@ class DeviceFragment : Fragment() {
   // Setup UI elements
 
   private fun setupUiElements() {
+    // Bacjkground Work AlertDialog
+    backgroundWorkAlertDialog = MaterialAlertDialogBuilder(requireContext()).create()
+
     // Error AlertDialog
     errorAlertDialog =
         MaterialAlertDialogBuilder(requireContext())
@@ -241,6 +248,20 @@ class DeviceFragment : Fragment() {
     }
   }
 
+  private fun showBackgroundWorkAlertDialog(title: String?, message: String?) {
+    if (title != null) {
+      backgroundWorkAlertDialog.setTitle(title)
+    }
+    if (message != null) {
+      backgroundWorkAlertDialog.setMessage(message)
+    }
+    backgroundWorkAlertDialog.show()
+  }
+
+  private fun hideBackgroundWorkAlertDialog() {
+    backgroundWorkAlertDialog.hide()
+  }
+
   private fun showErrorAlertDialog(title: String?, message: String?) {
     if (title != null) {
       errorAlertDialog.setTitle(title)
@@ -272,6 +293,15 @@ class DeviceFragment : Fragment() {
       updateShareDeviceButton(isButtonEnabled)
       if (status is TaskStatus.Failed) {
         showErrorAlertDialog(status.message, status.cause.toString())
+      }
+    }
+
+    // Background work alert dialog actions.
+    viewModel.backgroundWorkAlertDialogAction.observe(viewLifecycleOwner) { action ->
+      if (action is BackgroundWorkAlertDialogAction.Show) {
+        showBackgroundWorkAlertDialog(action.title, action.message)
+      } else if (action is BackgroundWorkAlertDialogAction.Hide) {
+        hideBackgroundWorkAlertDialog()
       }
     }
 

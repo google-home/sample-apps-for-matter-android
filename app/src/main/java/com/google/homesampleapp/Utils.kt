@@ -56,6 +56,15 @@ sealed class TaskStatus {
   class Completed(val statusMessage: String) : TaskStatus()
 }
 
+/** Enumeration of actions to take a background work alert dialog. */
+sealed class BackgroundWorkAlertDialogAction {
+  /** Background work has started, show the dialog. */
+  class Show(val title: String, val message: String) : BackgroundWorkAlertDialogAction()
+
+  /** Background work has completed, hide the dialog. */
+  object Hide : BackgroundWorkAlertDialogAction()
+}
+
 /** Useful when investigating lifecycle events in logcat. */
 fun lifeCycleEvent(event: String): String {
   return "[*** LifeCycle ***] $event"

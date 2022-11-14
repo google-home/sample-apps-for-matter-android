@@ -28,6 +28,7 @@ import com.google.android.gms.home.matter.commissioning.CommissioningWindow
 import com.google.android.gms.home.matter.commissioning.ShareDeviceRequest
 import com.google.android.gms.home.matter.common.DeviceDescriptor
 import com.google.android.gms.home.matter.common.Discriminator
+import com.google.homesampleapp.BackgroundWorkAlertDialogAction
 import com.google.homesampleapp.DISCRIMINATOR
 import com.google.homesampleapp.ITERATION
 import com.google.homesampleapp.OPEN_COMMISSIONING_WINDOW_API
@@ -72,6 +73,15 @@ constructor(
   val shareDeviceStatus: LiveData<TaskStatus>
     get() = _shareDeviceStatus
 
+  /**
+   * Actions that drive showing/hiding a "background work" alert dialog. The enum it is based on is
+   * used by the Fragment to properly react on the management of that dialog.
+   */
+  private val _backgroundWorkAlertDialogAction =
+      MutableLiveData<BackgroundWorkAlertDialogAction>(BackgroundWorkAlertDialogAction.Hide)
+  val backgroundWorkAlertDialogAction: LiveData<BackgroundWorkAlertDialogAction>
+    get() = _backgroundWorkAlertDialogAction
+
   /** IntentSender LiveData. */
   private val _shareDeviceIntentSender = MutableLiveData<IntentSender?>()
   val shareDeviceIntentSender: LiveData<IntentSender?>
@@ -94,6 +104,9 @@ constructor(
 
     stopDevicePeriodicPing()
 
+    _backgroundWorkAlertDialogAction.postValue(
+        BackgroundWorkAlertDialogAction.Show(
+            "Opening Pairing Window", "This will take a few seconds."))
     _shareDeviceStatus.postValue(TaskStatus.InProgress)
     viewModelScope.launch {
       // First we need to open a commissioning window.
@@ -133,15 +146,18 @@ constructor(
           .addOnSuccessListener { result ->
             Timber.d("ShareDevice: Success getting the IntentSender: result [${result}]")
             if (result == null) {
+              _backgroundWorkAlertDialogAction.postValue(BackgroundWorkAlertDialogAction.Hide)
               _shareDeviceStatus.postValue(
                   TaskStatus.Failed(
                       "Failed to get the IntentSender", error("Null value for IntentSender")))
             } else {
               // Communication with fragment is via livedata
+              _backgroundWorkAlertDialogAction.postValue(BackgroundWorkAlertDialogAction.Hide)
               _shareDeviceIntentSender.postValue(result)
             }
           }
           .addOnFailureListener { error ->
+            _backgroundWorkAlertDialogAction.postValue(BackgroundWorkAlertDialogAction.Hide)
             _shareDeviceStatus.postValue(
                 TaskStatus.Failed("Setting up the IntentSender failed", error))
           }
@@ -325,5 +341,17 @@ constructor(
 
   fun stopDevicePeriodicPing() {
     devicePeriodicPingEnabled = false
+  }
+
+  // -----------------------------------------------------------------------------------------------
+  // Utiltity functions for testing.
+
+  fun testBackgroundWorkAlertDialog(seconds: Int) {
+    viewModelScope.launch {
+      _backgroundWorkAlertDialogAction.postValue(
+          BackgroundWorkAlertDialogAction.Show("Testing", "Delay of ${seconds} seconds"))
+      delay(seconds.toLong() * 1000)
+      _backgroundWorkAlertDialogAction.postValue(BackgroundWorkAlertDialogAction.Hide)
+    }
   }
 }
