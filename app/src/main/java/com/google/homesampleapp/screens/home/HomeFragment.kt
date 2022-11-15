@@ -25,6 +25,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -36,6 +37,7 @@ import androidx.fragment.app.viewModels
 import androidx.navigation.findNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.switchmaterial.SwitchMaterial
+import com.google.android.material.textfield.TextInputEditText
 import com.google.homesampleapp.PERIODIC_UPDATE_INTERVAL_HOME_SCREEN_SECONDS
 import com.google.homesampleapp.R
 import com.google.homesampleapp.TaskStatus
@@ -44,11 +46,13 @@ import com.google.homesampleapp.data.DevicesStateRepository
 import com.google.homesampleapp.data.UserPreferencesRepository
 import com.google.homesampleapp.databinding.FragmentCodelabInfoCheckboxBinding
 import com.google.homesampleapp.databinding.FragmentHomeBinding
+import com.google.homesampleapp.databinding.FragmentNewDeviceBinding
 import com.google.homesampleapp.isMultiAdminCommissioning
 import com.google.homesampleapp.screens.shared.SelectedDeviceViewModel
 import com.google.homesampleapp.screens.shared.UserPreferencesViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 /**
@@ -89,11 +93,12 @@ class HomeFragment : Fragment() {
   // The fragment's ViewModel.
   private val viewModel: HomeViewModel by viewModels()
 
-  // Show codelab info Checkbox.
-  private lateinit var codelabInfoCheckboxBinding: FragmentCodelabInfoCheckboxBinding
-
   // Codelab information dialog.
   private lateinit var codelabInfoAlertDialog: AlertDialog
+  private lateinit var codelabInfoCheckboxBinding: FragmentCodelabInfoCheckboxBinding
+
+  // New device information dialog
+  private lateinit var newDeviceAlertDialogBinding: FragmentNewDeviceBinding
 
   // The adapter used by the RecyclerView (where we show the list of devices).
   private val adapter =
@@ -138,13 +143,29 @@ class HomeFragment : Fragment() {
           val resultCode = result.resultCode
           Timber.d("GOT result for commissioningLauncher: resultCode [${resultCode}]")
           if (resultCode == Activity.RESULT_OK) {
-            viewModel.commissionDeviceSucceeded(
-                result, getString(R.string.commission_device_status_success))
+            // We now need to capture the device information for the app's fabric.
+            // Once this completes, a call is made to the viewModel to persist the information
+            // about that device in the app.
+            showNewDeviceAlertDialog(result)
           } else {
             viewModel.commissionDeviceFailed(getString(R.string.status_failed_with, resultCode))
           }
         }
     // CODELAB SECTION END
+  }
+
+  fun showNewDeviceAlertDialog(activityResult: ActivityResult?) {
+    MaterialAlertDialogBuilder(requireContext())
+        .setView(newDeviceAlertDialogBinding.root)
+        .setTitle("New device information")
+        .setPositiveButton(resources.getString(R.string.ok)) { _, _ ->
+          // Extract the info entered by user and process it.
+          val nameTextView: TextInputEditText = newDeviceAlertDialogBinding.nameTextView
+          val deviceName = nameTextView.text.toString()
+          viewModel.commissionDeviceSucceeded(activityResult!!, deviceName)
+        }
+        .create()
+        .show()
   }
 
   override fun onCreateView(
@@ -162,6 +183,11 @@ class HomeFragment : Fragment() {
     // that dialog on subsequent app launches.
     codelabInfoCheckboxBinding =
         DataBindingUtil.inflate(inflater, R.layout.fragment_codelab_info_checkbox, container, false)
+
+    // Binding to the NewDevice UI, which is part of the dialog where we
+    // capture new device information.
+    newDeviceAlertDialogBinding =
+        DataBindingUtil.inflate(inflater, R.layout.fragment_new_device, container, false)
 
     // Setup the UI elements and livedata observers.
     setupUiElements()
@@ -191,7 +217,7 @@ class HomeFragment : Fragment() {
         Timber.d("TaskStatus.NotStarted so starting commissioning")
         viewModel.commissionDevice(intent, requireContext())
       } else {
-        Timber.d("TaskStatus is not NotStarted: $viewModel.commissionDeviceStatus.value")
+        Timber.d("TaskStatus is *not* NotStarted: $viewModel.commissionDeviceStatus.value")
       }
     } else {
       Timber.d("*** Main ***")

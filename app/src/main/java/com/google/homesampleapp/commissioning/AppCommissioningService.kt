@@ -22,13 +22,10 @@ import android.os.IBinder
 import com.google.android.gms.home.matter.commissioning.CommissioningCompleteMetadata
 import com.google.android.gms.home.matter.commissioning.CommissioningRequestMetadata
 import com.google.android.gms.home.matter.commissioning.CommissioningService
-import com.google.homesampleapp.Device
 import com.google.homesampleapp.chip.ChipClient
 import com.google.homesampleapp.chip.ClustersHelper
-import com.google.homesampleapp.convertToAppDeviceType
 import com.google.homesampleapp.data.DevicesRepository
 import com.google.homesampleapp.data.DevicesStateRepository
-import com.google.homesampleapp.getTimestampForNow
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -90,38 +87,27 @@ class AppCommissioningService : Service(), CommissioningService.Callback {
     // Perform commissioning on custom fabric for the sample app.
     serviceScope.launch {
       val deviceId = devicesRepository.incrementAndReturnLastDeviceId()
-      Timber.d("Commissioning Step 1: ChipClient.establishPaseConnection(): deviceId [${deviceId}]")
+      Timber.d(
+          "Commissioning: App fabric -> ChipClient.establishPaseConnection(): deviceId [${deviceId}]")
       chipClient.awaitEstablishPaseConnection(
           deviceId,
           metadata.networkLocation.ipAddress.hostAddress!!,
           metadata.networkLocation.port,
           metadata.passcode)
-      Timber.d("Commissioning Step 2: ChipClient.commissionDevice(): deviceId [${deviceId}]")
+      Timber.d("Commissioning: App fabric -> ChipClient.commissionDevice(): deviceId [${deviceId}]")
       chipClient.awaitCommissionDevice(deviceId, null)
 
-      Timber.d("Commissioning Step 3: Adding device to repository")
-      devicesRepository.addDevice(
-          Device.newBuilder()
-              .setName("REAL-$deviceId") // default name that can be overridden by user in next step
-              .setDeviceId(deviceId)
-              .setDateCommissioned(getTimestampForNow())
-              .setVendorId(metadata.deviceDescriptor.vendorId.toString())
-              .setProductId(metadata.deviceDescriptor.productId.toString())
-              .setDeviceType(convertToAppDeviceType(metadata.deviceDescriptor.deviceType))
-              .build())
-
-      Timber.d("Commissioning Step 4: Adding device state to repository: isOnline:true isOn:false")
-      devicesStateRepository.addDeviceState(deviceId, isOnline = true, isOn = false)
-
-      Timber.d(
-          "Commissioning Step 5: Calling commissioningServiceDelegate.sendCommissioningComplete()")
+      Timber.d("Commissioning: Calling commissioningServiceDelegate.sendCommissioningComplete()")
       commissioningServiceDelegate
           .sendCommissioningComplete(
               CommissioningCompleteMetadata.builder().setToken(deviceId.toString()).build())
           .addOnSuccessListener {
-            Timber.d("OnSuccess for commissioningServiceDelegate.sendCommissioningComplete()")
+            Timber.d(
+                "Commissioning: OnSuccess for commissioningServiceDelegate.sendCommissioningComplete()")
           }
-          .addOnFailureListener { ex -> Timber.w(ex, "Failed to send commissioning complete.") }
+          .addOnFailureListener { ex ->
+            Timber.e("Commissioning: Failed to send commissioning complete.", ex)
+          }
     }
     // CODELAB SECTION END
   }
