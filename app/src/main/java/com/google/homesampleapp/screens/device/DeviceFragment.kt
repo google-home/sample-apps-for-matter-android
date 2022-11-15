@@ -27,6 +27,7 @@ import android.view.ViewGroup
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -35,12 +36,12 @@ import androidx.navigation.findNavController
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.homesampleapp.ALLOW_DEVICE_SHARING_ON_DUMMY_DEVICE
+import com.google.homesampleapp.BackgroundWorkAlertDialogAction
 import com.google.homesampleapp.DeviceState
 import com.google.homesampleapp.ON_OFF_SWITCH_DISABLED_WHEN_DEVICE_OFFLINE
-import com.google.homesampleapp.OPEN_COMMISSIONING_WINDOW_API
-import com.google.homesampleapp.OpenCommissioningWindowApi
 import com.google.homesampleapp.PERIODIC_UPDATE_INTERVAL_DEVICE_SCREEN_SECONDS
 import com.google.homesampleapp.R
+import com.google.homesampleapp.TaskStatus
 import com.google.homesampleapp.TaskStatus.InProgress
 import com.google.homesampleapp.data.DevicesStateRepository
 import com.google.homesampleapp.databinding.FragmentDeviceBinding
@@ -82,6 +83,12 @@ class DeviceFragment : Fragment() {
   // The Activity launcher that launches the "shareDevice" activity in Google Play Services.
   private lateinit var shareDeviceLauncher: ActivityResultLauncher<IntentSenderRequest>
 
+  // Background work dialog.
+  private lateinit var backgroundWorkAlertDialog: AlertDialog
+
+  // Error alert dialog.
+  private lateinit var errorAlertDialog: AlertDialog
+
   // -----------------------------------------------------------------------------------------------
   // Lifecycle functions
 
@@ -99,12 +106,14 @@ class DeviceFragment : Fragment() {
           // Share Device Step 5.
           // The Share Device activity in GPS has completed.
           val resultCode = result.resultCode
-          Timber.d("Got result for shareDeviceLauncher: resultCode [[${resultCode}]")
           if (resultCode == RESULT_OK) {
-            viewModel.shareDeviceSucceeded(getString(R.string.share_device_status_success))
+            Timber.d("ShareDevice: Success with resultCode [[${resultCode}]")
           } else {
-            viewModel.shareDeviceFailed(getString(R.string.status_failed_with, resultCode))
+            Timber.d("ShareDevice: Failed with resultCode [[${resultCode}]")
+            showErrorAlertDialog("Device Sharing Failed", "Result code: ${resultCode}")
           }
+          updateShareDeviceButton(true)
+          viewModel.shareDeviceCompleted(selectedDeviceViewModel.selectedDeviceLiveData.value!!)
         }
     // CODELAB SECTION END
   }
@@ -146,6 +155,17 @@ class DeviceFragment : Fragment() {
   // Setup UI elements
 
   private fun setupUiElements() {
+    // Bacjkground Work AlertDialog
+    backgroundWorkAlertDialog = MaterialAlertDialogBuilder(requireContext()).create()
+
+    // Error AlertDialog
+    errorAlertDialog =
+        MaterialAlertDialogBuilder(requireContext())
+            .setPositiveButton(resources.getString(R.string.ok)) { _, _ ->
+              // Nothing to do.
+            }
+            .create()
+
     // Navigate back
     binding.topAppBar.setOnClickListener {
       Timber.d("topAppBar.setOnClickListener")
@@ -170,9 +190,10 @@ class DeviceFragment : Fragment() {
       true
     }
 
-    // Share Device
+    // Share Device Button
     binding.shareButton.setOnClickListener {
       val deviceName = selectedDeviceViewModel.selectedDeviceLiveData.value?.device?.name!!
+      val deviceId = selectedDeviceViewModel.selectedDeviceLiveData.value?.device?.deviceId
       if (isDummyDevice(deviceName) && !ALLOW_DEVICE_SHARING_ON_DUMMY_DEVICE) {
         // Device sharing not allowed on a dummy device.
         MaterialAlertDialogBuilder(requireContext())
@@ -185,7 +206,12 @@ class DeviceFragment : Fragment() {
             }
             .show()
       } else {
-        viewModel.shareDevice(requireActivity())
+        // Disable the button. It's state is properly re-enabled either via the
+        // shareDeviceStatus LiveData updates on the processing, or when the activity completes and
+        // our launcher handler takes care of it.
+        updateShareDeviceButton(false)
+        // Trigger the processing for sharing the device
+        viewModel.shareDevice(requireActivity(), deviceId!!)
       }
     }
 
@@ -222,6 +248,34 @@ class DeviceFragment : Fragment() {
     }
   }
 
+  private fun showBackgroundWorkAlertDialog(title: String?, message: String?) {
+    if (title != null) {
+      backgroundWorkAlertDialog.setTitle(title)
+    }
+    if (message != null) {
+      backgroundWorkAlertDialog.setMessage(message)
+    }
+    backgroundWorkAlertDialog.show()
+  }
+
+  private fun hideBackgroundWorkAlertDialog() {
+    backgroundWorkAlertDialog.hide()
+  }
+
+  private fun showErrorAlertDialog(title: String?, message: String?) {
+    if (title != null) {
+      errorAlertDialog.setTitle(title)
+    }
+    if (message != null) {
+      errorAlertDialog.setMessage(message)
+    }
+    errorAlertDialog.show()
+  }
+
+  private fun updateShareDeviceButton(enable: Boolean) {
+    binding.shareButton.isEnabled = enable
+  }
+
   // -----------------------------------------------------------------------------------------------
   // Setup Observers
 
@@ -233,42 +287,32 @@ class DeviceFragment : Fragment() {
       updateDeviceInfo(devicesStateRepository.lastUpdatedDeviceState.value)
     }
 
-    // Generic status about actions processed in this screen.
-    viewModel.statusInfo.observe(viewLifecycleOwner) {
-      // TODO: disable the "share device button", update the result text view, etc.
-    }
-
     // The current status of the share device action.
     viewModel.shareDeviceStatus.observe(viewLifecycleOwner) { status ->
-      binding.shareButton.isEnabled = status !is InProgress
-      // TODO: binding.actionResultTextView.text = status.toString()
+      val isButtonEnabled = status !is InProgress
+      updateShareDeviceButton(isButtonEnabled)
+      if (status is TaskStatus.Failed) {
+        showErrorAlertDialog(status.message, status.cause.toString())
+      }
     }
 
-    // Share Device Step 2.
-    // The fragment observes the livedata for shareDeviceIntentSender which
-    // is updated in the ViewModel in step 3 of the Share Device flow.
-    viewModel.shareDeviceIntentSender.observe(viewLifecycleOwner) { sender ->
-      Timber.d("shareDeviceIntentSender.observe is called with sender [${sender}]")
-      if (sender != null) {
-        val deviceId = selectedDeviceViewModel.selectedDeviceIdLiveData.value!!
-        // Share Device Step 4: Launch the activity described in the IntentSender that
-        // was returned in Step 3 where the viewModel calls the GPS API to commission
-        // the device.
-        // TODO: Normally these two calls should be done sequentially
-        // The call would be done as follows:
-        // viewModel.initiateDeviceSharing(
-        //    selectedDeviceViewModel.selectedDeviceIdLiveData.value!!, shareDeviceLauncher, sender)
-        // However, the call to openCommissioningWindowUsingOpenPairingWindowWithPin blocks
-        // forever because the callback is not invoked.
-        // For now, making these 2 calls here.
-        when (OPEN_COMMISSIONING_WINDOW_API) {
-          OpenCommissioningWindowApi.ChipDeviceController ->
-              viewModel.openCommissioningWindowUsingOpenPairingWindowWithPin(deviceId)
-          OpenCommissioningWindowApi.AdministratorCommissioningCluster ->
-              viewModel.openCommissioningWindowWithAdministratorCommissioningCluster(deviceId)
-        }
-        shareDeviceLauncher.launch(IntentSenderRequest.Builder(sender).build())
+    // Background work alert dialog actions.
+    viewModel.backgroundWorkAlertDialogAction.observe(viewLifecycleOwner) { action ->
+      if (action is BackgroundWorkAlertDialogAction.Show) {
+        showBackgroundWorkAlertDialog(action.title, action.message)
+      } else if (action is BackgroundWorkAlertDialogAction.Hide) {
+        hideBackgroundWorkAlertDialog()
       }
+    }
+
+    // The ViewModel calls the GPS shareDevice() API to get the IntentSender used with the
+    // Android Activity Result API. Once the ViewModel has the IntentSender, it posts
+    // it via LiveData so the Fragment can use that value to launch the activity.
+    // If sender was null, then model triggered a failed task status. No need to worry
+    // about that here.
+    viewModel.shareDeviceIntentSender.observe(viewLifecycleOwner) { sender ->
+      Timber.d("ShareDevice: Launch GPS activity to share device [${sender}]")
+      shareDeviceLauncher.launch(IntentSenderRequest.Builder(sender!!).build())
     }
 
     // Observer on the currently selected device

@@ -191,7 +191,7 @@ constructor(
       val vendorId = intent.getIntExtra("com.google.android.gms.home.matter.EXTRA_VENDOR_ID", -1)
       val productId = intent.getIntExtra("com.google.android.gms.home.matter.EXTRA_PRODUCT_ID", -1)
       val deviceType =
-          intent.getIntExtra("com.google.android.gms.home.matter.EXTRA_DEVICE_Type", -1)
+          intent.getIntExtra("com.google.android.gms.home.matter.EXTRA_DEVICE_TYPE", -1)
       val deviceInfo = DeviceInfo.builder().setProductId(productId).setVendorId(vendorId).build()
       commissionRequestBuilder.setDeviceInfo(deviceInfo)
 
@@ -209,8 +209,9 @@ constructor(
           _commissionDeviceIntentSender.postValue(result)
         }
         .addOnFailureListener { error ->
-          _commissionDeviceStatus.postValue(TaskStatus.Failed(error))
           Timber.e(error)
+          _commissionDeviceStatus.postValue(
+              TaskStatus.Failed("Failed to to get the IntentSender.", error))
         }
   }
   // CODELAB SECTION END
@@ -221,7 +222,7 @@ constructor(
   }
 
   // Called by the fragment in Step 5 of the Device Commissioning flow.
-  fun commissionDeviceSucceeded(activityResult: ActivityResult, message: String) {
+  fun commissionDeviceSucceeded(activityResult: ActivityResult, deviceName: String) {
     val result =
         CommissioningResult.fromIntentSenderResult(activityResult.resultCode, activityResult.data)
     Timber.i("Device commissioned successfully! deviceName [${result.deviceName}]")
@@ -233,32 +234,38 @@ constructor(
             "vendorId [${result.commissionedDeviceDescriptor.vendorId}]\n" +
             "hashCode [${result.commissionedDeviceDescriptor.hashCode()}]")
 
-    // Update the data in the devices repository.
+    // Add the device to the devices repository.
     viewModelScope.launch {
+      val deviceId = result.token?.toLong()!!
       try {
-        val deviceId = result.token?.toLong()!!
-        val currentDevice: Device = devicesRepository.getDevice(deviceId)
-        val roomName =
-            result.room?.name // needed 'cause smartcast impossible with open/custom getter
-        val updatedDeviceBuilder =
-            Device.newBuilder(currentDevice)
+        Timber.d("Commissioning: Adding device to repository")
+        devicesRepository.addDevice(
+            Device.newBuilder()
+                .setName(deviceName) // default name that can be overridden by user in next step
+                .setDeviceId(deviceId)
+                .setDateCommissioned(getTimestampForNow())
+                .setVendorId(result.commissionedDeviceDescriptor.vendorId.toString())
+                .setProductId(result.commissionedDeviceDescriptor.productId.toString())
+                // FIXME check this --> I always have unknown
                 .setDeviceType(
                     convertToAppDeviceType(result.commissionedDeviceDescriptor.deviceType))
-                .setProductId(result.commissionedDeviceDescriptor.productId.toString())
-                .setVendorId(result.commissionedDeviceDescriptor.vendorId.toString())
-        if (result.deviceName != null) updatedDeviceBuilder.name = result.deviceName
-        if (roomName != null) updatedDeviceBuilder.room = roomName
-        devicesRepository.updateDevice(updatedDeviceBuilder.build())
-        _commissionDeviceStatus.postValue(TaskStatus.Completed(message))
+                .build())
+        Timber.d("Commissioning: Adding device state to repository: isOnline:true isOn:false")
+        devicesStateRepository.addDeviceState(deviceId, isOnline = true, isOn = false)
+        _commissionDeviceStatus.postValue(
+            TaskStatus.Completed("Device added: [${deviceId}] [${deviceName}]"))
       } catch (e: Exception) {
-        Timber.e(e)
+        Timber.e("Adding device [${deviceId}] [${deviceName}] to app's repository failed", e)
+        _commissionDeviceStatus.postValue(
+            TaskStatus.Failed(
+                "Adding device [${deviceId}] [${deviceName}] to app's repository failed", e))
       }
     }
   }
 
   // Called by the fragment in Step 5 of the Device Commissioning flow.
   fun commissionDeviceFailed(message: String) {
-    _commissionDeviceStatus.postValue(TaskStatus.Failed(Throwable(message)))
+    _commissionDeviceStatus.postValue(TaskStatus.Failed(message, Throwable(message)))
   }
 
   /** Updates the status of [commissionDeviceStatus] to success with the given message. */

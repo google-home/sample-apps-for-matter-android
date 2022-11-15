@@ -47,13 +47,22 @@ sealed class TaskStatus {
    * The task completed with an exception.
    * @param cause the cause of the failure
    */
-  class Failed(private val cause: Throwable) : TaskStatus()
+  class Failed(val message: String, val cause: Throwable) : TaskStatus()
 
   /**
    * The task completed successfully.
    * @param statusMessage a message to be displayed in the UI
    */
-  class Completed(private val statusMessage: String) : TaskStatus()
+  class Completed(val statusMessage: String) : TaskStatus()
+}
+
+/** Enumeration of actions to take a background work alert dialog. */
+sealed class BackgroundWorkAlertDialogAction {
+  /** Background work has started, show the dialog. */
+  class Show(val title: String, val message: String) : BackgroundWorkAlertDialogAction()
+
+  /** Background work has completed, hide the dialog. */
+  object Hide : BackgroundWorkAlertDialogAction()
 }
 
 /** Useful when investigating lifecycle events in logcat. */

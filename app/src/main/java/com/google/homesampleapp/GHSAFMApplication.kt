@@ -42,7 +42,5 @@ class GHSAFMApplication : Application() {
            * "%s:%s", super.createStackElementTag(element), element.methodName, ) }
            */
         })
-
-    Timber.d("GHSAFM application created!")
   }
 }

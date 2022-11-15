@@ -21,6 +21,7 @@ import chip.devicecontroller.ChipDeviceController
 import chip.devicecontroller.ControllerParams
 import chip.devicecontroller.GetConnectedDeviceCallbackJni.GetConnectedDeviceCallback
 import chip.devicecontroller.NetworkCredentials
+import chip.devicecontroller.OpenCommissioningCallback
 import chip.devicecontroller.PaseVerifierParams
 import chip.platform.AndroidBleManager
 import chip.platform.AndroidChipPlatform
@@ -166,21 +167,24 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
       setupPinCode: Long
   ) {
     return suspendCoroutine { continuation ->
-      chipDeviceController.setCompletionListener(
-          object : BaseCompletionListener() {
-            override fun onCommissioningComplete(nodeId: Long, errorCode: Int) {
-              Timber.d("awaitOpenPairingWindowWithPIN.onCommissioningComplete: nodeId [${nodeId}]")
+      Timber.d("Calling chipDeviceController.openPairingWindowWithPIN")
+      val callback: OpenCommissioningCallback =
+          object : OpenCommissioningCallback {
+            override fun onError(status: Int, deviceId: Long) {
+              Timber.e(
+                  "ShareDevice: awaitOpenPairingWindowWithPIN.onError: status [${status}] device [${deviceId}]")
+              continuation.resumeWithException(
+                  java.lang.IllegalStateException(
+                      "Failed opening the pairing window with status [${status}]"))
+            }
+            override fun onSuccess(deviceId: Long, manualPairingCode: String?, qrCode: String?) {
+              Timber.d(
+                  "ShareDevice: awaitOpenPairingWindowWithPIN.onSuccess: deviceId [${deviceId}]")
               continuation.resume(Unit)
             }
-            override fun onError(error: Throwable) {
-              Timber.e("awaitOpenPairingWindowWithPIN.onError: nodeId [${error}]")
-              continuation.resumeWithException(error)
-            }
-          })
-      Timber.d("Calling chipDeviceController.openPairingWindowWithPIN")
-      chipDeviceController.openPairingWindowWithPIN(
-          connectedDevicePointer, duration, iteration, discriminator, setupPinCode)
-      Timber.d("AFTER Calling chipDeviceController.openPairingWindowWithPIN")
+          }
+      chipDeviceController.openPairingWindowWithPINCallback(
+          connectedDevicePointer, duration, iteration, discriminator, setupPinCode, callback)
     }
   }
 
