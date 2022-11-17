@@ -291,6 +291,9 @@ constructor(
   // Task that runs periodically to update the devices state.
 
   fun startDevicesPeriodicPing() {
+    if (PERIODIC_UPDATE_INTERVAL_HOME_SCREEN_SECONDS == -1) {
+      return
+    }
     Timber.d(
         "${LocalDateTime.now()} startDevicesPeriodicPing every $PERIODIC_UPDATE_INTERVAL_HOME_SCREEN_SECONDS seconds")
     devicesPeriodicPingEnabled = true

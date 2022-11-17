@@ -139,10 +139,9 @@ class DeviceFragment : Fragment() {
 
   override fun onResume() {
     super.onResume()
-    Timber.d("onResume(): Starting periodic ping on device")
-    if (PERIODIC_UPDATE_INTERVAL_DEVICE_SCREEN_SECONDS != -1) {
-      viewModel.startDevicePeriodicPing(selectedDeviceViewModel.selectedDeviceLiveData.value!!)
-    }
+    Timber.d(
+        "onResume(): Starting periodic ping on device with interval [${PERIODIC_UPDATE_INTERVAL_DEVICE_SCREEN_SECONDS}] seconds")
+    viewModel.startDevicePeriodicPing(selectedDeviceViewModel.selectedDeviceLiveData.value!!)
   }
 
   override fun onPause() {

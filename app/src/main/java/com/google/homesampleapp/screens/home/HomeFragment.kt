@@ -38,7 +38,7 @@ import androidx.navigation.findNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.android.material.textfield.TextInputEditText
-import com.google.homesampleapp.PERIODIC_UPDATE_INTERVAL_HOME_SCREEN_SECONDS
+import com.google.homesampleapp.PERIODIC_UPDATE_INTERVAL_DEVICE_SCREEN_SECONDS
 import com.google.homesampleapp.R
 import com.google.homesampleapp.TaskStatus
 import com.google.homesampleapp.data.DevicesRepository
@@ -47,6 +47,7 @@ import com.google.homesampleapp.data.UserPreferencesRepository
 import com.google.homesampleapp.databinding.FragmentCodelabInfoCheckboxBinding
 import com.google.homesampleapp.databinding.FragmentHomeBinding
 import com.google.homesampleapp.databinding.FragmentNewDeviceBinding
+import com.google.homesampleapp.intentSenderToString
 import com.google.homesampleapp.isMultiAdminCommissioning
 import com.google.homesampleapp.screens.shared.SelectedDeviceViewModel
 import com.google.homesampleapp.screens.shared.UserPreferencesViewModel
@@ -208,11 +209,10 @@ class HomeFragment : Fragment() {
 
   override fun onResume() {
     super.onResume()
-    Timber.d("onResume()")
-
     val intent = requireActivity().intent
+    Timber.d("onResume(): intent [${intent}]")
     if (isMultiAdminCommissioning(intent)) {
-      Timber.d("*** MultiAdminCommissioning ***")
+      Timber.d("Invocation: MultiAdminCommissioning")
       if (viewModel.commissionDeviceStatus.value == TaskStatus.NotStarted) {
         Timber.d("TaskStatus.NotStarted so starting commissioning")
         viewModel.commissionDevice(intent, requireContext())
@@ -220,11 +220,10 @@ class HomeFragment : Fragment() {
         Timber.d("TaskStatus is *not* NotStarted: $viewModel.commissionDeviceStatus.value")
       }
     } else {
-      Timber.d("*** Main ***")
-      if (PERIODIC_UPDATE_INTERVAL_HOME_SCREEN_SECONDS != -1) {
-        Timber.d("Starting periodic ping on devices")
-        viewModel.startDevicesPeriodicPing()
-      }
+      Timber.d("Invocation: Main")
+      Timber.d(
+          "Starting periodic ping on device with interval [$PERIODIC_UPDATE_INTERVAL_DEVICE_SCREEN_SECONDS] seconds")
+      viewModel.startDevicesPeriodicPing()
     }
   }
 
@@ -316,7 +315,8 @@ class HomeFragment : Fragment() {
     // is updated in the ViewModel in step 3 of the Commission Device flow.
     // CODELAB: commissionDeviceIntentSender
     viewModel.commissionDeviceIntentSender.observe(viewLifecycleOwner) { sender ->
-      Timber.d("commissionDeviceIntentSender.observe is called with sender [${sender}]")
+      Timber.d(
+          "commissionDeviceIntentSender.observe is called with [${intentSenderToString(sender)}]")
       if (sender != null) {
         // Commission Device Step 4: Launch the activity described in the IntentSender that
         // was returned in Step 3 where the viewModel calls the GPS API to commission

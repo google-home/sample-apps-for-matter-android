@@ -60,8 +60,13 @@ class AppCommissioningService : Service(), CommissioningService.Callback {
   }
 
   override fun onBind(intent: Intent): IBinder {
-    Timber.d("onBind()")
+    Timber.d("onBind(): intent [${intent}]")
     return commissioningServiceDelegate.asBinder()
+  }
+
+  override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    Timber.d("onStartCommand(): intent [${intent}] flags [${flags}] startId [${startId}]")
+    return super.onStartCommand(intent, flags, startId)
   }
 
   override fun onDestroy() {
