@@ -18,6 +18,7 @@ package com.google.homesampleapp
 
 import android.content.Context
 import android.content.Intent
+import android.content.IntentSender
 import com.google.protobuf.Timestamp
 import java.io.File
 import java.time.Instant
@@ -124,6 +125,13 @@ fun stringToBoolean(s: String): Boolean {
         else -> false
       }
   return boolValue
+}
+
+fun intentSenderToString(intentSender: IntentSender?): String {
+  if (intentSender == null) {
+    return "null"
+  }
+  return "creatorPackage [${intentSender.creatorPackage}]"
 }
 
 // -------------------------------------------------------------------------------------------------

@@ -318,6 +318,9 @@ constructor(
   }
 
   private fun runDevicePeriodicUpdate(deviceUiModel: DeviceUiModel) {
+    if (PERIODIC_UPDATE_INTERVAL_DEVICE_SCREEN_SECONDS == -1) {
+      return
+    }
     viewModelScope.launch {
       while (devicePeriodicPingEnabled) {
         // Do something here on the main thread
