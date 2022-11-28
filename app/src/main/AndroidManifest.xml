@@ -61,7 +61,7 @@
                 <action android:name="com.google.android.gms.metadata.MODULE_DEPENDENCIES" />
             </intent-filter>
 
-            <meta-data android:name="connectedhome:-1:preferred" android:value=""/>
+            <meta-data android:name="home:-1:preferred" android:value=""/>
         </service>
 
     </application>
