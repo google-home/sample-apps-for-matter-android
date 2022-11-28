@@ -50,6 +50,7 @@ import com.google.homesampleapp.formatTimestamp
 import com.google.homesampleapp.isDummyDevice
 import com.google.homesampleapp.lifeCycleEvent
 import com.google.homesampleapp.screens.shared.SelectedDeviceViewModel
+import com.google.homesampleapp.showAlertDialog
 import com.google.homesampleapp.stateDisplayString
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -110,7 +111,7 @@ class DeviceFragment : Fragment() {
             Timber.d("ShareDevice: Success with resultCode [[${resultCode}]")
           } else {
             Timber.d("ShareDevice: Failed with resultCode [[${resultCode}]")
-            showErrorAlertDialog("Device Sharing Failed", "Result code: ${resultCode}")
+            showAlertDialog(errorAlertDialog, "Device Sharing Failed", "Result code: ${resultCode}")
           }
           updateShareDeviceButton(true)
           viewModel.shareDeviceCompleted(selectedDeviceViewModel.selectedDeviceLiveData.value!!)
@@ -261,16 +262,6 @@ class DeviceFragment : Fragment() {
     backgroundWorkAlertDialog.hide()
   }
 
-  private fun showErrorAlertDialog(title: String?, message: String?) {
-    if (title != null) {
-      errorAlertDialog.setTitle(title)
-    }
-    if (message != null) {
-      errorAlertDialog.setMessage(message)
-    }
-    errorAlertDialog.show()
-  }
-
   private fun updateShareDeviceButton(enable: Boolean) {
     binding.shareButton.isEnabled = enable
   }
@@ -291,7 +282,7 @@ class DeviceFragment : Fragment() {
       val isButtonEnabled = status !is InProgress
       updateShareDeviceButton(isButtonEnabled)
       if (status is TaskStatus.Failed) {
-        showErrorAlertDialog(status.message, status.cause.toString())
+        showAlertDialog(errorAlertDialog, status.message, status.cause.toString())
       }
     }
 

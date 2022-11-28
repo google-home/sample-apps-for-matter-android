@@ -19,6 +19,7 @@ package com.google.homesampleapp
 import android.content.Context
 import android.content.Intent
 import android.content.IntentSender
+import androidx.appcompat.app.AlertDialog
 import com.google.protobuf.Timestamp
 import java.io.File
 import java.time.Instant
@@ -241,6 +242,21 @@ fun isDummyDevice(name: String): Boolean {
 }
 
 // -------------------------------------------------------------------------------------------------
+// Dialogs
+
+fun showAlertDialog(alertDialog: AlertDialog, title: String?, message: String?) {
+  if (title != null) {
+    alertDialog.setTitle(title)
+  }
+  if (message != null) {
+    alertDialog.setMessage(message)
+  }
+  alertDialog.show()
+}
+
+data class ErrorInfo(val title: String?, val message: String?)
+
+// -------------------------------------------------------------------------------------------------
 // Device Sharing constants
 
 // How long a commissioning window for Device Sharing should be open.
@@ -254,6 +270,10 @@ const val ITERATION = 10000L
 
 // Iteration
 const val SETUP_PIN_CODE = 11223344L
+
+// Minimum time required to handle the multi-admin commissioning
+// intent just received.
+const val MIN_COMMISSIONING_WINDOW_EXPIRATION_SECONDS = 20
 
 // -------------------------------------------------------------------------------------------------
 // Constants to modify the behavior of the app.

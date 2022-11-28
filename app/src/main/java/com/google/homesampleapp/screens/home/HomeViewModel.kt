@@ -20,12 +20,14 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentSender
+import android.os.SystemClock
 import androidx.activity.result.ActivityResult
 import androidx.lifecycle.*
 import com.google.android.gms.home.matter.Matter
 import com.google.android.gms.home.matter.commissioning.CommissioningRequest
 import com.google.android.gms.home.matter.commissioning.CommissioningResult
 import com.google.android.gms.home.matter.commissioning.DeviceInfo
+import com.google.android.gms.home.matter.commissioning.SharedDeviceData.*
 import com.google.homesampleapp.*
 import com.google.homesampleapp.chip.ClustersHelper
 import com.google.homesampleapp.commissioning.AppCommissioningService
@@ -96,6 +98,11 @@ constructor(
   private val _commissionDeviceIntentSender = MutableLiveData<IntentSender?>()
   val commissionDeviceIntentSender: LiveData<IntentSender?>
     get() = _commissionDeviceIntentSender
+
+  /** An error occurred. Let the fragment know about it. */
+  private val _errorLiveData = MutableLiveData<ErrorInfo>()
+  val errorLiveData: LiveData<ErrorInfo>
+    get() = _errorLiveData
 
   // The last device id used for devices commissioned on the app's fabric.
   private var lastDeviceId = 0L
@@ -179,24 +186,49 @@ constructor(
     Timber.d("commissionDevice")
     _commissionDeviceStatus.postValue(TaskStatus.InProgress)
 
-    val isMultiAdminCommissioning = isMultiAdminCommissioning(intent)
-
     val commissionRequestBuilder =
         CommissioningRequest.builder()
             .setCommissioningService(ComponentName(context, AppCommissioningService::class.java))
-    if (isMultiAdminCommissioning) {
-      val deviceName = intent.getStringExtra("com.google.android.gms.home.matter.EXTRA_DEVICE_NAME")
+
+    if (isMultiAdminCommissioning(intent)) {
+      // EXTRA_COMMISSIONING_WINDOW_EXPIRATION is a hint of how much time is remaining in the
+      // commissioning window for multi-admin. It is based on the current system uptime.
+      // If the user takes too long to select the target commissioning app, then there's not
+      // enougj time to complete the multi-admin commissioning and we message it to the user.
+      val commissioningWindowExpirationMillis =
+          intent.getLongExtra(EXTRA_COMMISSIONING_WINDOW_EXPIRATION, -1L)
+      val currentUptimeMillis = SystemClock.elapsedRealtime()
+      val timeLeftSeconds = (commissioningWindowExpirationMillis - currentUptimeMillis) / 1000
+      Timber.d(
+          "commissionDevice: TargetCommissioner for MultiAdmin. " +
+              "uptime [${currentUptimeMillis}] " +
+              "commissioningWindowExpiration [${commissioningWindowExpirationMillis}] " +
+              "-> expires in ${timeLeftSeconds} seconds")
+
+      if (commissioningWindowExpirationMillis == -1L) {
+        Timber.e(
+            "EXTRA_COMMISSIONING_WINDOW_EXPIRATION not specified in multi-admin call. " +
+                "Still going ahead with the multi-admin though.")
+      } else if (timeLeftSeconds < MIN_COMMISSIONING_WINDOW_EXPIRATION_SECONDS) {
+        _errorLiveData.value =
+            ErrorInfo(
+                title = "Commissioning Window Expiration",
+                message =
+                    "The commissioning window will " +
+                        "expire in ${timeLeftSeconds} seconds, not long enough to complete the commissioning.\n\n" +
+                        "In the future, please select the target commissioning application faster to avoid this situation.")
+        return
+      }
+      val deviceName = intent.getStringExtra(EXTRA_DEVICE_NAME)
       commissionRequestBuilder.setDeviceNameHint(deviceName)
 
-      val vendorId = intent.getIntExtra("com.google.android.gms.home.matter.EXTRA_VENDOR_ID", -1)
-      val productId = intent.getIntExtra("com.google.android.gms.home.matter.EXTRA_PRODUCT_ID", -1)
-      val deviceType =
-          intent.getIntExtra("com.google.android.gms.home.matter.EXTRA_DEVICE_TYPE", -1)
+      val vendorId = intent.getIntExtra(EXTRA_VENDOR_ID, -1)
+      val productId = intent.getIntExtra(EXTRA_PRODUCT_ID, -1)
+      val deviceType = intent.getIntExtra(EXTRA_DEVICE_TYPE, -1)
       val deviceInfo = DeviceInfo.builder().setProductId(productId).setVendorId(vendorId).build()
       commissionRequestBuilder.setDeviceInfo(deviceInfo)
 
-      val manualPairingCode =
-          intent.getStringExtra("com.google.android.gms.home.matter.EXTRA_MANUAL_PAIRING_CODE")
+      val manualPairingCode = intent.getStringExtra(EXTRA_MANUAL_PAIRING_CODE)
       commissionRequestBuilder.setOnboardingPayload(manualPairingCode)
     }
     val commissioningRequest = commissionRequestBuilder.build()
