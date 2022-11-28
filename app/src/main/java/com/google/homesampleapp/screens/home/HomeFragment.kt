@@ -51,9 +51,9 @@ import com.google.homesampleapp.intentSenderToString
 import com.google.homesampleapp.isMultiAdminCommissioning
 import com.google.homesampleapp.screens.shared.SelectedDeviceViewModel
 import com.google.homesampleapp.screens.shared.UserPreferencesViewModel
+import com.google.homesampleapp.showAlertDialog
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
-import kotlinx.coroutines.launch
 import timber.log.Timber
 
 /**
@@ -100,6 +100,9 @@ class HomeFragment : Fragment() {
 
   // New device information dialog
   private lateinit var newDeviceAlertDialogBinding: FragmentNewDeviceBinding
+
+  // Error alert dialog.
+  private lateinit var errorAlertDialog: AlertDialog
 
   // The adapter used by the RecyclerView (where we show the list of devices).
   private val adapter =
@@ -155,7 +158,7 @@ class HomeFragment : Fragment() {
     // CODELAB SECTION END
   }
 
-  fun showNewDeviceAlertDialog(activityResult: ActivityResult?) {
+  private fun showNewDeviceAlertDialog(activityResult: ActivityResult?) {
     MaterialAlertDialogBuilder(requireContext())
         .setView(newDeviceAlertDialogBinding.root)
         .setTitle("New device information")
@@ -241,6 +244,7 @@ class HomeFragment : Fragment() {
     setupAddDeviceButton()
     setupRecyclerView()
     setupCodelabInfoDialog()
+    setupErrorAlertDialog()
   }
 
   private fun setupMenu() {
@@ -292,6 +296,15 @@ class HomeFragment : Fragment() {
     }
   }
 
+  private fun setupErrorAlertDialog() {
+    errorAlertDialog =
+        MaterialAlertDialogBuilder(requireContext())
+            .setPositiveButton(resources.getString(R.string.ok)) { _, _ ->
+              // Nothing to do.
+            }
+            .create()
+  }
+
   // -----------------------------------------------------------------------------------------------
   // Setup observers on the ViewModel
 
@@ -326,6 +339,11 @@ class HomeFragment : Fragment() {
       }
     }
     // CODELAB SECTION END
+
+    viewModel.errorLiveData.observe(viewLifecycleOwner) { errorInfo ->
+      Timber.d("errorLiveData.observe is called with [${errorInfo}]")
+      showAlertDialog(errorAlertDialog, errorInfo.title, errorInfo.message)
+    }
   }
 
   // -----------------------------------------------------------------------------------------------
