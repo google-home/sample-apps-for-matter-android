@@ -209,7 +209,7 @@ constructor(
         Timber.e(
             "EXTRA_COMMISSIONING_WINDOW_EXPIRATION not specified in multi-admin call. " +
                 "Still going ahead with the multi-admin though.")
-      } else if (commissioningWindowExpirationMillis < MIN_COMMISSIONING_WINDOW_EXPIRATION_MILLIS) {
+      } else if (timeLeftSeconds < MIN_COMMISSIONING_WINDOW_EXPIRATION_SECONDS) {
         _errorLiveData.value =
             ErrorInfo(
                 title = "Commissioning Window Expiration",

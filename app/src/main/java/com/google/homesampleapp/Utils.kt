@@ -273,7 +273,7 @@ const val SETUP_PIN_CODE = 11223344L
 
 // Minimum time required to handle the multi-admin commissioning
 // intent just received.
-const val MIN_COMMISSIONING_WINDOW_EXPIRATION_MILLIS = 20000L
+const val MIN_COMMISSIONING_WINDOW_EXPIRATION_SECONDS = 20
 
 // -------------------------------------------------------------------------------------------------
 // Constants to modify the behavior of the app.
