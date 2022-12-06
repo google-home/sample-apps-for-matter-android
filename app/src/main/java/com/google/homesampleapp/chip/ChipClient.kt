@@ -109,7 +109,7 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
               continuation.resume(Unit)
             }
             // Note that an error in processing is not necessarily communicated via onError().
-            // onCommissioningComplete with an "errorCode != 0" also denotes an error in processing.
+            // onCommissioningComplete with a "code != 0" also denotes an error in processing.
             override fun onPairingComplete(code: Int) {
               super.onPairingComplete(code)
               if (code != 0) {
