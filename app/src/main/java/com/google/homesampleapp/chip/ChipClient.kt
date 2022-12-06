@@ -76,8 +76,7 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
             }
 
             override fun onConnectionFailure(nodeId: Long, error: Exception) {
-              val errorMessage =
-                  "Unable to get connected device with nodeId $nodeId. mDNS flakiness???"
+              val errorMessage = "Unable to get connected device with nodeId $nodeId."
               Timber.e(errorMessage, error)
               continuation.resumeWithException(IllegalStateException(errorMessage))
             }
@@ -109,9 +108,16 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
               super.onConnectDeviceComplete()
               continuation.resume(Unit)
             }
+            // Note that an error in processing is not necessarily communicated via onError().
+            // onCommissioningComplete with a "code != 0" also denotes an error in processing.
             override fun onPairingComplete(code: Int) {
               super.onPairingComplete(code)
-              continuation.resume(Unit)
+              if (code != 0) {
+                continuation.resumeWithException(
+                    IllegalStateException("Pairing failed with error code [${code}]"))
+              } else {
+                continuation.resume(Unit)
+              }
             }
 
             override fun onError(error: Throwable) {
@@ -146,9 +152,16 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
     return suspendCoroutine { continuation ->
       chipDeviceController.setCompletionListener(
           object : BaseCompletionListener() {
+            // Note that an error in processing is not necessarily communicated via onError().
+            // onCommissioningComplete with an "errorCode != 0" also denotes an error in processing.
             override fun onCommissioningComplete(nodeId: Long, errorCode: Int) {
               super.onCommissioningComplete(nodeId, errorCode)
-              continuation.resume(Unit)
+              if (errorCode != 0) {
+                continuation.resumeWithException(
+                    IllegalStateException("Commissioning failed with error code [${errorCode}]"))
+              } else {
+                continuation.resume(Unit)
+              }
             }
             override fun onError(error: Throwable) {
               super.onError(error)
