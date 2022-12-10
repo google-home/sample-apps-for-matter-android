@@ -31,7 +31,7 @@ class GHSAFMApplication : Application() {
         object : Timber.DebugTree() {
           // Override [log] to add a "global prefix" prefix to the tag.
           override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
-            super.log(priority, "GHSAFM-$tag", message, t)
+            super.log(priority, "${APP_NAME}-$tag", message, t)
           }
 
           // Override [createStackElementTag] to include additional information to the tag.

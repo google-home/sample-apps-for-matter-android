@@ -148,6 +148,11 @@ constructor(
                       .build())
               .build()
 
+      Timber.d(
+          "ShareDevice: shareDeviceRequest " +
+              "onboardingPayload [${shareDeviceRequest.commissioningWindow.passcode}] " +
+              "discriminator [${shareDeviceRequest.commissioningWindow.discriminator}]")
+
       // The call to shareDevice() creates the IntentSender that will eventually be launched
       // in the fragment to trigger the multi-admin activity in GPS (step 3).
       Matter.getCommissioningClient(activity)
@@ -179,13 +184,15 @@ constructor(
   }
   // CODELAB FEATURED END
 
-  // Called by the fragment when the GPS activity for Device Sharing has completed.
+  // Called by the fragment in Step 5 of the Device Sharing flow when the GPS activity for
+  // Device Sharing has succeeded.
   fun shareDeviceSucceeded(deviceUiModel: DeviceUiModel) {
     _shareDeviceStatus.postValue(TaskStatus.Completed("Device sharing completed successfully"))
     startDevicePeriodicPing(deviceUiModel)
   }
 
-  // Called by the fragment when the GPS activity for Device Sharing has completed.
+  // Called by the fragment in Step 5 of the Device Sharing flow when the GPS activity for
+  // Device Sharing has failed.
   fun shareDeviceFailed(deviceUiModel: DeviceUiModel, resultCode: Int) {
     Timber.d("ShareDevice: Failed with errorCode [${resultCode}]")
     _shareDeviceStatus.postValue(TaskStatus.Failed("Device sharing failed [${resultCode}]", null))

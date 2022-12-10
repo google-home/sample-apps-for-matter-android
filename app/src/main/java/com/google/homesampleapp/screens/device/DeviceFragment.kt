@@ -82,7 +82,7 @@ class DeviceFragment : Fragment() {
   // The fragment's ViewModel.
   private val viewModel: DeviceViewModel by viewModels()
 
-  // The Activity launcher that launches the "shareDevice" activity in Google Play Services.
+  // The ActivityResultLauncher that launches the "shareDevice" activity in Google Play Services.
   private lateinit var shareDeviceLauncher: ActivityResultLauncher<IntentSenderRequest>
 
   // Background work dialog.
@@ -98,8 +98,9 @@ class DeviceFragment : Fragment() {
     super.onCreate(savedInstanceState)
 
     // Share Device Step 1, where an activity launcher is registered.
-    // At step 2, the user triggers the "Share Device" action and the ViewModel calls the
-    // Google Play Services (GPS) API (commissioningClient.shareDevice()).
+    // At step 2 of the "Share Device" flow, the user triggers the "Share Device"
+    // action and the ViewModel calls the Google Play Services (GPS) API
+    // (commissioningClient.shareDevice()).
     // This returns an  IntentSender that is then used in step 3 to call
     // shareDevicelauncher.launch().
     // CODELAB: shareDeviceLauncher definition
@@ -295,11 +296,10 @@ class DeviceFragment : Fragment() {
       }
     }
 
-    // In DeviceSharing step 2, the ViewModel calls the GPS shareDevice() API to get the
-    // IntentSender
-    // to be used with the Android Activity Result API. Once the ViewModel has the IntentSender, it
-    // posts
-    // it via LiveData so the Fragment can use that value to launch the activity (step 3).
+    // In the DeviceSharing flow step 2, the ViewModel calls the GPS shareDevice() API to get the
+    // IntentSender to be used with the Android Activity Result API. Once the ViewModel has
+    // the IntentSender, it posts it via LiveData so the Fragment can use that value to launch the
+    // activity (step 3).
     // Note that when the IntentSender has been processed, it must be consumed to avoid a
     // configuration change that resends the observed values and re-triggers the device sharing.
     // CODELAB FEATURED BEGIN
@@ -307,7 +307,7 @@ class DeviceFragment : Fragment() {
       Timber.d("shareDeviceIntentSender.observe is called with [${intentSenderToString(sender)}]")
       if (sender != null) {
         // Share Device Step 4: Launch the activity described in the IntentSender that
-        // was returned in Step 3 (where the viewModel calls the GPS API to commission
+        // was returned in Step 3 (where the viewModel calls the GPS API to share
         // the device).
         Timber.d("ShareDevice: Launch GPS activity to share device")
         shareDeviceLauncher.launch(IntentSenderRequest.Builder(sender).build())

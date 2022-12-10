@@ -33,6 +33,7 @@ import timber.log.Timber
 // Various constants
 
 lateinit var VERSION_NAME: String
+lateinit var APP_NAME: String
 
 // -------------------------------------------------------------------------------------------------
 // Display helper functions

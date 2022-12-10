@@ -190,7 +190,7 @@ constructor(
   // back.
 
   /**
-   * Commission Device Step 2. Triggered by the "Commission Device" button in the fragment.
+   * Commission Device Step 2 (part 2). Triggered by the "Commission Device" button in the fragment.
    * Initiates a commission device task. The success callback of the
    * commissioningClient.commissionDevice() API provides the IntentSender to be used to launch the
    * "Commission Device" activity in Google Play Services. This viewModel provides two LiveData
@@ -322,7 +322,8 @@ constructor(
   }
   // CODELAB FEATURED END
 
-  // Called by the fragment in Step 5 of the Device Commissioning flow.
+  // Called by the fragment in Step 5 of the Device Commissioning flow when the GPS activity
+  // for commissioning the device has succeeded.
   fun commissionDeviceSucceeded(activityResult: ActivityResult, deviceName: String) {
     val result =
         CommissioningResult.fromIntentSenderResult(activityResult.resultCode, activityResult.data)
@@ -364,7 +365,8 @@ constructor(
     }
   }
 
-  // Called by the fragment in Step 5 of the Device Commissioning flow.
+  // Called by the fragment in Step 5 of the Device Commissioning flow when the GPS activity for
+  // commissioning the device has failed.
   fun commissionDeviceFailed(resultCode: Int) {
     Timber.d("CommissionDevice: Failed [${resultCode}")
     _commissionDeviceStatus.postValue(
