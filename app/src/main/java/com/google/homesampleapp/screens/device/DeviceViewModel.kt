@@ -168,6 +168,7 @@ constructor(
     }
   }
 
+  // CODELAB FEATURED BEGIN
   /**
    * Consumes the value in [_shareDeviceIntentSender] and sets it back to null. Needs to be called
    * to avoid re-processing an IntentSender after a configuration change where the LiveData is
@@ -176,6 +177,7 @@ constructor(
   fun consumeShareDeviceIntentSender() {
     _shareDeviceIntentSender.postValue(null)
   }
+  // CODELAB FEATURED END
 
   // Called by the fragment when the GPS activity for Device Sharing has completed.
   fun shareDeviceSucceeded(deviceUiModel: DeviceUiModel) {

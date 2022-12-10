@@ -121,9 +121,9 @@ class HomeFragment : Fragment() {
             viewModel.updateDeviceStateOn(deviceUiModel, onOffSwitch?.isChecked!!)
           })
 
+  // CODELAB: commissionDeviceLauncher declaration
   // The ActivityResult launcher that launches the "commissionDevice" activity in Google Play
   // Services.
-  // CODELAB: commissionDeviceLauncher declaration
   private lateinit var commissionDeviceLauncher: ActivityResultLauncher<IntentSenderRequest>
   // CODELAB SECTION END
 
@@ -315,8 +315,8 @@ class HomeFragment : Fragment() {
       updateUi(devicesUiModel)
     }
 
-    // The current status of the share device action.
     // CODELAB: commissionDeviceStatus
+    // The current status of the share device action.
     viewModel.commissionDeviceStatus.observe(viewLifecycleOwner) { status ->
       Timber.d("commissionDeviceStatus.observe: status [${status}]")
       // TODO: disable the "add device button", update the result text view, etc.
@@ -336,7 +336,7 @@ class HomeFragment : Fragment() {
         // the device).
         Timber.d("CommissionDevice: Launch GPS activity to commission device")
         commissionDeviceLauncher.launch(IntentSenderRequest.Builder(sender).build())
-        // fixme viewModel.consumeCommissionDeviceIntentSender()
+        viewModel.consumeCommissionDeviceIntentSender()
       }
     }
     // CODELAB SECTION END

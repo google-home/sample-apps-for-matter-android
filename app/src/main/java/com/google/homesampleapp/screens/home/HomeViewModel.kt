@@ -311,14 +311,16 @@ constructor(
         }
   }
 
+  // CODELAB FEATURED BEGIN
   /**
    * Consumes the value in [_commissionDeviceIntentSender] and sets it back to null. Needs to be
-   * called to re-process the IntentSender after a configuration change where the LiveData is
-   * re-posted.
+   * called to avoid re-processing the IntentSender after a configuration change (where the LiveData
+   * is re-posted. FIXME: test it
    */
   fun consumeCommissionDeviceIntentSender() {
     _commissionDeviceIntentSender.postValue(null)
   }
+  // CODELAB FEATURED END
 
   // Called by the fragment in Step 5 of the Device Commissioning flow.
   fun commissionDeviceSucceeded(activityResult: ActivityResult, deviceName: String) {
