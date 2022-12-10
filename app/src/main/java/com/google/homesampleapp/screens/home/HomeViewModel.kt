@@ -117,8 +117,8 @@ constructor(
     get() = _commissionDeviceIntentSender
 
   /** An error occurred. Let the fragment know about it. */
-  private val _errorLiveData = MutableLiveData<ErrorInfo>()
-  val errorLiveData: LiveData<ErrorInfo>
+  private val _errorLiveData = MutableLiveData<ErrorInfo?>()
+  val errorLiveData: LiveData<ErrorInfo?>
     get() = _errorLiveData
 
   // The last device id used for devices commissioned on the app's fabric.
@@ -390,6 +390,12 @@ constructor(
         devicesStateRepository.updateDeviceState(deviceUiModel.device.deviceId, true, isOn)
       }
     }
+  }
+
+  // Called after we dismiss an error dialog. If we don't consume, a config change redisplays the
+  // alert dialog.
+  fun consumeErrorLiveData() {
+    _errorLiveData.postValue(null)
   }
 
   // -----------------------------------------------------------------------------------------------

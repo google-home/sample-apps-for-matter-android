@@ -163,7 +163,9 @@ class DeviceFragment : Fragment() {
     errorAlertDialog =
         MaterialAlertDialogBuilder(requireContext())
             .setPositiveButton(resources.getString(R.string.ok)) { _, _ ->
-              // Nothing to do.
+              // Consume the status so the error panel does not show up again
+              // on a config change.
+              viewModel.consumeShareDeviceStatus()
             }
             .create()
 

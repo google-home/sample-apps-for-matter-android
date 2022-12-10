@@ -199,6 +199,12 @@ constructor(
     startDevicePeriodicPing(deviceUiModel)
   }
 
+  // Called after we dismiss an error dialog. If we don't consume, a config change redisplays the
+  // alert dialog.
+  fun consumeShareDeviceStatus() {
+    _shareDeviceStatus.postValue(TaskStatus.NotStarted)
+  }
+
   // -----------------------------------------------------------------------------------------------
   // Operations on device
 

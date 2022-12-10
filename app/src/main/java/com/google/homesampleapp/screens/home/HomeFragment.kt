@@ -301,7 +301,7 @@ class HomeFragment : Fragment() {
     errorAlertDialog =
         MaterialAlertDialogBuilder(requireContext())
             .setPositiveButton(resources.getString(R.string.ok)) { _, _ ->
-              // Nothing to do.
+              viewModel.consumeErrorLiveData()
             }
             .create()
   }
@@ -348,7 +348,9 @@ class HomeFragment : Fragment() {
 
     viewModel.errorLiveData.observe(viewLifecycleOwner) { errorInfo ->
       Timber.d("errorLiveData.observe is called with [${errorInfo}]")
-      showAlertDialog(errorAlertDialog, errorInfo.title, errorInfo.message)
+      if (errorInfo != null) {
+        showAlertDialog(errorAlertDialog, errorInfo.title, errorInfo.message)
+      }
     }
   }
 
