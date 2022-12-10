@@ -136,23 +136,23 @@ class HomeFragment : Fragment() {
 
     // Commission Device Step 1.
     // An activity launcher is registered. It will be launched
-    // at step 2 (in the viewModel) when the user triggers the "Add Device" action and the
-    // Google Play Services (GPS) API (commissioningClient.commissionDevice()) returns the
-    // IntentSender to be used to launch the proper activity in GPS.
+    // at steps 2 and 3 when the user triggers the "Add Device" action and the ViewModel
+    // calls the Google Play Services (GPS) API (commissioningClient.commissionDevice()) and returns
+    // returns the IntentSender to be used to launch the proper activity in GPS.
     // CODELAB: commissionDeviceLauncher definition
     commissionDeviceLauncher =
         registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
           // Commission Device Step 5.
           // The Commission Device activity in GPS has completed.
           val resultCode = result.resultCode
-          Timber.d("GOT result for commissioningLauncher: resultCode [${resultCode}]")
           if (resultCode == Activity.RESULT_OK) {
+            Timber.d("CommissionDevice: Success")
             // We now need to capture the device information for the app's fabric.
             // Once this completes, a call is made to the viewModel to persist the information
             // about that device in the app.
             showNewDeviceAlertDialog(result)
           } else {
-            viewModel.commissionDeviceFailed(getString(R.string.status_failed_with, resultCode))
+            viewModel.commissionDeviceFailed(resultCode)
           }
         }
     // CODELAB SECTION END
@@ -218,7 +218,7 @@ class HomeFragment : Fragment() {
       Timber.d("Invocation: MultiAdminCommissioning")
       if (viewModel.commissionDeviceStatus.value == TaskStatus.NotStarted) {
         Timber.d("TaskStatus.NotStarted so starting commissioning")
-        viewModel.commissionDevice(intent, requireContext())
+        viewModel.multiadminCommissioning(intent, requireContext())
       } else {
         Timber.d("TaskStatus is *not* NotStarted: $viewModel.commissionDeviceStatus.value")
       }
@@ -267,7 +267,7 @@ class HomeFragment : Fragment() {
     binding.addDeviceButton.setOnClickListener {
       Timber.d("addDeviceButton.setOnClickListener")
       viewModel.stopDevicesPeriodicPing()
-      viewModel.commissionDevice(requireActivity().intent, requireContext())
+      viewModel.commissionDevice(requireContext())
     }
   }
 
@@ -332,10 +332,11 @@ class HomeFragment : Fragment() {
           "commissionDeviceIntentSender.observe is called with [${intentSenderToString(sender)}]")
       if (sender != null) {
         // Commission Device Step 4: Launch the activity described in the IntentSender that
-        // was returned in Step 3 where the viewModel calls the GPS API to commission
-        // the device.
-        Timber.d("*** Calling commissionDeviceLauncher.launch")
+        // was returned in Step 3 (where the viewModel calls the GPS API to commission
+        // the device).
+        Timber.d("CommissionDevice: Launch GPS activity to commission device")
         commissionDeviceLauncher.launch(IntentSenderRequest.Builder(sender).build())
+        // fixme viewModel.consumeCommissionDeviceIntentSender()
       }
     }
     // CODELAB SECTION END

@@ -23,7 +23,6 @@ import com.google.android.gms.home.matter.commissioning.CommissioningCompleteMet
 import com.google.android.gms.home.matter.commissioning.CommissioningRequestMetadata
 import com.google.android.gms.home.matter.commissioning.CommissioningService
 import com.google.homesampleapp.chip.ChipClient
-import com.google.homesampleapp.chip.ClustersHelper
 import com.google.homesampleapp.data.DevicesRepository
 import com.google.homesampleapp.data.DevicesStateRepository
 import dagger.hilt.android.AndroidEntryPoint
@@ -46,7 +45,6 @@ class AppCommissioningService : Service(), CommissioningService.Callback {
   @Inject internal lateinit var devicesRepository: DevicesRepository
   @Inject internal lateinit var devicesStateRepository: DevicesStateRepository
   @Inject internal lateinit var chipClient: ChipClient
-  @Inject internal lateinit var clustersHelper: ClustersHelper
 
   private val serviceJob = Job()
   private val serviceScope = CoroutineScope(Dispatchers.Main + serviceJob)

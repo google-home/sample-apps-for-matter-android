@@ -17,7 +17,7 @@ android {
         minSdk 27
         targetSdk 31
         versionCode 10
-        versionName "1.2.1"
+        versionName "1.2.2-rc1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -68,6 +68,7 @@ dependencies {
     // Connected Home
     implementation 'com.google.android.gms:play-services-base:18.1.0'
     implementation 'com.google.android.gms:play-services-home:16.0.0-beta1'
+    // fixme implementation 'com.google.android.gms:play-services-home:16.0.0'
 
     // AndroidX
     implementation 'androidx.appcompat:appcompat:1.4.1'
