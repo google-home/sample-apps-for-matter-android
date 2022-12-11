@@ -231,9 +231,8 @@ constructor(
   // CODELAB SECTION END
 
   /**
-   * Sample app has been invoked for multi-admin commissionning. FIXME: Can we do it without going
-   * through GMSCore? All I am missing is network location. Currently, it I go through gmscore, it
-   * asks me to scan the QR code. why?
+   * Sample app has been invoked for multi-admin commissionning. TODO: Can we do it without going
+   * through GMSCore? All we're missing is network location.
    */
   fun multiadminCommissioning(intent: Intent, context: Context) {
     Timber.d("multiadminCommissioning: starting")
@@ -299,7 +298,6 @@ constructor(
     Matter.getCommissioningClient(context)
         .commissionDevice(commissioningRequest)
         .addOnSuccessListener { result ->
-          result.describeContents() // FIXME --> what does this show?
           // Communication with fragment is via livedata
           _commissionDeviceStatus.postValue(TaskStatus.InProgress)
           _commissionDeviceIntentSender.postValue(result)
@@ -315,7 +313,7 @@ constructor(
   /**
    * Consumes the value in [_commissionDeviceIntentSender] and sets it back to null. Needs to be
    * called to avoid re-processing the IntentSender after a configuration change (where the LiveData
-   * is re-posted. FIXME: test it
+   * is re-posted.
    */
   fun consumeCommissionDeviceIntentSender() {
     _commissionDeviceIntentSender.postValue(null)
@@ -348,7 +346,7 @@ constructor(
                 .setDateCommissioned(getTimestampForNow())
                 .setVendorId(result.commissionedDeviceDescriptor.vendorId.toString())
                 .setProductId(result.commissionedDeviceDescriptor.productId.toString())
-                // FIXME check this --> I always have unknown
+                // TODO: M5Stack gives deviceType of 0 -> unknown
                 .setDeviceType(
                     convertToAppDeviceType(result.commissionedDeviceDescriptor.deviceType))
                 .build())
