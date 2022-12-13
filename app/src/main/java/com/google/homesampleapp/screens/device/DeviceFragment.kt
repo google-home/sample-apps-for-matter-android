@@ -47,6 +47,7 @@ import com.google.homesampleapp.data.DevicesStateRepository
 import com.google.homesampleapp.databinding.FragmentDeviceBinding
 import com.google.homesampleapp.displayString
 import com.google.homesampleapp.formatTimestamp
+import com.google.homesampleapp.intentSenderToString
 import com.google.homesampleapp.isDummyDevice
 import com.google.homesampleapp.lifeCycleEvent
 import com.google.homesampleapp.screens.shared.SelectedDeviceViewModel
@@ -81,7 +82,7 @@ class DeviceFragment : Fragment() {
   // The fragment's ViewModel.
   private val viewModel: DeviceViewModel by viewModels()
 
-  // The Activity launcher that launches the "shareDevice" activity in Google Play Services.
+  // The ActivityResultLauncher that launches the "shareDevice" activity in Google Play Services.
   private lateinit var shareDeviceLauncher: ActivityResultLauncher<IntentSenderRequest>
 
   // Background work dialog.
@@ -96,25 +97,25 @@ class DeviceFragment : Fragment() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
-    // Share Device Step 2.
-    // An activity launcher is registered. It will be launched
-    // at step 3 (in the viewModel) when the user triggers the "Share Device" action and the
-    // Google Play Services (GPS) API (commissioningClient.shareDevice()) returns the IntentSender
-    // to be used to launch the proper activity in GPS.
+    // Share Device Step 1, where an activity launcher is registered.
+    // At step 2 of the "Share Device" flow, the user triggers the "Share Device"
+    // action and the ViewModel calls the Google Play Services (GPS) API
+    // (commissioningClient.shareDevice()).
+    // This returns an  IntentSender that is then used in step 3 to call
+    // shareDevicelauncher.launch().
     // CODELAB: shareDeviceLauncher definition
     shareDeviceLauncher =
         registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
           // Share Device Step 5.
-          // The Share Device activity in GPS has completed.
+          // The Share Device activity in GPS (step 4) has completed.
           val resultCode = result.resultCode
           if (resultCode == RESULT_OK) {
-            Timber.d("ShareDevice: Success with resultCode [[${resultCode}]")
+            Timber.d("ShareDevice: Success")
+            viewModel.shareDeviceSucceeded(selectedDeviceViewModel.selectedDeviceLiveData.value!!)
           } else {
-            Timber.d("ShareDevice: Failed with resultCode [[${resultCode}]")
-            showAlertDialog(errorAlertDialog, "Device Sharing Failed", "Result code: ${resultCode}")
+            viewModel.shareDeviceFailed(
+                selectedDeviceViewModel.selectedDeviceLiveData.value!!, resultCode)
           }
-          updateShareDeviceButton(true)
-          viewModel.shareDeviceCompleted(selectedDeviceViewModel.selectedDeviceLiveData.value!!)
         }
     // CODELAB SECTION END
   }
@@ -162,7 +163,9 @@ class DeviceFragment : Fragment() {
     errorAlertDialog =
         MaterialAlertDialogBuilder(requireContext())
             .setPositiveButton(resources.getString(R.string.ok)) { _, _ ->
-              // Nothing to do.
+              // Consume the status so the error panel does not show up again
+              // on a config change.
+              viewModel.consumeShareDeviceStatus()
             }
             .create()
 
@@ -206,20 +209,18 @@ class DeviceFragment : Fragment() {
             }
             .show()
       } else {
-        // Disable the button. It's state is properly re-enabled either via the
-        // shareDeviceStatus LiveData updates on the processing, or when the activity completes and
-        // our launcher handler takes care of it.
-        updateShareDeviceButton(false)
         // Trigger the processing for sharing the device
         viewModel.shareDevice(requireActivity(), deviceId!!)
       }
     }
 
+    // CODELAB FEATURED BEGIN
     // Change the on/off state of the device
     binding.onoffSwitch.setOnClickListener {
       val isOn = binding.onoffSwitch.isChecked
       viewModel.updateDeviceStateOn(selectedDeviceViewModel.selectedDeviceLiveData.value!!, isOn)
     }
+    // CODELAB FEATURED END
 
     // Remove Device
     binding.removeButton.setOnClickListener {
@@ -277,14 +278,16 @@ class DeviceFragment : Fragment() {
       updateDeviceInfo(devicesStateRepository.lastUpdatedDeviceState.value)
     }
 
+    // CODELAB FEATURED BEGIN
     // The current status of the share device action.
     viewModel.shareDeviceStatus.observe(viewLifecycleOwner) { status ->
       val isButtonEnabled = status !is InProgress
       updateShareDeviceButton(isButtonEnabled)
       if (status is TaskStatus.Failed) {
-        showAlertDialog(errorAlertDialog, status.message, status.cause.toString())
+        showAlertDialog(errorAlertDialog, status.message, status.cause!!.toString())
       }
     }
+    // CODELAB FEATURED END
 
     // Background work alert dialog actions.
     viewModel.backgroundWorkAlertDialogAction.observe(viewLifecycleOwner) { action ->
@@ -295,15 +298,25 @@ class DeviceFragment : Fragment() {
       }
     }
 
-    // The ViewModel calls the GPS shareDevice() API to get the IntentSender used with the
-    // Android Activity Result API. Once the ViewModel has the IntentSender, it posts
-    // it via LiveData so the Fragment can use that value to launch the activity.
-    // If sender was null, then model triggered a failed task status. No need to worry
-    // about that here.
+    // In the DeviceSharing flow step 2, the ViewModel calls the GPS shareDevice() API to get the
+    // IntentSender to be used with the Android Activity Result API. Once the ViewModel has
+    // the IntentSender, it posts it via LiveData so the Fragment can use that value to launch the
+    // activity (step 3).
+    // Note that when the IntentSender has been processed, it must be consumed to avoid a
+    // configuration change that resends the observed values and re-triggers the device sharing.
+    // CODELAB FEATURED BEGIN
     viewModel.shareDeviceIntentSender.observe(viewLifecycleOwner) { sender ->
-      Timber.d("ShareDevice: Launch GPS activity to share device [${sender}]")
-      shareDeviceLauncher.launch(IntentSenderRequest.Builder(sender!!).build())
+      Timber.d("shareDeviceIntentSender.observe is called with [${intentSenderToString(sender)}]")
+      if (sender != null) {
+        // Share Device Step 4: Launch the activity described in the IntentSender that
+        // was returned in Step 3 (where the viewModel calls the GPS API to share
+        // the device).
+        Timber.d("ShareDevice: Launch GPS activity to share device")
+        shareDeviceLauncher.launch(IntentSenderRequest.Builder(sender).build())
+        viewModel.consumeShareDeviceIntentSender()
+      }
     }
+    // CODELAB FEATURED END
 
     // Observer on the currently selected device
     selectedDeviceViewModel.selectedDeviceIdLiveData.observe(viewLifecycleOwner) { deviceId ->

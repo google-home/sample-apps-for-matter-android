@@ -33,6 +33,7 @@ import timber.log.Timber
 // Various constants
 
 lateinit var VERSION_NAME: String
+lateinit var APP_NAME: String
 
 // -------------------------------------------------------------------------------------------------
 // Display helper functions
@@ -49,7 +50,7 @@ sealed class TaskStatus {
    * The task completed with an exception.
    * @param cause the cause of the failure
    */
-  class Failed(val message: String, val cause: Throwable) : TaskStatus()
+  class Failed(val message: String, val cause: Throwable?) : TaskStatus()
 
   /**
    * The task completed successfully.

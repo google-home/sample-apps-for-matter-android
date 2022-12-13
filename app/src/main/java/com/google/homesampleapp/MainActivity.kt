@@ -47,9 +47,13 @@ class MainActivity : AppCompatActivity() {
     // versionName is set in build.gradle.
     val packageInfo = packageManager.getPackageInfo(packageName, 0)
     VERSION_NAME = packageInfo.versionName
+    APP_NAME = getString(R.string.app_name)
+    packageInfo.packageName
     Timber.i(
-        "==============================\nVersion ${VERSION_NAME}\n" +
-            "==============================")
+        "====================================\n" +
+            "Version ${VERSION_NAME}\n" +
+            "App     ${APP_NAME}\n" +
+            "====================================")
 
     // Strings associated with DeviceTypes
     setDeviceTypeStrings(

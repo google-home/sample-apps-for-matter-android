@@ -22,18 +22,35 @@ import android.content.Intent
 import android.content.IntentSender
 import android.os.SystemClock
 import androidx.activity.result.ActivityResult
-import androidx.lifecycle.*
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.asLiveData
+import androidx.lifecycle.liveData
+import androidx.lifecycle.viewModelScope
 import com.google.android.gms.home.matter.Matter
 import com.google.android.gms.home.matter.commissioning.CommissioningRequest
 import com.google.android.gms.home.matter.commissioning.CommissioningResult
 import com.google.android.gms.home.matter.commissioning.DeviceInfo
+import com.google.android.gms.home.matter.commissioning.SharedDeviceData
 import com.google.android.gms.home.matter.commissioning.SharedDeviceData.*
-import com.google.homesampleapp.*
+import com.google.homesampleapp.DUMMY_DEVICE_NAME_PREFIX
+import com.google.homesampleapp.Device
+import com.google.homesampleapp.Devices
+import com.google.homesampleapp.DevicesState
+import com.google.homesampleapp.ErrorInfo
+import com.google.homesampleapp.MIN_COMMISSIONING_WINDOW_EXPIRATION_SECONDS
+import com.google.homesampleapp.PERIODIC_UPDATE_INTERVAL_HOME_SCREEN_SECONDS
+import com.google.homesampleapp.TaskStatus
+import com.google.homesampleapp.UserPreferences
 import com.google.homesampleapp.chip.ClustersHelper
 import com.google.homesampleapp.commissioning.AppCommissioningService
+import com.google.homesampleapp.convertToAppDeviceType
 import com.google.homesampleapp.data.DevicesRepository
 import com.google.homesampleapp.data.DevicesStateRepository
 import com.google.homesampleapp.data.UserPreferencesRepository
+import com.google.homesampleapp.getTimestampForNow
+import com.google.homesampleapp.isDummyDevice
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -94,14 +111,14 @@ constructor(
   val statusInfo: LiveData<String>
     get() = _statusInfo
 
-  /** The IntentSender triggered by [commissionDevice]. */
+  /** IntentSender LiveData triggered by [commissionDevice]. */
   private val _commissionDeviceIntentSender = MutableLiveData<IntentSender?>()
   val commissionDeviceIntentSender: LiveData<IntentSender?>
     get() = _commissionDeviceIntentSender
 
   /** An error occurred. Let the fragment know about it. */
-  private val _errorLiveData = MutableLiveData<ErrorInfo>()
-  val errorLiveData: LiveData<ErrorInfo>
+  private val _errorLiveData = MutableLiveData<ErrorInfo?>()
+  val errorLiveData: LiveData<ErrorInfo?>
     get() = _errorLiveData
 
   // The last device id used for devices commissioned on the app's fabric.
@@ -167,71 +184,116 @@ constructor(
 
   // -----------------------------------------------------------------------------------------------
   // Commission Device
+  //
+  // See "docs/Google Home Mobile SDK.pdf" for a good overview of all the artifacts needed
+  // to transfer control from the sample app's UI to the GPS CommissionDevice UI, and get a result
+  // back.
 
   /**
-   * Commission Device Step 3. Initiates a commission device task. The success callback of the
+   * Commission Device Step 2 (part 2). Triggered by the "Commission Device" button in the fragment.
+   * Initiates a commission device task. The success callback of the
    * commissioningClient.commissionDevice() API provides the IntentSender to be used to launch the
    * "Commission Device" activity in Google Play Services. This viewModel provides two LiveData
    * objects to report on the result of this API call that can then be used by the Fragment who's
    * observing them:
-   * 1. [commissionDeviceStatus] reports the result of the call which is displayed in the fragment
-   * 2. [commissionDeviceIntentSender] is the result of the commissionDevice() call that can then be
-   * used in the Fragment to launch the Google Play Services "Commission Device" activity.
+   * 1. [commissionDeviceStatus] updates the fragment's UI according to the TaskStatus
+   * 2. [commissionDeviceIntentSender] is the IntentSender to be used in the Fragment to launch the
+   * Google Play Services "Commission Device" activity.
    *
-   * After using the sender, [consumeCommissionDeviceIntentSender()] should be called to avoid
-   * receiving the sender again after a configuration change.
+   * See [consumeCommissionDeviceIntentSender()] for proper management of the IntentSender in the
+   * face of configuration changes that repost LiveData.
    */
   // CODELAB: commissionDevice
-  fun commissionDevice(intent: Intent, context: Context) {
-    Timber.d("commissionDevice")
+  fun commissionDevice(context: Context) {
+    Timber.d("CommissionDevice: starting")
     _commissionDeviceStatus.postValue(TaskStatus.InProgress)
+
+    val commissionDeviceRequest =
+        CommissioningRequest.builder()
+            .setCommissioningService(ComponentName(context, AppCommissioningService::class.java))
+            .build()
+
+    // The call to commissionDevice() creates the IntentSender that will eventually be launched
+    // in the fragment to trigger the commissioning activity in GPS.
+    Matter.getCommissioningClient(context)
+        .commissionDevice(commissionDeviceRequest)
+        .addOnSuccessListener { result ->
+          Timber.d("ShareDevice: Success getting the IntentSender: result [${result}]")
+          // Communication with fragment is via livedata
+          _commissionDeviceIntentSender.postValue(result)
+        }
+        .addOnFailureListener { error ->
+          Timber.e(error)
+          _commissionDeviceStatus.postValue(
+              TaskStatus.Failed("Setting up the IntentSender failed", error))
+        }
+  }
+  // CODELAB SECTION END
+
+  /**
+   * Sample app has been invoked for multi-admin commissionning. TODO: Can we do it without going
+   * through GMSCore? All we're missing is network location.
+   */
+  fun multiadminCommissioning(intent: Intent, context: Context) {
+    Timber.d("multiadminCommissioning: starting")
+    _commissionDeviceStatus.postValue(TaskStatus.InProgress)
+
+    val sharedDeviceData = SharedDeviceData.fromIntent(intent)
+    Timber.d("multiadminCommissioning: sharedDeviceData [${sharedDeviceData}]")
+    Timber.d("multiadminCommissioning: manualPairingCode [${sharedDeviceData.manualPairingCode}]")
 
     val commissionRequestBuilder =
         CommissioningRequest.builder()
             .setCommissioningService(ComponentName(context, AppCommissioningService::class.java))
 
-    if (isMultiAdminCommissioning(intent)) {
-      // EXTRA_COMMISSIONING_WINDOW_EXPIRATION is a hint of how much time is remaining in the
-      // commissioning window for multi-admin. It is based on the current system uptime.
-      // If the user takes too long to select the target commissioning app, then there's not
-      // enougj time to complete the multi-admin commissioning and we message it to the user.
-      val commissioningWindowExpirationMillis =
-          intent.getLongExtra(EXTRA_COMMISSIONING_WINDOW_EXPIRATION, -1L)
-      val currentUptimeMillis = SystemClock.elapsedRealtime()
-      val timeLeftSeconds = (commissioningWindowExpirationMillis - currentUptimeMillis) / 1000
-      Timber.d(
-          "commissionDevice: TargetCommissioner for MultiAdmin. " +
-              "uptime [${currentUptimeMillis}] " +
-              "commissioningWindowExpiration [${commissioningWindowExpirationMillis}] " +
-              "-> expires in ${timeLeftSeconds} seconds")
+    // EXTRA_COMMISSIONING_WINDOW_EXPIRATION is a hint of how much time is remaining in the
+    // commissioning window for multi-admin. It is based on the current system uptime.
+    // If the user takes too long to select the target commissioning app, then there's not
+    // enougj time to complete the multi-admin commissioning and we message it to the user.
+    val commissioningWindowExpirationMillis =
+        intent.getLongExtra(EXTRA_COMMISSIONING_WINDOW_EXPIRATION, -1L)
+    val currentUptimeMillis = SystemClock.elapsedRealtime()
+    val timeLeftSeconds = (commissioningWindowExpirationMillis - currentUptimeMillis) / 1000
+    Timber.d(
+        "commissionDevice: TargetCommissioner for MultiAdmin. " +
+            "uptime [${currentUptimeMillis}] " +
+            "commissioningWindowExpiration [${commissioningWindowExpirationMillis}] " +
+            "-> expires in ${timeLeftSeconds} seconds")
 
-      if (commissioningWindowExpirationMillis == -1L) {
-        Timber.e(
-            "EXTRA_COMMISSIONING_WINDOW_EXPIRATION not specified in multi-admin call. " +
-                "Still going ahead with the multi-admin though.")
-      } else if (timeLeftSeconds < MIN_COMMISSIONING_WINDOW_EXPIRATION_SECONDS) {
-        _errorLiveData.value =
-            ErrorInfo(
-                title = "Commissioning Window Expiration",
-                message =
-                    "The commissioning window will " +
-                        "expire in ${timeLeftSeconds} seconds, not long enough to complete the commissioning.\n\n" +
-                        "In the future, please select the target commissioning application faster to avoid this situation.")
-        return
-      }
-      val deviceName = intent.getStringExtra(EXTRA_DEVICE_NAME)
-      commissionRequestBuilder.setDeviceNameHint(deviceName)
-
-      val vendorId = intent.getIntExtra(EXTRA_VENDOR_ID, -1)
-      val productId = intent.getIntExtra(EXTRA_PRODUCT_ID, -1)
-      val deviceType = intent.getIntExtra(EXTRA_DEVICE_TYPE, -1)
-      val deviceInfo = DeviceInfo.builder().setProductId(productId).setVendorId(vendorId).build()
-      commissionRequestBuilder.setDeviceInfo(deviceInfo)
-
-      val manualPairingCode = intent.getStringExtra(EXTRA_MANUAL_PAIRING_CODE)
-      commissionRequestBuilder.setOnboardingPayload(manualPairingCode)
+    if (commissioningWindowExpirationMillis == -1L) {
+      Timber.e(
+          "EXTRA_COMMISSIONING_WINDOW_EXPIRATION not specified in multi-admin call. " +
+              "Still going ahead with the multi-admin though.")
+    } else if (timeLeftSeconds < MIN_COMMISSIONING_WINDOW_EXPIRATION_SECONDS) {
+      _errorLiveData.value =
+          ErrorInfo(
+              title = "Commissioning Window Expiration",
+              message =
+                  "The commissioning window will " +
+                      "expire in ${timeLeftSeconds} seconds, not long enough to complete the commissioning.\n\n" +
+                      "In the future, please select the target commissioning application faster to avoid this situation.")
+      return
     }
+
+    val deviceName = intent.getStringExtra(EXTRA_DEVICE_NAME)
+    commissionRequestBuilder.setDeviceNameHint(deviceName)
+
+    val vendorId = intent.getIntExtra(EXTRA_VENDOR_ID, -1)
+    val productId = intent.getIntExtra(EXTRA_PRODUCT_ID, -1)
+    val deviceType = intent.getIntExtra(EXTRA_DEVICE_TYPE, -1)
+    val deviceInfo = DeviceInfo.builder().setProductId(productId).setVendorId(vendorId).build()
+    commissionRequestBuilder.setDeviceInfo(deviceInfo)
+
+    val manualPairingCode = intent.getStringExtra(EXTRA_MANUAL_PAIRING_CODE)
+    commissionRequestBuilder.setOnboardingPayload(manualPairingCode)
+
     val commissioningRequest = commissionRequestBuilder.build()
+
+    Timber.d(
+        "multiadmin: commissioningRequest " +
+            "onboardingPayload [${commissioningRequest.onboardingPayload}] " +
+            "vendorId [${commissioningRequest.deviceInfo!!.vendorId}] " +
+            "productId [${commissioningRequest.deviceInfo!!.productId}]")
 
     Matter.getCommissioningClient(context)
         .commissionDevice(commissioningRequest)
@@ -246,14 +308,20 @@ constructor(
               TaskStatus.Failed("Failed to to get the IntentSender.", error))
         }
   }
-  // CODELAB SECTION END
 
-  /** Consumes the value in [_commissionDeviceIntentSender] and sets it back to null. */
+  // CODELAB FEATURED BEGIN
+  /**
+   * Consumes the value in [_commissionDeviceIntentSender] and sets it back to null. Needs to be
+   * called to avoid re-processing the IntentSender after a configuration change (where the LiveData
+   * is re-posted.
+   */
   fun consumeCommissionDeviceIntentSender() {
     _commissionDeviceIntentSender.postValue(null)
   }
+  // CODELAB FEATURED END
 
-  // Called by the fragment in Step 5 of the Device Commissioning flow.
+  // Called by the fragment in Step 5 of the Device Commissioning flow when the GPS activity
+  // for commissioning the device has succeeded.
   fun commissionDeviceSucceeded(activityResult: ActivityResult, deviceName: String) {
     val result =
         CommissioningResult.fromIntentSenderResult(activityResult.resultCode, activityResult.data)
@@ -278,7 +346,7 @@ constructor(
                 .setDateCommissioned(getTimestampForNow())
                 .setVendorId(result.commissionedDeviceDescriptor.vendorId.toString())
                 .setProductId(result.commissionedDeviceDescriptor.productId.toString())
-                // FIXME check this --> I always have unknown
+                // TODO: M5Stack gives deviceType of 0 -> unknown
                 .setDeviceType(
                     convertToAppDeviceType(result.commissionedDeviceDescriptor.deviceType))
                 .build())
@@ -295,9 +363,12 @@ constructor(
     }
   }
 
-  // Called by the fragment in Step 5 of the Device Commissioning flow.
-  fun commissionDeviceFailed(message: String) {
-    _commissionDeviceStatus.postValue(TaskStatus.Failed(message, Throwable(message)))
+  // Called by the fragment in Step 5 of the Device Commissioning flow when the GPS activity for
+  // commissioning the device has failed.
+  fun commissionDeviceFailed(resultCode: Int) {
+    Timber.d("CommissionDevice: Failed [${resultCode}")
+    _commissionDeviceStatus.postValue(
+        TaskStatus.Failed("Commission device failed [${resultCode}]", null))
   }
 
   /** Updates the status of [commissionDeviceStatus] to success with the given message. */
@@ -317,6 +388,12 @@ constructor(
         devicesStateRepository.updateDeviceState(deviceUiModel.device.deviceId, true, isOn)
       }
     }
+  }
+
+  // Called after we dismiss an error dialog. If we don't consume, a config change redisplays the
+  // alert dialog.
+  fun consumeErrorLiveData() {
+    _errorLiveData.postValue(null)
   }
 
   // -----------------------------------------------------------------------------------------------
