@@ -58,7 +58,6 @@ class DevicesStateRepository @Inject constructor(@ApplicationContext context: Co
     get() = _lastUpdatedDeviceState
 
   suspend fun addDeviceState(deviceId: Long, isOnline: Boolean, isOn: Boolean) {
-    Timber.d("addDeviceState: deviceId [${deviceId}] [${isOnline}] [${isOn}]")
     val newDeviceState =
         DeviceState.newBuilder()
             .setDeviceId(deviceId)
@@ -74,7 +73,6 @@ class DevicesStateRepository @Inject constructor(@ApplicationContext context: Co
   }
 
   suspend fun updateDeviceState(deviceId: Long, isOnline: Boolean, isOn: Boolean) {
-    Timber.d("begin updateDeviceState: deviceId [${deviceId}] [${isOnline}] [${isOn}]")
     val newDeviceState =
         DeviceState.newBuilder()
             .setDeviceId(deviceId)

@@ -286,8 +286,8 @@ const val MIN_COMMISSIONING_WINDOW_EXPIRATION_SECONDS = 20
 
 // Period updates interval.
 // Set to -1 to disable the periodic update calls.
-const val PERIODIC_UPDATE_INTERVAL_HOME_SCREEN_SECONDS = 10
-const val PERIODIC_UPDATE_INTERVAL_DEVICE_SCREEN_SECONDS = 2
+const val PERIODIC_UPDATE_INTERVAL_HOME_SCREEN_SECONDS = -1 // FIXME
+const val PERIODIC_UPDATE_INTERVAL_DEVICE_SCREEN_SECONDS = -1 // FIXME
 
 // Whether the device should be queried right after commissioning.
 const val QUERY_DEVICE_RIGHT_AFTER_COMMISSIONING = false
