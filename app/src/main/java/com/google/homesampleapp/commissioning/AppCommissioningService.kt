@@ -22,6 +22,8 @@ import android.os.IBinder
 import com.google.android.gms.home.matter.commissioning.CommissioningCompleteMetadata
 import com.google.android.gms.home.matter.commissioning.CommissioningRequestMetadata
 import com.google.android.gms.home.matter.commissioning.CommissioningService
+import com.google.homesampleapp.APP_NAME
+import com.google.homesampleapp.R
 import com.google.homesampleapp.chip.ChipClient
 import com.google.homesampleapp.data.DevicesRepository
 import com.google.homesampleapp.data.DevicesStateRepository
@@ -53,6 +55,9 @@ class AppCommissioningService : Service(), CommissioningService.Callback {
 
   override fun onCreate() {
     super.onCreate()
+    // May be invoked without MainActivity being called to initialize APP_NAME.
+    // So do it here as well.
+    APP_NAME = getString(R.string.app_name)
     Timber.d("onCreate()")
     commissioningServiceDelegate = CommissioningService.Builder(this).setCallback(this).build()
   }

@@ -48,7 +48,7 @@ class DeviceViewHolder(private val binding: DeviceViewItemBinding) :
    * holds the Device view.
    *
    * TODO: change icon
-   * https://stackoverflow.com/questions/16906528/change-image-of-imageview-programmatically-in-android
+   *   https://stackoverflow.com/questions/16906528/change-image-of-imageview-programmatically-in-android
    */
   fun bind(deviceUiModel: DeviceUiModel) {
     Timber.d("binding device [${deviceUiModel}]")

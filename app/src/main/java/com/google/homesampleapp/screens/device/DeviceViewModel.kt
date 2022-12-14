@@ -101,7 +101,7 @@ constructor(
    * be used by the Fragment who's observing them:
    * 1. [shareDeviceStatus] updates the fragment's UI according to the TaskStatus
    * 2. [shareDeviceIntentSender] is the IntentSender to be used in the Fragment to launch the
-   * Google Play Services "Share Device" activity (step 3).
+   *    Google Play Services "Share Device" activity (step 3).
    *
    * See [consumeShareDeviceIntentSender()] for proper management of the IntentSender in the face of
    * configuration changes that repost LiveData.
@@ -353,19 +353,19 @@ constructor(
     viewModelScope.launch {
       while (devicePeriodicPingEnabled) {
         // Do something here on the main thread
-        Timber.d("[device ping] begin")
-        var isOn = clustersHelper.getDeviceStateOnOffCluster(deviceUiModel.device.deviceId, 1)
-        Timber.d("[device ping] response [${isOn}]")
+        var isOn: Boolean?
         var isOnline: Boolean
+        isOn = clustersHelper.getDeviceStateOnOffCluster(deviceUiModel.device.deviceId, 1)
         if (isOn == null) {
           Timber.e("[device ping] failed")
           isOn = false
           isOnline = false
         } else {
+          Timber.d("[device ping] success [${isOn}]")
           isOnline = true
         }
         devicesStateRepository.updateDeviceState(
-            deviceUiModel.device.deviceId, isOnline = isOnline, isOn = isOn)
+            deviceUiModel.device.deviceId, isOnline = isOnline, isOn = isOn == true)
         delay(PERIODIC_UPDATE_INTERVAL_DEVICE_SCREEN_SECONDS * 1000L)
       }
     }
