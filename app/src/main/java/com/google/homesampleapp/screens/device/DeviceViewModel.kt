@@ -353,16 +353,16 @@ constructor(
     viewModelScope.launch {
       while (devicePeriodicPingEnabled) {
         // Do something here on the main thread
-        var isOn: Boolean
+        var isOn: Boolean?
         var isOnline: Boolean
-        try {
-          isOn = clustersHelper.getDeviceStateOnOffCluster(deviceUiModel.device.deviceId, 1)
-          Timber.d("[device ping] success [${isOn}]")
-          isOnline = true
-        } catch (e: Throwable) {
-          Timber.e(e, "[device ping] failed")
+        isOn = clustersHelper.getDeviceStateOnOffCluster(deviceUiModel.device.deviceId, 1)
+        if (isOn == null) {
+          Timber.e("[device ping] failed")
           isOn = false
           isOnline = false
+        } else {
+          Timber.d("[device ping] success [${isOn}]")
+          isOnline = true
         }
         devicesStateRepository.updateDeviceState(
             deviceUiModel.device.deviceId, isOnline = isOnline, isOn = isOn == true)
