@@ -48,12 +48,14 @@ sealed class TaskStatus {
 
   /**
    * The task completed with an exception.
+   *
    * @param cause the cause of the failure
    */
   class Failed(val message: String, val cause: Throwable?) : TaskStatus()
 
   /**
    * The task completed successfully.
+   *
    * @param statusMessage a message to be displayed in the UI
    */
   class Completed(val statusMessage: String) : TaskStatus()
@@ -91,10 +93,10 @@ fun Device.DeviceType.displayString(): String {
   return DeviceTypeStrings[this]!!
 }
 
-fun convertToAppDeviceType(matterDeviceType: Int): Device.DeviceType {
+fun convertToAppDeviceType(matterDeviceType: Long): Device.DeviceType {
   return when (matterDeviceType) {
-    256 -> Device.DeviceType.TYPE_LIGHT // 0x0100 On/Off Light
-    266 -> Device.DeviceType.TYPE_OUTLET // 0x010a (On/Off Plug-in Unit)
+    256L -> Device.DeviceType.TYPE_LIGHT // 0x0100 On/Off Light
+    266L -> Device.DeviceType.TYPE_OUTLET // 0x010a (On/Off Plug-in Unit)
     else -> Device.DeviceType.TYPE_UNKNOWN
   }
 }
@@ -207,10 +209,13 @@ fun <T> MutableList<T>.mapButReplace(targetItem: T, newItem: T) = map {
  * ```
  *    "fe80::84b1:c2f6:b1b7:67d4%wlan0"
  * ```
+ *
  * becomes
+ *
  * ```
  *    ""fe80::84b1:c2f6:b1b7:67d4"
  * ```
+ *
  * The "%wlan0" at the end of the link-local ip address is stripped.
  */
 fun stripLinkLocalInIpAddress(ipAddress: String): String {

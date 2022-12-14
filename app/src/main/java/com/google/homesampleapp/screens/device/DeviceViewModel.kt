@@ -101,7 +101,7 @@ constructor(
    * be used by the Fragment who's observing them:
    * 1. [shareDeviceStatus] updates the fragment's UI according to the TaskStatus
    * 2. [shareDeviceIntentSender] is the IntentSender to be used in the Fragment to launch the
-   * Google Play Services "Share Device" activity (step 3).
+   *    Google Play Services "Share Device" activity (step 3).
    *
    * See [consumeShareDeviceIntentSender()] for proper management of the IntentSender in the face of
    * configuration changes that repost LiveData.

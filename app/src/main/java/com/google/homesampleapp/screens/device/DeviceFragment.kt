@@ -20,7 +20,6 @@ import android.app.Activity.RESULT_OK
 import android.content.res.Resources
 import android.graphics.drawable.Drawable
 import android.os.Bundle
-import android.text.Html
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -65,6 +64,7 @@ import timber.log.Timber
  * - share the device with another Matter commissioner app
  * - inspect the device (get all info we can from the clusters supported by the device)
  * ```
+ *
  * When the Fragment is viewable, a periodic ping is sent to the device to get its latest
  * information. Main use case is to update the device's online status dynamically.
  */
@@ -90,6 +90,10 @@ class DeviceFragment : Fragment() {
 
   // Error alert dialog.
   private lateinit var errorAlertDialog: AlertDialog
+
+  // The current state of the device.
+  var isOnline = false
+  var isOn = false
 
   // -----------------------------------------------------------------------------------------------
   // Lifecycle functions
@@ -156,7 +160,7 @@ class DeviceFragment : Fragment() {
   // Setup UI elements
 
   private fun setupUiElements() {
-    // Bacjkground Work AlertDialog
+    // Background Work AlertDialog.
     backgroundWorkAlertDialog = MaterialAlertDialogBuilder(requireContext()).create()
 
     // Error AlertDialog
@@ -175,21 +179,8 @@ class DeviceFragment : Fragment() {
       findNavController().popBackStack()
     }
 
-    // Info / Inspect device menu button
-    val description = getString(R.string.inspect_description)
-    val descriptionHtml = Html.fromHtml(description, Html.FROM_HTML_MODE_LEGACY)
     binding.topAppBar.setOnMenuItemClickListener {
-      MaterialAlertDialogBuilder(requireContext())
-          .setTitle(
-              getString(
-                  R.string.inspect_device_name,
-                  selectedDeviceViewModel.selectedDeviceLiveData.value?.device?.name))
-          .setMessage(descriptionHtml)
-          .setPositiveButton(resources.getString(R.string.ok)) { _, _ ->
-            viewModel.inspectDescriptorCluster(
-                selectedDeviceViewModel.selectedDeviceLiveData.value!!)
-          }
-          .show()
+      processInpectDeviceInfo()
       true
     }
 
@@ -267,6 +258,18 @@ class DeviceFragment : Fragment() {
     binding.shareButton.isEnabled = enable
   }
 
+  private fun processInpectDeviceInfo() {
+    if (!isOnline) {
+      MaterialAlertDialogBuilder(requireContext())
+          .setTitle("Inspect Device")
+          .setMessage("Device is offline, cannot be inspected.")
+          .setPositiveButton(resources.getString(R.string.ok)) { _, _ -> }
+          .show()
+    } else {
+      findNavController().navigate(R.id.action_deviceFragment_to_inspectFragment)
+    }
+  }
+
   // -----------------------------------------------------------------------------------------------
   // Setup Observers
 
@@ -330,20 +333,27 @@ class DeviceFragment : Fragment() {
   // UI update functions
 
   private fun updateDeviceInfo(deviceState: DeviceState?) {
+    // The DeviceUiModel is not updated whenever we observe changes in the state of the device.
+    // This is an issue for the "Inspect Device" onClick listener which relies on the device
+    // state to decide whether to show a dialog stating that the device is offline and therefore
+    // the inspect screen cannot be shown, or go show the inspect information (when device is
+    // online).
+    // This is why the sate of the device is cached in local variables.
     if (selectedDeviceViewModel.selectedDeviceIdLiveData.value == -1L) {
       // Device was just removed, nothing to do. We'll move to HomeFragment.
+      isOnline = false
       return
     }
     val deviceUiModel = selectedDeviceViewModel.selectedDeviceLiveData.value
 
     // Device state
     deviceUiModel?.let {
-      val isOnline =
+      isOnline =
           when (deviceState) {
             null -> deviceUiModel.isOnline
             else -> deviceState.online
           }
-      val isOn =
+      isOn =
           when (deviceState) {
             null -> deviceUiModel.isOn
             else -> deviceState.on

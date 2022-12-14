@@ -42,6 +42,7 @@ import org.junit.runner.RunWith
  *
  * Before running this test, make sure that 1) The Matter device is running and advertising on the
  * same network as the app. The SETUP_CODE
+ *
  * ```
  *    below should match with the set up code of the Matter device.
  * ```

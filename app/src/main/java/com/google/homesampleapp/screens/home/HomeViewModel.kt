@@ -198,7 +198,7 @@ constructor(
    * observing them:
    * 1. [commissionDeviceStatus] updates the fragment's UI according to the TaskStatus
    * 2. [commissionDeviceIntentSender] is the IntentSender to be used in the Fragment to launch the
-   * Google Play Services "Commission Device" activity.
+   *    Google Play Services "Commission Device" activity.
    *
    * See [consumeCommissionDeviceIntentSender()] for proper management of the IntentSender in the
    * face of configuration changes that repost LiveData.
@@ -346,9 +346,10 @@ constructor(
                 .setDateCommissioned(getTimestampForNow())
                 .setVendorId(result.commissionedDeviceDescriptor.vendorId.toString())
                 .setProductId(result.commissionedDeviceDescriptor.productId.toString())
-                // TODO: M5Stack gives deviceType of 0 -> unknown
+                // Note that deviceType is now deprecated. Need to get it by introspecting
+                // the device information. This is done below.
                 .setDeviceType(
-                    convertToAppDeviceType(result.commissionedDeviceDescriptor.deviceType))
+                    convertToAppDeviceType(result.commissionedDeviceDescriptor.deviceType.toLong()))
                 .build())
         Timber.d("Commissioning: Adding device state to repository: isOnline:true isOn:false")
         devicesStateRepository.addDeviceState(deviceId, isOnline = true, isOn = false)
@@ -359,6 +360,21 @@ constructor(
         _commissionDeviceStatus.postValue(
             TaskStatus.Failed(
                 "Adding device [${deviceId}] [${deviceName}] to app's repository failed", e))
+      }
+
+      // Introspect the device and update its deviceType.
+      val deviceMatterInfoList = clustersHelper.fetchDeviceMatterInfo(deviceId, 0)
+      Timber.d("*** MATTER DEVICE INFO ***")
+      deviceMatterInfoList.forEachIndexed { index, deviceMatterInfo ->
+        Timber.d("Processing [[${index}] ${deviceMatterInfo}]")
+        if (index == 0) {
+          if (deviceMatterInfo.types.size > 1) {
+            // TODO: Handle this properly
+            Timber.w("The device has more than one type. We're simply using the first one.")
+          }
+          devicesRepository.updateDeviceType(
+              deviceId, convertToAppDeviceType(deviceMatterInfo.types.first()))
+        }
       }
     }
   }
@@ -422,7 +438,7 @@ constructor(
           var isOn = clustersHelper.getDeviceStateOnOffCluster(device.deviceId, 1)
           val isOnline: Boolean
           if (isOn == null) {
-            Timber.e("runDevicesPeriodicUpdate: flakiness with mDNS")
+            Timber.e("runDevicesPeriodicUpdate: cannot get device on/off state -> OFFLINE")
             isOn = false
             isOnline = false
           } else {

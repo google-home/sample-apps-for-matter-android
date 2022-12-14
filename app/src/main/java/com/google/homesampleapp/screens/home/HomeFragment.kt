@@ -59,22 +59,22 @@ import timber.log.Timber
 /**
  * Home screen for the application.
  *
- * The fragment features five sections:
+ * The fragment features four sections:
  * 1. The list of devices currently commissioned into the app's fabric. When the user clicks on a
- * device, control moves to the Device fragment where one can get additional details on the device
- * and perform actions on it. Implemented via a RecyclerView. Devices are persisted in the
- * DevicesRepository, a Proto Datastore. It's possible to hide the devices that are currently
- * offline via a setting in the Settings screen.
+ *    device, control moves to the Device fragment where one can get additional details on the
+ *    device and perform actions on it. Implemented via a RecyclerView. Devices are persisted in the
+ *    DevicesRepository, a Proto Datastore. It's possible to hide the devices that are currently
+ *    offline via a setting in the Settings screen.
  * 2. Top App Bar. Settings icon to navigate to the Settings screen.
  * 3. "Add Device" button. Triggers the commissioning of a new device.
  * 4. Codelab information. When the fragment view is created, a Dialog is shown to provide
- * information about the app's companion codelab. This can be dismissed via a checkbox and the
- * setting is persisted in the UserPreferences proto datastore.
+ *    information about the app's companion codelab. This can be dismissed via a checkbox and the
+ *    setting is persisted in the UserPreferences proto datastore.
  *
  * Note:
  * - The app currently only supports Matter devices with server attribute "ON/OFF". An icon
- * representing the on/off device only exists for device type light. Any other device type is shown
- * with a generic matter device icon.
+ *   representing the on/off device only exists for device type light. Any other device type is
+ *   shown with a generic matter device icon.
  */
 @AndroidEntryPoint
 class HomeFragment : Fragment() {
