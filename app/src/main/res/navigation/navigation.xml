@@ -56,6 +56,9 @@
         <action
             android:id="@+id/action_deviceFragment_to_homeFragment"
             app:destination="@id/homeFragment" />
+        <action
+            android:id="@+id/action_deviceFragment_to_inspectFragment"
+            app:destination="@id/inspectFragment" />
     </fragment>
     <fragment
         android:id="@+id/settingsFragment"
@@ -101,4 +104,9 @@
         android:name="com.google.homesampleapp.screens.settings.DummyDeviceDialogFragment"
         android:label="fragment_dummy_device_info"
         tools:layout="@layout/fragment_dummy_device" />
+    <fragment
+        android:id="@+id/inspectFragment"
+        android:name="com.google.homesampleapp.screens.inspect.InspectFragment"
+        android:label="fragment_inspect"
+        tools:layout="@layout/fragment_inspect" />
 </navigation>

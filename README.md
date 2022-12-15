@@ -48,12 +48,27 @@ To clone the repository, complete the following steps:
     $ git clone https://github.com/google-home/sample-app-for-matter-android.git
     ```
 
+## Releases
+
+There are multiple releases available for this sample app. Before proceding, make sure you
+download the correct one for your use case.
+
+*   **Release [v1.0.3](https://github.com/google-home/sample-app-for-matter-android/releases/tag/v1.0.3)**
+    — Use this release with the [Google Developer Preview](https://developers.home.google.com/matter/get-started).
+*   **Release [v1.1.0](https://github.com/google-home/sample-app-for-matter-android/releases/tag/v1.1.0)**
+    — This release is intended for Google testing use. Do NOT use it with the Google Developer Preview.
+*   **Release [v1.2.0](https://github.com/google-home/sample-app-for-matter-android/releases/tag/v1.2.0)**
+    — This release is intended for Google testing use. Do NOT use it with the Google Developer Preview.  
+
 ## Get started
 
-*   To make sure that your device has the latest Matter support, review the
+* Check the presentation "Building Smart Home Apps with the Google Home Mobile SDK"
+    (docs/GoogleHomeMobileSDK.pdf) for an overview of the Sample App and key APIs
+    of the Mobile SDK.
+* To make sure that your device has the latest Matter support, review the
     [Verify Matter Modules & Services](https://developers.home.google.com/matter/verify-services)
     guide.
-*   Build a Matter device with On/Off capabilities. This sample  app works with a virtual device
+* Build a Matter device with On/Off capabilities. This sample  app works with a virtual device
     and an ESP32.
     *   [Build a Matter Virtual Device](https://developers.home.google.com/codelabs/matter-device-virtual)
         with the `rootnode_dimmablelight_bCwGYSDpoe` app. When you
@@ -65,11 +80,11 @@ To clone the repository, complete the following steps:
         [Create a Matter integration](https://developers.home.google.com/matter/integration/create)
         in the [Home Developer Console](https://console.home.google.com/projects),
         use `0xFFF1` as your Vendor ID and `0x8001` as your Product ID.
-*   For an overview of the user interface and features, refer to
+* For an overview of the user interface and features, refer to
     the [Google Home Sample App for Matter Guide](https://developers.home.google.com/samples/matter-app).
-*   To review code samples and start building, refer to
+* To review code samples and start building, refer to
     the [Build an Android App for Matter](https://developers.home.google.com/codelabs/matter-sample-app)
-    Codelab.        
+    Codelab.
 
 ## Version
 

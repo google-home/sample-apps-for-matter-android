@@ -18,6 +18,8 @@ package com.google.homesampleapp
 
 import android.content.Context
 import android.content.Intent
+import android.content.IntentSender
+import androidx.appcompat.app.AlertDialog
 import com.google.protobuf.Timestamp
 import java.io.File
 import java.time.Instant
@@ -31,6 +33,7 @@ import timber.log.Timber
 // Various constants
 
 lateinit var VERSION_NAME: String
+lateinit var APP_NAME: String
 
 // -------------------------------------------------------------------------------------------------
 // Display helper functions
@@ -45,15 +48,26 @@ sealed class TaskStatus {
 
   /**
    * The task completed with an exception.
+   *
    * @param cause the cause of the failure
    */
-  class Failed(private val cause: Throwable) : TaskStatus()
+  class Failed(val message: String, val cause: Throwable?) : TaskStatus()
 
   /**
    * The task completed successfully.
+   *
    * @param statusMessage a message to be displayed in the UI
    */
-  class Completed(private val statusMessage: String) : TaskStatus()
+  class Completed(val statusMessage: String) : TaskStatus()
+}
+
+/** Enumeration of actions to take a background work alert dialog. */
+sealed class BackgroundWorkAlertDialogAction {
+  /** Background work has started, show the dialog. */
+  class Show(val title: String, val message: String) : BackgroundWorkAlertDialogAction()
+
+  /** Background work has completed, hide the dialog. */
+  object Hide : BackgroundWorkAlertDialogAction()
 }
 
 /** Useful when investigating lifecycle events in logcat. */
@@ -79,10 +93,10 @@ fun Device.DeviceType.displayString(): String {
   return DeviceTypeStrings[this]!!
 }
 
-fun convertToAppDeviceType(matterDeviceType: Int): Device.DeviceType {
+fun convertToAppDeviceType(matterDeviceType: Long): Device.DeviceType {
   return when (matterDeviceType) {
-    256 -> Device.DeviceType.TYPE_LIGHT // 0x0100 On/Off Light
-    266 -> Device.DeviceType.TYPE_OUTLET // 0x010a (On/Off Plug-in Unit)
+    256L -> Device.DeviceType.TYPE_LIGHT // 0x0100 On/Off Light
+    266L -> Device.DeviceType.TYPE_OUTLET // 0x010a (On/Off Plug-in Unit)
     else -> Device.DeviceType.TYPE_UNKNOWN
   }
 }
@@ -115,6 +129,13 @@ fun stringToBoolean(s: String): Boolean {
         else -> false
       }
   return boolValue
+}
+
+fun intentSenderToString(intentSender: IntentSender?): String {
+  if (intentSender == null) {
+    return "null"
+  }
+  return "creatorPackage [${intentSender.creatorPackage}]"
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -183,15 +204,21 @@ fun <T> MutableList<T>.mapButReplace(targetItem: T, newItem: T) = map {
 }
 
 /**
- * Strip the link-local portion of an IP Address.
- * Was needed to handle https://github.com/google-home/sample-app-for-matter-android/issues/15.
- * For example:
+ * Strip the link-local portion of an IP Address. Was needed to handle
+ * https://github.com/google-home/sample-app-for-matter-android/issues/15. For example:
+ * ```
  *    "fe80::84b1:c2f6:b1b7:67d4%wlan0"
+ * ```
+ *
  * becomes
+ *
+ * ```
  *    ""fe80::84b1:c2f6:b1b7:67d4"
+ * ```
+ *
  * The "%wlan0" at the end of the link-local ip address is stripped.
  */
-fun stripLinkLocalInIpAddress(ipAddress: String) : String {
+fun stripLinkLocalInIpAddress(ipAddress: String): String {
   return ipAddress.replace("%.*".toRegex(), "")
 }
 
@@ -221,6 +248,21 @@ fun isDummyDevice(name: String): Boolean {
 }
 
 // -------------------------------------------------------------------------------------------------
+// Dialogs
+
+fun showAlertDialog(alertDialog: AlertDialog, title: String?, message: String?) {
+  if (title != null) {
+    alertDialog.setTitle(title)
+  }
+  if (message != null) {
+    alertDialog.setMessage(message)
+  }
+  alertDialog.show()
+}
+
+data class ErrorInfo(val title: String?, val message: String?)
+
+// -------------------------------------------------------------------------------------------------
 // Device Sharing constants
 
 // How long a commissioning window for Device Sharing should be open.
@@ -234,6 +276,10 @@ const val ITERATION = 10000L
 
 // Iteration
 const val SETUP_PIN_CODE = 11223344L
+
+// Minimum time required to handle the multi-admin commissioning
+// intent just received.
+const val MIN_COMMISSIONING_WINDOW_EXPIRATION_SECONDS = 20
 
 // -------------------------------------------------------------------------------------------------
 // Constants to modify the behavior of the app.

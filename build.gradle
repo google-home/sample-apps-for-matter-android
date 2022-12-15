@@ -5,12 +5,11 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.1.2'
+        classpath 'com.android.tools.build:gradle:7.3.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.10"
-        classpath "com.google.dagger:hilt-android-gradle-plugin:2.38.1"
-        classpath 'com.google.protobuf:protobuf-java:3.4.0'
+        classpath 'com.google.protobuf:protobuf-java:3.17.2'
         classpath 'com.google.dagger:hilt-android-gradle-plugin:2.41'
-        classpath("androidx.navigation:navigation-safe-args-gradle-plugin:2.4.2")
+        classpath("androidx.navigation:navigation-safe-args-gradle-plugin:2.5.3")
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
     }
@@ -28,7 +27,7 @@ ext {
     dataStoreVersion = '1.0.0'
     materialVersion = '1.5.0'
     protobufVersion = '3.19.4'
-    lifecycleVersion = '2.4.1'
+    lifecycleVersion = '2.5.1'
     lifecycleExtensionsVersion = '2.2.0'
 
     runnerVersion = '1.4.0'

@@ -22,13 +22,11 @@ import android.os.IBinder
 import com.google.android.gms.home.matter.commissioning.CommissioningCompleteMetadata
 import com.google.android.gms.home.matter.commissioning.CommissioningRequestMetadata
 import com.google.android.gms.home.matter.commissioning.CommissioningService
-import com.google.homesampleapp.Device
+import com.google.homesampleapp.APP_NAME
+import com.google.homesampleapp.R
 import com.google.homesampleapp.chip.ChipClient
-import com.google.homesampleapp.chip.ClustersHelper
-import com.google.homesampleapp.convertToAppDeviceType
 import com.google.homesampleapp.data.DevicesRepository
 import com.google.homesampleapp.data.DevicesStateRepository
-import com.google.homesampleapp.getTimestampForNow
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -49,7 +47,6 @@ class AppCommissioningService : Service(), CommissioningService.Callback {
   @Inject internal lateinit var devicesRepository: DevicesRepository
   @Inject internal lateinit var devicesStateRepository: DevicesStateRepository
   @Inject internal lateinit var chipClient: ChipClient
-  @Inject internal lateinit var clustersHelper: ClustersHelper
 
   private val serviceJob = Job()
   private val serviceScope = CoroutineScope(Dispatchers.Main + serviceJob)
@@ -58,13 +55,21 @@ class AppCommissioningService : Service(), CommissioningService.Callback {
 
   override fun onCreate() {
     super.onCreate()
+    // May be invoked without MainActivity being called to initialize APP_NAME.
+    // So do it here as well.
+    APP_NAME = getString(R.string.app_name)
     Timber.d("onCreate()")
     commissioningServiceDelegate = CommissioningService.Builder(this).setCallback(this).build()
   }
 
   override fun onBind(intent: Intent): IBinder {
-    Timber.d("onBind()")
+    Timber.d("onBind(): intent [${intent}]")
     return commissioningServiceDelegate.asBinder()
+  }
+
+  override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    Timber.d("onStartCommand(): intent [${intent}] flags [${flags}] startId [${startId}]")
+    return super.onStartCommand(intent, flags, startId)
   }
 
   override fun onDestroy() {

@@ -19,15 +19,21 @@ package com.google.homesampleapp.screens.device
 import android.content.IntentSender
 import android.os.SystemClock
 import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.*
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.google.android.gms.home.matter.Matter
 import com.google.android.gms.home.matter.commissioning.CommissioningWindow
 import com.google.android.gms.home.matter.commissioning.ShareDeviceRequest
 import com.google.android.gms.home.matter.common.DeviceDescriptor
 import com.google.android.gms.home.matter.common.Discriminator
+import com.google.homesampleapp.BackgroundWorkAlertDialogAction
 import com.google.homesampleapp.DISCRIMINATOR
 import com.google.homesampleapp.ITERATION
+import com.google.homesampleapp.OPEN_COMMISSIONING_WINDOW_API
 import com.google.homesampleapp.OPEN_COMMISSIONING_WINDOW_DURATION_SECONDS
+import com.google.homesampleapp.OpenCommissioningWindowApi
 import com.google.homesampleapp.PERIODIC_UPDATE_INTERVAL_DEVICE_SCREEN_SECONDS
 import com.google.homesampleapp.SETUP_PIN_CODE
 import com.google.homesampleapp.TaskStatus
@@ -59,71 +65,116 @@ constructor(
   // Controls whether a periodic ping to the device is enabled or not.
   private var devicePeriodicPingEnabled: Boolean = true
 
-  /** The current status of the share device action sent via [shareDevice]. */
+  /**
+   * The current status of the share device task. The enum it is based on is used by the Fragment to
+   * properly react to the processing happening with the share device task.
+   */
   private val _shareDeviceStatus = MutableLiveData<TaskStatus>(TaskStatus.NotStarted)
   val shareDeviceStatus: LiveData<TaskStatus>
     get() = _shareDeviceStatus
 
-  /** Generic status about actions processed in this screen. */
-  private val _statusInfo = MutableLiveData("")
-  val statusInfo: LiveData<String>
-    get() = _statusInfo
-
   /**
-   * Device Sharing Step 1. Setup the LiveData that holds the IntentSender used to trigger Device
-   * Sharing. The IntentSender is returned when calling the shareDevice() API of Google Play
-   * Services (GPS) when a Device Sharing flow is initiated in Step 3. An observer of that
-   * IntentSender is setup in Step 2.
+   * Actions that drive showing/hiding a "background work" alert dialog. The enum it is based on is
+   * used by the Fragment to properly react on the management of that dialog.
    */
+  private val _backgroundWorkAlertDialogAction =
+      MutableLiveData<BackgroundWorkAlertDialogAction>(BackgroundWorkAlertDialogAction.Hide)
+  val backgroundWorkAlertDialogAction: LiveData<BackgroundWorkAlertDialogAction>
+    get() = _backgroundWorkAlertDialogAction
+
+  /** IntentSender LiveData triggered by [shareDevice]. */
   private val _shareDeviceIntentSender = MutableLiveData<IntentSender?>()
   val shareDeviceIntentSender: LiveData<IntentSender?>
     get() = _shareDeviceIntentSender
 
   // -----------------------------------------------------------------------------------------------
-  // Device Sharing
+  // Device Sharing (aka Multi-Admin)
+  //
+  // See "docs/Google Home Mobile SDK.pdf" for a good overview of all the artifacts needed
+  // to transfer control from the sample app's UI to the GPS ShareDevice UI, and get a result back.
 
   /**
-   * Share Device Step 3. Initiates a share device task. The success callback of the
-   * commissioningClient.shareDevice() API provides the IntentSender to be used to launch the
-   * "ShareDevice" activity in Google Play Services. This viewModel provides two LiveData objects to
-   * report on the result of this API call that can then be used by the Fragment who's observing
-   * them:
-   * 1. [shareDeviceStatus] reports the result of the call which is displayed in the fragment
-   * 2. [shareDeviceIntentSender] is the result of the shareDevice() call that can then be used in
-   * the Fragment to launch the Google Play Services "Share Device" activity.
+   * Share Device Step 2 (part 2). Triggered by the "Share Device" button in the fragment. Initiates
+   * a share device task. The success callback of the commissioningClient.shareDevice() API provides
+   * the IntentSender to be used to launch the "Share Device" activity in Google Play Services. This
+   * viewModel provides two LiveData objects to report on the result of this API call that can then
+   * be used by the Fragment who's observing them:
+   * 1. [shareDeviceStatus] updates the fragment's UI according to the TaskStatus
+   * 2. [shareDeviceIntentSender] is the IntentSender to be used in the Fragment to launch the
+   *    Google Play Services "Share Device" activity (step 3).
    *
-   * After using the sender, [consumeShareDeviceIntentSender] should be called to avoid receiving
-   * the sender again after a configuration change.
+   * See [consumeShareDeviceIntentSender()] for proper management of the IntentSender in the face of
+   * configuration changes that repost LiveData.
    */
-  fun shareDevice(activity: FragmentActivity) {
-    // CODELAB: shareDevice
+  fun shareDevice(activity: FragmentActivity, deviceId: Long) {
+    Timber.d("ShareDevice: starting")
+    stopDevicePeriodicPing()
+    _shareDeviceStatus.postValue(TaskStatus.InProgress)
+    _backgroundWorkAlertDialogAction.postValue(
+        BackgroundWorkAlertDialogAction.Show(
+            "Opening Pairing Window", "This may take a few seconds."))
+
+    viewModelScope.launch {
+      // First we need to open a commissioning window.
+      try {
+        when (OPEN_COMMISSIONING_WINDOW_API) {
+          OpenCommissioningWindowApi.ChipDeviceController ->
+              openCommissioningWindowUsingOpenPairingWindowWithPin(deviceId)
+          OpenCommissioningWindowApi.AdministratorCommissioningCluster ->
+              openCommissioningWindowWithAdministratorCommissioningCluster(deviceId)
+        }
+      } catch (e: Throwable) {
+        val msg = "Failed to open the commissioning window"
+        Timber.d("ShareDevice: ${msg} [${e}]")
+        _backgroundWorkAlertDialogAction.postValue(BackgroundWorkAlertDialogAction.Hide)
+        _shareDeviceStatus.postValue(TaskStatus.Failed(msg, e))
+        return@launch
+      }
+
+      // Second, we get the IntentSender and post it as LiveData for the fragment to pick it up
+      // and trigger the GPS ShareDevice activity.
+      // CODELAB: shareDevice
+    }
   }
 
-  // Called by the fragment in Step 5 of the Device Sharing flow.
-  fun shareDeviceSucceeded(message: String) {
-    _shareDeviceStatus.postValue(TaskStatus.Completed(message))
-  }
-
-  // Called by the fragment in Step 5 of the Device Sharing flow.
-  fun shareDeviceFailed(message: String) {
-    _shareDeviceStatus.postValue(TaskStatus.Failed(Throwable(message)))
-  }
-
-  /** Consumes the value in [shareDeviceIntentSender] and sets it back to null. */
-  private fun consumeShareDeviceIntentSender() {
+  // CODELAB FEATURED BEGIN
+  /**
+   * Consumes the value in [_shareDeviceIntentSender] and sets it back to null. Needs to be called
+   * to avoid re-processing an IntentSender after a configuration change where the LiveData is
+   * re-posted.
+   */
+  fun consumeShareDeviceIntentSender() {
     _shareDeviceIntentSender.postValue(null)
   }
+  // CODELAB FEATURED END
 
-  /** Updates the status of [shareDeviceStatus] to success with the given message. */
-  fun setSharingCompletedStatusText(text: String) {
-    _shareDeviceStatus.postValue(TaskStatus.Completed(text))
+  // Called by the fragment in Step 5 of the Device Sharing flow when the GPS activity for
+  // Device Sharing has succeeded.
+  fun shareDeviceSucceeded(deviceUiModel: DeviceUiModel) {
+    _shareDeviceStatus.postValue(TaskStatus.Completed("Device sharing completed successfully"))
+    startDevicePeriodicPing(deviceUiModel)
+  }
+
+  // Called by the fragment in Step 5 of the Device Sharing flow when the GPS activity for
+  // Device Sharing has failed.
+  fun shareDeviceFailed(deviceUiModel: DeviceUiModel, resultCode: Int) {
+    Timber.d("ShareDevice: Failed with errorCode [${resultCode}]")
+    _shareDeviceStatus.postValue(TaskStatus.Failed("Device sharing failed [${resultCode}]", null))
+    startDevicePeriodicPing(deviceUiModel)
+  }
+
+  // Called after we dismiss an error dialog. If we don't consume, a config change redisplays the
+  // alert dialog.
+  fun consumeShareDeviceStatus() {
+    _shareDeviceStatus.postValue(TaskStatus.NotStarted)
   }
 
   // -----------------------------------------------------------------------------------------------
   // Operations on device
 
   fun removeDevice(deviceId: Long) {
-    Timber.d("**************** remove device ****** [${deviceId}]")
+    Timber.d("Removing device [${deviceId}]")
+    // TODO: send message to device to unlink.
     viewModelScope.launch { devicesRepository.removeDevice(deviceId) }
   }
 
@@ -206,39 +257,39 @@ constructor(
   // -----------------------------------------------------------------------------------------------
   // Open commissioning window
 
-  fun openCommissioningWindowUsingOpenPairingWindowWithPin(deviceId: Long) {
-    viewModelScope.launch {
-      Timber.d("BEGIN openCommissioningWindowUsingOpenPairingWindowWithPin")
-      // TODO: Should generate random 64 bit value
-      Timber.d("*** calling chipClient.awaitGetDeviceBeingCommissionedPointer ***")
-      val connectedDevicePointer = chipClient.awaitGetConnectedDevicePointer(deviceId)
-      Timber.d("Calling chipClient.awaitOpenPairingWindowWithPIN")
-      val duration = OPEN_COMMISSIONING_WINDOW_DURATION_SECONDS
-      chipClient.awaitOpenPairingWindowWithPIN(
-          connectedDevicePointer, duration, ITERATION, DISCRIMINATOR, SETUP_PIN_CODE)
-      Timber.d("END openCommissioningWindowUsingOpenPairingWindowWithPin")
-    }
+  suspend fun openCommissioningWindowUsingOpenPairingWindowWithPin(deviceId: Long) {
+    // TODO: Should generate random 64 bit value for SETUP_PIN_CODE (taking into account
+    // spec constraints)
+    Timber.d("ShareDevice: chipClient.awaitGetConnectedDevicePointer(${deviceId})")
+    val connectedDevicePointer = chipClient.awaitGetConnectedDevicePointer(deviceId)
+    val duration = OPEN_COMMISSIONING_WINDOW_DURATION_SECONDS
+    Timber.d(
+        "ShareDevice: chipClient.chipClient.awaitOpenPairingWindowWithPIN " +
+            "duration [${duration}] iteration [${ITERATION}] discriminator [${DISCRIMINATOR}] " +
+            "setupPinCode [${SETUP_PIN_CODE}]")
+    chipClient.awaitOpenPairingWindowWithPIN(
+        connectedDevicePointer, duration, ITERATION, DISCRIMINATOR, SETUP_PIN_CODE)
+    Timber.d("ShareDevice: After chipClient.awaitOpenPairingWindowWithPIN")
   }
 
   // TODO: Was not working when tested. Use openCommissioningWindowUsingOpenPairingWindowWithPin
   // for now.
-  fun openCommissioningWindowWithAdministratorCommissioningCluster(deviceId: Long) {
-    viewModelScope.launch {
-      Timber.d("openCommissioningWindowWithAdministratorCommissioningCluster [${deviceId}]")
-      val salt = Random.nextBytes(32)
-      val timedInvokeTimeoutMs = 10000
-      val devicePtr = chipClient.awaitGetConnectedDevicePointer(deviceId)
-      val verifier = chipClient.computePaseVerifier(devicePtr, SETUP_PIN_CODE, ITERATION, salt)
-      clustersHelper.openCommissioningWindowAdministratorCommissioningCluster(
-          deviceId,
-          0,
-          180,
-          verifier.pakeVerifier,
-          DISCRIMINATOR,
-          ITERATION,
-          salt,
-          timedInvokeTimeoutMs)
-    }
+  suspend fun openCommissioningWindowWithAdministratorCommissioningCluster(deviceId: Long) {
+    Timber.d(
+        "ShareDevice: openCommissioningWindowWithAdministratorCommissioningCluster [${deviceId}]")
+    val salt = Random.nextBytes(32)
+    val timedInvokeTimeoutMs = 10000
+    val devicePtr = chipClient.awaitGetConnectedDevicePointer(deviceId)
+    val verifier = chipClient.computePaseVerifier(devicePtr, SETUP_PIN_CODE, ITERATION, salt)
+    clustersHelper.openCommissioningWindowAdministratorCommissioningCluster(
+        deviceId,
+        0,
+        180,
+        verifier.pakeVerifier,
+        DISCRIMINATOR,
+        ITERATION,
+        salt,
+        timedInvokeTimeoutMs)
   }
 
   // -----------------------------------------------------------------------------------------------
@@ -252,22 +303,25 @@ constructor(
   }
 
   private fun runDevicePeriodicUpdate(deviceUiModel: DeviceUiModel) {
+    if (PERIODIC_UPDATE_INTERVAL_DEVICE_SCREEN_SECONDS == -1) {
+      return
+    }
     viewModelScope.launch {
       while (devicePeriodicPingEnabled) {
         // Do something here on the main thread
-        Timber.d("[device ping] begin")
-        var isOn = clustersHelper.getDeviceStateOnOffCluster(deviceUiModel.device.deviceId, 1)
-        Timber.d("[device ping] response [${isOn}]")
+        var isOn: Boolean?
         var isOnline: Boolean
+        isOn = clustersHelper.getDeviceStateOnOffCluster(deviceUiModel.device.deviceId, 1)
         if (isOn == null) {
           Timber.e("[device ping] failed")
           isOn = false
           isOnline = false
         } else {
+          Timber.d("[device ping] success [${isOn}]")
           isOnline = true
         }
         devicesStateRepository.updateDeviceState(
-            deviceUiModel.device.deviceId, isOnline = isOnline, isOn = isOn)
+            deviceUiModel.device.deviceId, isOnline = isOnline, isOn = isOn == true)
         delay(PERIODIC_UPDATE_INTERVAL_DEVICE_SCREEN_SECONDS * 1000L)
       }
     }
@@ -275,5 +329,17 @@ constructor(
 
   fun stopDevicePeriodicPing() {
     devicePeriodicPingEnabled = false
+  }
+
+  // -----------------------------------------------------------------------------------------------
+  // Utiltity functions for testing.
+
+  fun testBackgroundWorkAlertDialog(seconds: Int) {
+    viewModelScope.launch {
+      _backgroundWorkAlertDialogAction.postValue(
+          BackgroundWorkAlertDialogAction.Show("Testing", "Delay of ${seconds} seconds"))
+      delay(seconds.toLong() * 1000)
+      _backgroundWorkAlertDialogAction.postValue(BackgroundWorkAlertDialogAction.Hide)
+    }
   }
 }

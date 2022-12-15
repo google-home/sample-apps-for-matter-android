@@ -25,6 +25,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -36,7 +37,8 @@ import androidx.fragment.app.viewModels
 import androidx.navigation.findNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.switchmaterial.SwitchMaterial
-import com.google.homesampleapp.PERIODIC_UPDATE_INTERVAL_HOME_SCREEN_SECONDS
+import com.google.android.material.textfield.TextInputEditText
+import com.google.homesampleapp.PERIODIC_UPDATE_INTERVAL_DEVICE_SCREEN_SECONDS
 import com.google.homesampleapp.R
 import com.google.homesampleapp.TaskStatus
 import com.google.homesampleapp.data.DevicesRepository
@@ -44,9 +46,12 @@ import com.google.homesampleapp.data.DevicesStateRepository
 import com.google.homesampleapp.data.UserPreferencesRepository
 import com.google.homesampleapp.databinding.FragmentCodelabInfoCheckboxBinding
 import com.google.homesampleapp.databinding.FragmentHomeBinding
+import com.google.homesampleapp.databinding.FragmentNewDeviceBinding
+import com.google.homesampleapp.intentSenderToString
 import com.google.homesampleapp.isMultiAdminCommissioning
 import com.google.homesampleapp.screens.shared.SelectedDeviceViewModel
 import com.google.homesampleapp.screens.shared.UserPreferencesViewModel
+import com.google.homesampleapp.showAlertDialog
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import timber.log.Timber
@@ -54,22 +59,22 @@ import timber.log.Timber
 /**
  * Home screen for the application.
  *
- * The fragment features five sections:
+ * The fragment features four sections:
  * 1. The list of devices currently commissioned into the app's fabric. When the user clicks on a
- * device, control moves to the Device fragment where one can get additional details on the device
- * and perform actions on it. Implemented via a RecyclerView. Devices are persisted in the
- * DevicesRepository, a Proto Datastore. It's possible to hide the devices that are currently
- * offline via a setting in the Settings screen.
+ *    device, control moves to the Device fragment where one can get additional details on the
+ *    device and perform actions on it. Implemented via a RecyclerView. Devices are persisted in the
+ *    DevicesRepository, a Proto Datastore. It's possible to hide the devices that are currently
+ *    offline via a setting in the Settings screen.
  * 2. Top App Bar. Settings icon to navigate to the Settings screen.
  * 3. "Add Device" button. Triggers the commissioning of a new device.
  * 4. Codelab information. When the fragment view is created, a Dialog is shown to provide
- * information about the app's companion codelab. This can be dismissed via a checkbox and the
- * setting is persisted in the UserPreferences proto datastore.
+ *    information about the app's companion codelab. This can be dismissed via a checkbox and the
+ *    setting is persisted in the UserPreferences proto datastore.
  *
  * Note:
  * - The app currently only supports Matter devices with server attribute "ON/OFF". An icon
- * representing the on/off device only exists for device type light. Any other device type is shown
- * with a generic matter device icon.
+ *   representing the on/off device only exists for device type light. Any other device type is
+ *   shown with a generic matter device icon.
  */
 @AndroidEntryPoint
 class HomeFragment : Fragment() {
@@ -89,11 +94,15 @@ class HomeFragment : Fragment() {
   // The fragment's ViewModel.
   private val viewModel: HomeViewModel by viewModels()
 
-  // Show codelab info Checkbox.
-  private lateinit var codelabInfoCheckboxBinding: FragmentCodelabInfoCheckboxBinding
-
   // Codelab information dialog.
   private lateinit var codelabInfoAlertDialog: AlertDialog
+  private lateinit var codelabInfoCheckboxBinding: FragmentCodelabInfoCheckboxBinding
+
+  // New device information dialog
+  private lateinit var newDeviceAlertDialogBinding: FragmentNewDeviceBinding
+
+  // Error alert dialog.
+  private lateinit var errorAlertDialog: AlertDialog
 
   // The adapter used by the RecyclerView (where we show the list of devices).
   private val adapter =
@@ -112,8 +121,6 @@ class HomeFragment : Fragment() {
             viewModel.updateDeviceStateOn(deviceUiModel, onOffSwitch?.isChecked!!)
           })
 
-  // The ActivityResult launcher that launches the "commissionDevice" activity in Google Play
-  // Services.
   // CODELAB: commissionDeviceLauncher declaration
 
   // -----------------------------------------------------------------------------------------------
@@ -123,12 +130,27 @@ class HomeFragment : Fragment() {
     super.onCreate(savedInstanceState)
     Timber.d("onCreate bundle is: ${savedInstanceState.toString()}")
 
-    // Commission Device Step 1.
-    // An activity launcher is registered. It will be launched
-    // at step 2 (in the viewModel) when the user triggers the "Add Device" action and the
-    // Google Play Services (GPS) API (commissioningClient.commissionDevice()) returns the
-    // IntentSender to be used to launch the proper activity in GPS.
+    // Commission Device Step 1, where An activity launcher is registered.
+    // At step 2 of the "Commission Device" flow, the user triggers the "Commission Device"
+    // action and the ViewModel calls the Google Play Services (GPS) API
+    // (commissioningClient.commissionDevice()).
+    // This returns an  IntentSender that is then used in step 3 to call
+    // commissionDevicelauncher.launch().
     // CODELAB: commissionDeviceLauncher definition
+  }
+
+  private fun showNewDeviceAlertDialog(activityResult: ActivityResult?) {
+    MaterialAlertDialogBuilder(requireContext())
+        .setView(newDeviceAlertDialogBinding.root)
+        .setTitle("New device information")
+        .setPositiveButton(resources.getString(R.string.ok)) { _, _ ->
+          // Extract the info entered by user and process it.
+          val nameTextView: TextInputEditText = newDeviceAlertDialogBinding.nameTextView
+          val deviceName = nameTextView.text.toString()
+          viewModel.commissionDeviceSucceeded(activityResult!!, deviceName)
+        }
+        .create()
+        .show()
   }
 
   override fun onCreateView(
@@ -146,6 +168,11 @@ class HomeFragment : Fragment() {
     // that dialog on subsequent app launches.
     codelabInfoCheckboxBinding =
         DataBindingUtil.inflate(inflater, R.layout.fragment_codelab_info_checkbox, container, false)
+
+    // Binding to the NewDevice UI, which is part of the dialog where we
+    // capture new device information.
+    newDeviceAlertDialogBinding =
+        DataBindingUtil.inflate(inflater, R.layout.fragment_new_device, container, false)
 
     // Setup the UI elements and livedata observers.
     setupUiElements()
@@ -166,23 +193,21 @@ class HomeFragment : Fragment() {
 
   override fun onResume() {
     super.onResume()
-    Timber.d("onResume()")
-
     val intent = requireActivity().intent
+    Timber.d("onResume(): intent [${intent}]")
     if (isMultiAdminCommissioning(intent)) {
-      Timber.d("*** MultiAdminCommissioning ***")
+      Timber.d("Invocation: MultiAdminCommissioning")
       if (viewModel.commissionDeviceStatus.value == TaskStatus.NotStarted) {
         Timber.d("TaskStatus.NotStarted so starting commissioning")
-        viewModel.commissionDevice(intent, requireContext())
+        viewModel.multiadminCommissioning(intent, requireContext())
       } else {
-        Timber.d("TaskStatus is not NotStarted: $viewModel.commissionDeviceStatus.value")
+        Timber.d("TaskStatus is *not* NotStarted: $viewModel.commissionDeviceStatus.value")
       }
     } else {
-      Timber.d("*** Main ***")
-      if (PERIODIC_UPDATE_INTERVAL_HOME_SCREEN_SECONDS != -1) {
-        Timber.d("Starting periodic ping on devices")
-        viewModel.startDevicesPeriodicPing()
-      }
+      Timber.d("Invocation: Main")
+      Timber.d(
+          "Starting periodic ping on device with interval [$PERIODIC_UPDATE_INTERVAL_DEVICE_SCREEN_SECONDS] seconds")
+      viewModel.startDevicesPeriodicPing()
     }
   }
 
@@ -200,6 +225,7 @@ class HomeFragment : Fragment() {
     setupAddDeviceButton()
     setupRecyclerView()
     setupCodelabInfoDialog()
+    setupErrorAlertDialog()
   }
 
   private fun setupMenu() {
@@ -222,7 +248,7 @@ class HomeFragment : Fragment() {
     binding.addDeviceButton.setOnClickListener {
       Timber.d("addDeviceButton.setOnClickListener")
       viewModel.stopDevicesPeriodicPing()
-      viewModel.commissionDevice(requireActivity().intent, requireContext())
+      viewModel.commissionDevice(requireContext())
     }
   }
 
@@ -251,6 +277,15 @@ class HomeFragment : Fragment() {
     }
   }
 
+  private fun setupErrorAlertDialog() {
+    errorAlertDialog =
+        MaterialAlertDialogBuilder(requireContext())
+            .setPositiveButton(resources.getString(R.string.ok)) { _, _ ->
+              viewModel.consumeErrorLiveData()
+            }
+            .create()
+  }
+
   // -----------------------------------------------------------------------------------------------
   // Setup observers on the ViewModel
 
@@ -261,13 +296,23 @@ class HomeFragment : Fragment() {
       updateUi(devicesUiModel)
     }
 
-    // The current status of the share device action.
     // CODELAB: commissionDeviceStatus
 
-    // Commission Device Step 2.
-    // The fragment observes the livedata for commissionDeviceIntentSender which
-    // is updated in the ViewModel in step 3 of the Commission Device flow.
+    // In the CommissionDevice flow step 2, the ViewModel calls the GPS commissionDevice() API to
+    // get the
+    // IntentSender to be used with the Android Activity Result API. Once the ViewModel has
+    // the IntentSender, it posts it via LiveData so the Fragment can use that value to launch the
+    // activity (step 3).
+    // Note that when the IntentSender has been processed, it must be consumed to avoid a
+    // configuration change that resends the observed values and re-triggers the commissioning.
     // CODELAB: commissionDeviceIntentSender
+
+    viewModel.errorLiveData.observe(viewLifecycleOwner) { errorInfo ->
+      Timber.d("errorLiveData.observe is called with [${errorInfo}]")
+      if (errorInfo != null) {
+        showAlertDialog(errorAlertDialog, errorInfo.title, errorInfo.message)
+      }
+    }
   }
 
   // -----------------------------------------------------------------------------------------------

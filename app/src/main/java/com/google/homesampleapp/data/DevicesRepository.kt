@@ -29,8 +29,7 @@ import kotlinx.coroutines.flow.first
 import timber.log.Timber
 
 /**
- * Singleton repository that updates and persists the set of devices in the
- * homesampleapp fabric.
+ * Singleton repository that updates and persists the set of devices in the homesampleapp fabric.
  */
 @Singleton
 class DevicesRepository @Inject constructor(@ApplicationContext context: Context) {
@@ -68,6 +67,21 @@ class DevicesRepository @Inject constructor(@ApplicationContext context: Context
     Timber.d("updateDevice: device [${device}]")
     val index = getIndex(device.deviceId)
     devicesDataStore.updateData { devices -> devices.toBuilder().setDevices(index, device).build() }
+  }
+
+  suspend fun updateDeviceType(deviceId: Long, deviceType: Device.DeviceType) {
+    Timber.d("updateDeviceType: deviceId [${deviceId}] deviceType [${deviceType}]")
+    val (index, device) = getIndexAndDevice(deviceId)
+    if (index == null) {
+      Timber.e(
+          "Unable to get device information to update its type: deviceId [${deviceId}] deviceType [${deviceType}]")
+      return
+    }
+    val deviceBuilder = Device.newBuilder(device)
+    deviceBuilder.deviceType = deviceType
+    devicesDataStore.updateData { devices ->
+      devices.toBuilder().setDevices(index, deviceBuilder.build()).build()
+    }
   }
 
   suspend fun removeDevice(deviceId: Long) {
@@ -112,5 +126,21 @@ class DevicesRepository @Inject constructor(@ApplicationContext context: Context
       }
     }
     return -1
+  }
+
+  private suspend fun getIndexAndDevice(deviceId: Long): Pair<Int?, Device?> {
+    val devices = devicesFlow.first()
+    return getIndexAndDevice(devices, deviceId)
+  }
+
+  private fun getIndexAndDevice(devices: Devices, deviceId: Long): Pair<Int?, Device?> {
+    val devicesCount = devices.devicesCount
+    for (index in 0 until devicesCount) {
+      val device = devices.getDevices(index)
+      if (deviceId == device.deviceId) {
+        return index to device
+      }
+    }
+    return null to null
   }
 }

@@ -92,4 +92,5 @@
 All of the information will be logged in logcat. Use this command  to only view this sample’s app logs:&lt;p>&lt;i>adb logcat --pid=`adb shell pidof -s homesampleapp`&lt;/i></string>
     <string name="about_app">This app provides downloadable code that shows you how to use Matter APIs in your own Android application.&lt;p>&lt;b>This is not an official Google Home app, it was created as a development tool for sample purposes only.&lt;/b>&lt;p>&lt;i>Google Home Sample Application for Matter&lt;p>Version: %1$s&lt;/i></string>
     <string name="unspecified">Unspecified</string>
+    <string name="error">Error</string>
 </resources>
