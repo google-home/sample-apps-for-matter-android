@@ -67,8 +67,7 @@ dependencies {
 
     // Connected Home
     implementation 'com.google.android.gms:play-services-base:18.1.0'
-    implementation 'com.google.android.gms:play-services-home:16.0.0-beta1'
-    // fixme implementation 'com.google.android.gms:play-services-home:16.0.0'
+    implementation 'com.google.android.gms:play-services-home:16.0.0'
 
     // AndroidX
     implementation 'androidx.appcompat:appcompat:1.5.1'
