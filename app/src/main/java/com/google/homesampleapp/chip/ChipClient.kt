@@ -29,10 +29,9 @@ import chip.platform.AndroidChipPlatform
 import chip.platform.ChipMdnsCallbackImpl
 import chip.platform.DiagnosticDataProviderImpl
 import chip.platform.NsdManagerServiceBrowser
+import chip.platform.NsdManagerServiceResolver
 import chip.platform.PreferencesConfigurationManager
 import chip.platform.PreferencesKeyValueStoreManager
-import com.google.android.gms.home.matter.Matter
-import com.google.homesampleapp.mdns.GmsCoreServiceResolver
 import com.google.homesampleapp.stripLinkLocalInIpAddress
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -56,7 +55,7 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
         AndroidBleManager(),
         PreferencesKeyValueStoreManager(context),
         PreferencesConfigurationManager(context),
-        GmsCoreServiceResolver(Matter.getDiscoveryClient(context)),
+        NsdManagerServiceResolver(context),
         NsdManagerServiceBrowser(context),
         ChipMdnsCallbackImpl(),
         DiagnosticDataProviderImpl(context))

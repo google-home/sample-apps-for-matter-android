@@ -31,8 +31,7 @@ import kotlinx.coroutines.flow.stateIn
  * [MatterBeaconProducer]s in the dependency injection graph.
  */
 @HiltViewModel
-class gits
-CommissionableViewModel
+class CommissionableViewModel
 @Inject
 constructor(producers: Set<@JvmSuppressWildcards MatterBeaconProducer>) : ViewModel() {
   /**
