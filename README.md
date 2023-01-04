@@ -48,17 +48,16 @@ To clone the repository, complete the following steps:
     $ git clone https://github.com/google-home/sample-app-for-matter-android.git
     ```
 
+## Version
+
+Google Home Sample App for Matter follows the [Semantic](http://semver.org/)
+and [Android](https://developer.android.com/studio/publish/versioning) versioning guidelines for
+release cycle transparency and to maintain backwards compatibility.
+
 ## Releases
 
-There are multiple releases available for this sample app. Before proceding, make sure you
-download the correct one for your use case.
-
-*   **Release [v1.0.3](https://github.com/google-home/sample-app-for-matter-android/releases/tag/v1.0.3)**
-    — Use this release with the [Google Developer Preview](https://developers.home.google.com/matter/get-started).
-*   **Release [v1.1.0](https://github.com/google-home/sample-app-for-matter-android/releases/tag/v1.1.0)**
-    — This release is intended for Google testing use. Do NOT use it with the Google Developer Preview.
-*   **Release [v1.2.0](https://github.com/google-home/sample-app-for-matter-android/releases/tag/v1.2.0)**
-    — This release is intended for Google testing use. Do NOT use it with the Google Developer Preview.  
+Always use the latest release as shown at
+https://github.com/google-home/sample-app-for-matter-android/releases
 
 ## Get started
 
@@ -86,11 +85,14 @@ download the correct one for your use case.
     the [Build an Android App for Matter](https://developers.home.google.com/codelabs/matter-sample-app)
     Codelab.
 
-## Version
+## Issues?
 
-Google Home Sample App for Matter follows the [Semantic](http://semver.org/)
-and [Android](https://developer.android.com/studio/publish/versioning) versioning guidelines for
-release cycle transparency and to maintain backwards compatibility.
+If you run into problems with the sample app, please submit an issue on the 
+[Issues page](https://github.com/google-home/sample-app-for-matter-android/issues).
+
+It is always greatly appreciated if you can try to reproduce the issue you encountered 
+from a clean state as described in document
+["Investigating Issues with the Sample App"](https://github.com/google-home/sample-app-for-matter-android/wiki/How-to-investigate-issues-with-the-sample-app-(GHSAFM)).
 
 ## License
 

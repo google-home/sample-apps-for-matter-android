@@ -16,5 +16,5 @@
 -->
 
 <resources>
-    <color name="ic_launcher_background">#3989F9</color>
+    <item name="beacon_tag" type="id" />
 </resources>

@@ -19,6 +19,7 @@ package com.google.homesampleapp.chip
 import android.content.Context
 import chip.devicecontroller.ChipDeviceController
 import chip.devicecontroller.ControllerParams
+import chip.devicecontroller.DiscoveredDevice
 import chip.devicecontroller.GetConnectedDeviceCallbackJni.GetConnectedDeviceCallback
 import chip.devicecontroller.NetworkCredentials
 import chip.devicecontroller.OpenCommissioningCallback
@@ -28,9 +29,10 @@ import chip.platform.AndroidChipPlatform
 import chip.platform.ChipMdnsCallbackImpl
 import chip.platform.DiagnosticDataProviderImpl
 import chip.platform.NsdManagerServiceBrowser
-import chip.platform.NsdManagerServiceResolver
 import chip.platform.PreferencesConfigurationManager
 import chip.platform.PreferencesKeyValueStoreManager
+import com.google.android.gms.home.matter.Matter
+import com.google.homesampleapp.mdns.GmsCoreServiceResolver
 import com.google.homesampleapp.stripLinkLocalInIpAddress
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -54,7 +56,7 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
         AndroidBleManager(),
         PreferencesKeyValueStoreManager(context),
         PreferencesConfigurationManager(context),
-        NsdManagerServiceResolver(context),
+        GmsCoreServiceResolver(Matter.getDiscoveryClient(context)),
         NsdManagerServiceBrowser(context),
         ChipMdnsCallbackImpl(),
         DiagnosticDataProviderImpl(context))
@@ -221,5 +223,18 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
             }
           })
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // We use our own mDNS discovery code, but interesting to note that
+  // ChipDeviceController also offers that feature.
+
+  fun getCommissionableNodes() {
+    chipDeviceController.discoverCommissionableNodes()
+  }
+
+  fun getDiscoveredDevice(index: Int): DiscoveredDevice? {
+    Timber.d("getDiscoveredDevice(${index})")
+    return chipDeviceController.getDiscoveredDevice(index)
   }
 }

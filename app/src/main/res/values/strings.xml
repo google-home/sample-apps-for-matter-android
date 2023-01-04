@@ -93,4 +93,11 @@ All of the information will be logged in logcat. Use this command  to only view 
     <string name="about_app">This app provides downloadable code that shows you how to use Matter APIs in your own Android application.&lt;p>&lt;b>This is not an official Google Home app, it was created as a development tool for sample purposes only.&lt;/b>&lt;p>&lt;i>Google Home Sample Application for Matter&lt;p>Version: %1$s&lt;/i></string>
     <string name="unspecified">Unspecified</string>
     <string name="error">Error</string>
+
+    <!-- Matter Beacon -->
+    <string name="beacon_list_title" translatable="false">Scanning for nearby Matter devices…</string>
+    <string name="beacon_detail_text" translatable="false">VID: 0x%04X PID: 0x%04X Disc: 0x%03X</string>
+    <string name="discovery">Discovery</string>
+    <string name="commissionable_devices">Commissionable Devices</string>
+
 </resources>

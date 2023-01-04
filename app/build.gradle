@@ -5,6 +5,7 @@ plugins {
     id "org.jetbrains.kotlin.kapt"
     id 'dagger.hilt.android.plugin'
     id "androidx.navigation.safeargs"
+    id 'com.google.dagger.hilt.android'
 }
 
 android {
@@ -18,7 +19,7 @@ android {
         targetSdk 33
         versionCode 12
         versionName "1.2.2"
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "com.google.homesampleapp.CustomTestRunner"
     }
 
     buildTypes {
@@ -59,6 +60,10 @@ android {
             versionNameSuffix = "-targetcommissioner"
         }
     }
+
+    hilt {
+        enableTransformForLocalTests = true
+    }
 }
 
 dependencies {
@@ -93,8 +98,14 @@ dependencies {
     implementation 'com.google.protobuf:protobuf-javalite:3.18.0'
 
     // Hilt
-    kapt 'com.google.dagger:hilt-compiler:2.41'
-    implementation 'com.google.dagger:hilt-android:2.41'
+    // https://dagger.dev/hilt/gradle-setup
+    implementation 'com.google.dagger:hilt-android:2.44.2'
+    implementation 'com.google.ar:core:1.30.0'
+    kapt 'com.google.dagger:hilt-compiler:2.44.2'
+
+    // Hilt For instrumentation tests
+    androidTestImplementation("com.google.dagger:hilt-android-testing:2.44.2")
+    kaptAndroidTest 'com.google.dagger:hilt-compiler:2.44.2'
 
     // Other
     implementation 'com.google.android.material:material:1.7.0'
@@ -108,6 +119,10 @@ dependencies {
     androidTestImplementation 'androidx.test:runner:1.5.1'
     androidTestImplementation 'androidx.test:rules:1.5.0'
     androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.2.0'
+}
+
+kapt {
+    correctErrorTypes true
 }
 
 protobuf {
