@@ -284,8 +284,16 @@ const val MIN_COMMISSIONING_WINDOW_EXPIRATION_SECONDS = 20
 // -------------------------------------------------------------------------------------------------
 // Constants to modify the behavior of the app.
 
-// Period updates interval.
-// Set to -1 to disable the periodic update calls.
+// State changes monitoring
+// Methods supported for monitoring state changes.
+enum class StateChangesMonitoringMode {
+  // Subscription is what should normally be used.
+  Subscription,
+  // Left for historical reasons when we had issues with Subscription.
+  PeriodicRead
+}
+val STATE_CHANGES_MONITORING_MODE = StateChangesMonitoringMode.Subscription
+// Intervals for PeriodicRead mode.
 const val PERIODIC_UPDATE_INTERVAL_HOME_SCREEN_SECONDS = 10
 const val PERIODIC_UPDATE_INTERVAL_DEVICE_SCREEN_SECONDS = 2
 

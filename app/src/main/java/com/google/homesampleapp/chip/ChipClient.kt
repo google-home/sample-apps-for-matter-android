@@ -49,7 +49,7 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
   private val VENDOR_ID = 0xFFF4
 
   // Lazily instantiate [ChipDeviceController] and hold a reference to it.
-  private val chipDeviceController: ChipDeviceController by lazy {
+  val chipDeviceController: ChipDeviceController by lazy {
     ChipDeviceController.loadJni()
     AndroidChipPlatform(
         AndroidBleManager(),

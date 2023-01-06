@@ -28,6 +28,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.liveData
 import androidx.lifecycle.viewModelScope
+import chip.devicecontroller.model.NodeState
 import com.google.android.gms.home.matter.Matter
 import com.google.android.gms.home.matter.commissioning.CommissioningRequest
 import com.google.android.gms.home.matter.commissioning.CommissioningResult
@@ -41,9 +42,12 @@ import com.google.homesampleapp.DevicesState
 import com.google.homesampleapp.ErrorInfo
 import com.google.homesampleapp.MIN_COMMISSIONING_WINDOW_EXPIRATION_SECONDS
 import com.google.homesampleapp.PERIODIC_UPDATE_INTERVAL_HOME_SCREEN_SECONDS
+import com.google.homesampleapp.STATE_CHANGES_MONITORING_MODE
+import com.google.homesampleapp.StateChangesMonitoringMode
 import com.google.homesampleapp.TaskStatus
 import com.google.homesampleapp.UserPreferences
 import com.google.homesampleapp.chip.ClustersHelper
+import com.google.homesampleapp.chip.SubscriptionHelper
 import com.google.homesampleapp.commissioning.AppCommissioningService
 import com.google.homesampleapp.convertToAppDeviceType
 import com.google.homesampleapp.data.DevicesRepository
@@ -52,39 +56,39 @@ import com.google.homesampleapp.data.UserPreferencesRepository
 import com.google.homesampleapp.getTimestampForNow
 import com.google.homesampleapp.isDummyDevice
 import dagger.hilt.android.lifecycle.HiltViewModel
-import java.time.LocalDateTime
-import javax.inject.Inject
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.time.LocalDateTime
+import javax.inject.Inject
 
 /**
  * Encapsulates all of the information on a specific device. Note that the app currently only
  * supports Matter devices with server attribute "ON/OFF".
  */
 data class DeviceUiModel(
-    // Device information that is persisted in a Proto DataStore. See DevicesRepository.
-    val device: Device,
+  // Device information that is persisted in a Proto DataStore. See DevicesRepository.
+  val device: Device,
 
-    // Device state information that is retrieved dynamically.
-    // Whether the device is online or offline.
-    var isOnline: Boolean,
-    // Whether the device is on or off.
-    var isOn: Boolean
+  // Device state information that is retrieved dynamically.
+  // Whether the device is online or offline.
+  var isOnline: Boolean,
+  // Whether the device is on or off.
+  var isOn: Boolean
 )
 
 /**
  * UI model that encapsulates the information about the devices to be displayed on the Home screen.
  */
 data class DevicesUiModel(
-    // The list of devices.
-    val devices: List<DeviceUiModel>,
-    // Making it so default is false, so that codelabinfo is not shown when we have not gotten
-    // the userpreferences data yet.
-    val showCodelabInfo: Boolean,
-    // Whether offline devices should be shown.
-    val showOfflineDevices: Boolean
+  // The list of devices.
+  val devices: List<DeviceUiModel>,
+  // Making it so default is false, so that codelabinfo is not shown when we have not gotten
+  // the userpreferences data yet.
+  val showCodelabInfo: Boolean,
+  // Whether offline devices should be shown.
+  val showOfflineDevices: Boolean
 )
 
 /** The ViewModel for the Home Fragment. See [HomeFragment] for additional information. */
@@ -92,10 +96,11 @@ data class DevicesUiModel(
 internal class HomeViewModel
 @Inject
 constructor(
-    private val devicesRepository: DevicesRepository,
-    private val devicesStateRepository: DevicesStateRepository,
-    private val userPreferencesRepository: UserPreferencesRepository,
-    private val clustersHelper: ClustersHelper,
+  private val devicesRepository: DevicesRepository,
+  private val devicesStateRepository: DevicesStateRepository,
+  private val userPreferencesRepository: UserPreferencesRepository,
+  private val clustersHelper: ClustersHelper,
+  private val subscriptionHelper: SubscriptionHelper,
 ) : ViewModel() {
 
   // Controls whether a periodic ping to the devices is enabled or not.
@@ -141,16 +146,16 @@ constructor(
   // Every time the list of devices or user preferences are updated (emit is triggered),
   // we recreate the DevicesUiModel
   private val devicesUiModelFlow =
-      combine(devicesFlow, devicesStateFlow, userPreferencesFlow) {
-          devices: Devices,
-          devicesStates: DevicesState,
-          userPreferences: UserPreferences ->
-        Timber.d("*** devicesUiModelFlow changed ***")
-        return@combine DevicesUiModel(
-            devices = processDevices(devices, devicesStates, userPreferences),
-            showCodelabInfo = !userPreferences.hideCodelabInfo,
-            showOfflineDevices = !userPreferences.hideOfflineDevices)
-      }
+    combine(devicesFlow, devicesStateFlow, userPreferencesFlow) { devices: Devices,
+                                                                  devicesStates: DevicesState,
+                                                                  userPreferences: UserPreferences ->
+      Timber.d("*** devicesUiModelFlow changed ***")
+      return@combine DevicesUiModel(
+        devices = processDevices(devices, devicesStates, userPreferences),
+        showCodelabInfo = !userPreferences.hideCodelabInfo,
+        showOfflineDevices = !userPreferences.hideOfflineDevices
+      )
+    }
 
   val devicesUiModelLiveData = devicesUiModelFlow.asLiveData()
 
@@ -160,9 +165,9 @@ constructor(
   var codelabDialogHasBeenShown = false
 
   private fun processDevices(
-      devices: Devices,
-      devicesStates: DevicesState,
-      userPreferences: UserPreferences
+    devices: Devices,
+    devicesStates: DevicesState,
+    userPreferences: UserPreferences
   ): List<DeviceUiModel> {
     val devicesUiModel = ArrayList<DeviceUiModel>()
     devices.devicesList.forEach { device ->
@@ -209,24 +214,25 @@ constructor(
     _commissionDeviceStatus.postValue(TaskStatus.InProgress)
 
     val commissionDeviceRequest =
-        CommissioningRequest.builder()
-            .setCommissioningService(ComponentName(context, AppCommissioningService::class.java))
-            .build()
+      CommissioningRequest.builder()
+        .setCommissioningService(ComponentName(context, AppCommissioningService::class.java))
+        .build()
 
     // The call to commissionDevice() creates the IntentSender that will eventually be launched
     // in the fragment to trigger the commissioning activity in GPS.
     Matter.getCommissioningClient(context)
-        .commissionDevice(commissionDeviceRequest)
-        .addOnSuccessListener { result ->
-          Timber.d("ShareDevice: Success getting the IntentSender: result [${result}]")
-          // Communication with fragment is via livedata
-          _commissionDeviceIntentSender.postValue(result)
-        }
-        .addOnFailureListener { error ->
-          Timber.e(error)
-          _commissionDeviceStatus.postValue(
-              TaskStatus.Failed("Setting up the IntentSender failed", error))
-        }
+      .commissionDevice(commissionDeviceRequest)
+      .addOnSuccessListener { result ->
+        Timber.d("ShareDevice: Success getting the IntentSender: result [${result}]")
+        // Communication with fragment is via livedata
+        _commissionDeviceIntentSender.postValue(result)
+      }
+      .addOnFailureListener { error ->
+        Timber.e(error)
+        _commissionDeviceStatus.postValue(
+          TaskStatus.Failed("Setting up the IntentSender failed", error)
+        )
+      }
   }
   // CODELAB SECTION END
 
@@ -243,35 +249,38 @@ constructor(
     Timber.d("multiadminCommissioning: manualPairingCode [${sharedDeviceData.manualPairingCode}]")
 
     val commissionRequestBuilder =
-        CommissioningRequest.builder()
-            .setCommissioningService(ComponentName(context, AppCommissioningService::class.java))
+      CommissioningRequest.builder()
+        .setCommissioningService(ComponentName(context, AppCommissioningService::class.java))
 
     // EXTRA_COMMISSIONING_WINDOW_EXPIRATION is a hint of how much time is remaining in the
     // commissioning window for multi-admin. It is based on the current system uptime.
     // If the user takes too long to select the target commissioning app, then there's not
     // enougj time to complete the multi-admin commissioning and we message it to the user.
     val commissioningWindowExpirationMillis =
-        intent.getLongExtra(EXTRA_COMMISSIONING_WINDOW_EXPIRATION, -1L)
+      intent.getLongExtra(EXTRA_COMMISSIONING_WINDOW_EXPIRATION, -1L)
     val currentUptimeMillis = SystemClock.elapsedRealtime()
     val timeLeftSeconds = (commissioningWindowExpirationMillis - currentUptimeMillis) / 1000
     Timber.d(
-        "commissionDevice: TargetCommissioner for MultiAdmin. " +
-            "uptime [${currentUptimeMillis}] " +
-            "commissioningWindowExpiration [${commissioningWindowExpirationMillis}] " +
-            "-> expires in ${timeLeftSeconds} seconds")
+      "commissionDevice: TargetCommissioner for MultiAdmin. " +
+          "uptime [${currentUptimeMillis}] " +
+          "commissioningWindowExpiration [${commissioningWindowExpirationMillis}] " +
+          "-> expires in ${timeLeftSeconds} seconds"
+    )
 
     if (commissioningWindowExpirationMillis == -1L) {
       Timber.e(
-          "EXTRA_COMMISSIONING_WINDOW_EXPIRATION not specified in multi-admin call. " +
-              "Still going ahead with the multi-admin though.")
+        "EXTRA_COMMISSIONING_WINDOW_EXPIRATION not specified in multi-admin call. " +
+            "Still going ahead with the multi-admin though."
+      )
     } else if (timeLeftSeconds < MIN_COMMISSIONING_WINDOW_EXPIRATION_SECONDS) {
       _errorLiveData.value =
-          ErrorInfo(
-              title = "Commissioning Window Expiration",
-              message =
-                  "The commissioning window will " +
-                      "expire in ${timeLeftSeconds} seconds, not long enough to complete the commissioning.\n\n" +
-                      "In the future, please select the target commissioning application faster to avoid this situation.")
+        ErrorInfo(
+          title = "Commissioning Window Expiration",
+          message =
+          "The commissioning window will " +
+              "expire in ${timeLeftSeconds} seconds, not long enough to complete the commissioning.\n\n" +
+              "In the future, please select the target commissioning application faster to avoid this situation."
+        )
       return
     }
 
@@ -290,23 +299,25 @@ constructor(
     val commissioningRequest = commissionRequestBuilder.build()
 
     Timber.d(
-        "multiadmin: commissioningRequest " +
-            "onboardingPayload [${commissioningRequest.onboardingPayload}] " +
-            "vendorId [${commissioningRequest.deviceInfo!!.vendorId}] " +
-            "productId [${commissioningRequest.deviceInfo!!.productId}]")
+      "multiadmin: commissioningRequest " +
+          "onboardingPayload [${commissioningRequest.onboardingPayload}] " +
+          "vendorId [${commissioningRequest.deviceInfo!!.vendorId}] " +
+          "productId [${commissioningRequest.deviceInfo!!.productId}]"
+    )
 
     Matter.getCommissioningClient(context)
-        .commissionDevice(commissioningRequest)
-        .addOnSuccessListener { result ->
-          // Communication with fragment is via livedata
-          _commissionDeviceStatus.postValue(TaskStatus.InProgress)
-          _commissionDeviceIntentSender.postValue(result)
-        }
-        .addOnFailureListener { error ->
-          Timber.e(error)
-          _commissionDeviceStatus.postValue(
-              TaskStatus.Failed("Failed to to get the IntentSender.", error))
-        }
+      .commissionDevice(commissioningRequest)
+      .addOnSuccessListener { result ->
+        // Communication with fragment is via livedata
+        _commissionDeviceStatus.postValue(TaskStatus.InProgress)
+        _commissionDeviceIntentSender.postValue(result)
+      }
+      .addOnFailureListener { error ->
+        Timber.e(error)
+        _commissionDeviceStatus.postValue(
+          TaskStatus.Failed("Failed to to get the IntentSender.", error)
+        )
+      }
   }
 
   // CODELAB FEATURED BEGIN
@@ -324,15 +335,16 @@ constructor(
   // for commissioning the device has succeeded.
   fun commissionDeviceSucceeded(activityResult: ActivityResult, deviceName: String) {
     val result =
-        CommissioningResult.fromIntentSenderResult(activityResult.resultCode, activityResult.data)
+      CommissioningResult.fromIntentSenderResult(activityResult.resultCode, activityResult.data)
     Timber.i("Device commissioned successfully! deviceName [${result.deviceName}]")
     Timber.i("Device commissioned successfully! room [${result.room}]")
     Timber.i(
-        "Device commissioned successfully! DeviceDescriptor of device:\n" +
-            "deviceType [${result.commissionedDeviceDescriptor.deviceType}]\n" +
-            "productId [${result.commissionedDeviceDescriptor.productId}]\n" +
-            "vendorId [${result.commissionedDeviceDescriptor.vendorId}]\n" +
-            "hashCode [${result.commissionedDeviceDescriptor.hashCode()}]")
+      "Device commissioned successfully! DeviceDescriptor of device:\n" +
+          "deviceType [${result.commissionedDeviceDescriptor.deviceType}]\n" +
+          "productId [${result.commissionedDeviceDescriptor.productId}]\n" +
+          "vendorId [${result.commissionedDeviceDescriptor.vendorId}]\n" +
+          "hashCode [${result.commissionedDeviceDescriptor.hashCode()}]"
+    )
 
     // Add the device to the devices repository.
     viewModelScope.launch {
@@ -340,26 +352,31 @@ constructor(
       try {
         Timber.d("Commissioning: Adding device to repository")
         devicesRepository.addDevice(
-            Device.newBuilder()
-                .setName(deviceName) // default name that can be overridden by user in next step
-                .setDeviceId(deviceId)
-                .setDateCommissioned(getTimestampForNow())
-                .setVendorId(result.commissionedDeviceDescriptor.vendorId.toString())
-                .setProductId(result.commissionedDeviceDescriptor.productId.toString())
-                // Note that deviceType is now deprecated. Need to get it by introspecting
-                // the device information. This is done below.
-                .setDeviceType(
-                    convertToAppDeviceType(result.commissionedDeviceDescriptor.deviceType.toLong()))
-                .build())
+          Device.newBuilder()
+            .setName(deviceName) // default name that can be overridden by user in next step
+            .setDeviceId(deviceId)
+            .setDateCommissioned(getTimestampForNow())
+            .setVendorId(result.commissionedDeviceDescriptor.vendorId.toString())
+            .setProductId(result.commissionedDeviceDescriptor.productId.toString())
+            // Note that deviceType is now deprecated. Need to get it by introspecting
+            // the device information. This is done below.
+            .setDeviceType(
+              convertToAppDeviceType(result.commissionedDeviceDescriptor.deviceType.toLong())
+            )
+            .build()
+        )
         Timber.d("Commissioning: Adding device state to repository: isOnline:true isOn:false")
         devicesStateRepository.addDeviceState(deviceId, isOnline = true, isOn = false)
         _commissionDeviceStatus.postValue(
-            TaskStatus.Completed("Device added: [${deviceId}] [${deviceName}]"))
+          TaskStatus.Completed("Device added: [${deviceId}] [${deviceName}]")
+        )
       } catch (e: Exception) {
         Timber.e("Adding device [${deviceId}] [${deviceName}] to app's repository failed", e)
         _commissionDeviceStatus.postValue(
-            TaskStatus.Failed(
-                "Adding device [${deviceId}] [${deviceName}] to app's repository failed", e))
+          TaskStatus.Failed(
+            "Adding device [${deviceId}] [${deviceName}] to app's repository failed", e
+          )
+        )
       }
 
       // Introspect the device and update its deviceType.
@@ -373,7 +390,8 @@ constructor(
             Timber.w("The device has more than one type. We're simply using the first one.")
           }
           devicesRepository.updateDeviceType(
-              deviceId, convertToAppDeviceType(deviceMatterInfo.types.first()))
+            deviceId, convertToAppDeviceType(deviceMatterInfo.types.first())
+          )
         }
       }
     }
@@ -384,7 +402,8 @@ constructor(
   fun commissionDeviceFailed(resultCode: Int) {
     Timber.d("CommissionDevice: Failed [${resultCode}")
     _commissionDeviceStatus.postValue(
-        TaskStatus.Failed("Commission device failed [${resultCode}]", null))
+      TaskStatus.Failed("Commission device failed [${resultCode}]", null)
+    )
   }
 
   /** Updates the status of [commissionDeviceStatus] to success with the given message. */
@@ -413,14 +432,94 @@ constructor(
   }
 
   // -----------------------------------------------------------------------------------------------
+  // State Changes Monitoring
+
+  /**
+   * The way we monitor state changes is defined by constant [StateChangesMonitoringMode].
+   * [StateChangesMonitoringMode.Subscription] is the preferred mode.
+   * [StateChangesMonitoringMode.PeriodicRead] was used initially because of issues with
+   * subscriptions. We left its associated code as it could be useful to some developers.
+   */
+  fun startMonitoringStateChanges() {
+    when (STATE_CHANGES_MONITORING_MODE) {
+      StateChangesMonitoringMode.Subscription -> subscribeToDevicesPeriodicUpdates()
+      StateChangesMonitoringMode.PeriodicRead -> startDevicesPeriodicPing()
+    }
+  }
+
+  fun stopMonitoringStateChanges() {
+    // FIXME
+//    when (STATE_CHANGES_MONITORING_MODE) {
+//      StateChangesMonitoringMode.Subscription -> unsubscribeToDevicesPeriodicUpdates()
+//      StateChangesMonitoringMode.PeriodicRead -> stopDevicesPeriodicPing()
+//    }
+  }
+
+
+  // -----------------------------------------------------------------------------------------------
+  // Subscription to periodic device updates.
+  // See:
+  //   - Spec section "8.5 Subscribe Interaction"
+  //   - Matter primer:
+  //       https://developers.home.google.com/matter/primer/interaction-model-reading#subscription_transaction
+
+  private fun subscribeToDevicesPeriodicUpdates() {
+    Timber.d("subscribeToDevicesPeriodicUpdates()")
+    viewModelScope.launch {
+      // For each one of the real devices
+      val devicesList = devicesRepository.getAllDevices().devicesList
+      devicesList.forEach { device ->
+        if (device.name.startsWith(DUMMY_DEVICE_NAME_PREFIX)) {
+          return@forEach
+        }
+        val reportCallback =
+          object : SubscriptionHelper.ReportCallbackForDevice(device.deviceId) {
+            override fun onReport(nodeState: NodeState) {
+              super.onReport(nodeState)
+              // FIXME: could be null...
+              val onOffState = subscriptionHelper.extractAttribute(nodeState, 1, 6L, 0L) as Boolean
+              Timber.d("onOffState [${onOffState}]")
+              viewModelScope.launch {
+                devicesStateRepository.updateDeviceState(
+                  device.deviceId, isOnline = true, isOn = onOffState
+                )
+              }
+            }
+          }
+        subscriptionHelper.subscribeToPeriodicUpdates(
+          device.deviceId,
+          SubscriptionHelper.SubscriptionEstablishedCallbackForDevice(device.deviceId),
+          SubscriptionHelper.ResubscriptionAttemptCallbackForDevice(device.deviceId),
+          reportCallback
+        )
+      }
+    }
+  }
+
+  private fun unsubscribeToDevicesPeriodicUpdates() {
+    Timber.d("unsubscribeToPeriodicUpdates()")
+    viewModelScope.launch {
+      // For each one of the real devices
+      val devicesList = devicesRepository.getAllDevices().devicesList
+      devicesList.forEach { device ->
+        if (device.name.startsWith(DUMMY_DEVICE_NAME_PREFIX)) {
+          return@forEach
+        }
+        subscriptionHelper.unsubscribeToPeriodicUpdates(device.deviceId)
+      }
+    }
+  }
+
+  // -----------------------------------------------------------------------------------------------
   // Task that runs periodically to update the devices state.
 
-  fun startDevicesPeriodicPing() {
+  private fun startDevicesPeriodicPing() {
     if (PERIODIC_UPDATE_INTERVAL_HOME_SCREEN_SECONDS == -1) {
       return
     }
     Timber.d(
-        "${LocalDateTime.now()} startDevicesPeriodicPing every $PERIODIC_UPDATE_INTERVAL_HOME_SCREEN_SECONDS seconds")
+      "${LocalDateTime.now()} startDevicesPeriodicPing every $PERIODIC_UPDATE_INTERVAL_HOME_SCREEN_SECONDS seconds"
+    )
     devicesPeriodicPingEnabled = true
     runDevicesPeriodicPing()
   }
@@ -428,7 +527,7 @@ constructor(
   private fun runDevicesPeriodicPing() {
     viewModelScope.launch {
       while (devicesPeriodicPingEnabled) {
-        // For each ne of the real devices
+        // For each one of the real devices
         val devicesList = devicesRepository.getAllDevices().devicesList
         devicesList.forEach { device ->
           if (device.name.startsWith(DUMMY_DEVICE_NAME_PREFIX)) {
@@ -447,14 +546,15 @@ constructor(
           Timber.d("runDevicesPeriodicPing deviceId [${device.deviceId}] [${isOnline}] [${isOn}]")
           // TODO: only need to do it if state has changed
           devicesStateRepository.updateDeviceState(
-              device.deviceId, isOnline = isOnline, isOn = isOn)
+            device.deviceId, isOnline = isOnline, isOn = isOn
+          )
         }
         delay(PERIODIC_UPDATE_INTERVAL_HOME_SCREEN_SECONDS * 1000L)
       }
     }
   }
 
-  fun stopDevicesPeriodicPing() {
+  private fun stopDevicesPeriodicPing() {
     devicesPeriodicPingEnabled = false
   }
 }

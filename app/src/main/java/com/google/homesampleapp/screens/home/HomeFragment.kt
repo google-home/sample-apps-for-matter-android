@@ -225,16 +225,14 @@ class HomeFragment : Fragment() {
       }
     } else {
       Timber.d("Invocation: Main")
-      Timber.d(
-          "Starting periodic ping on device with interval [$PERIODIC_UPDATE_INTERVAL_DEVICE_SCREEN_SECONDS] seconds")
-      viewModel.startDevicesPeriodicPing()
+      viewModel.startMonitoringStateChanges()
     }
   }
 
   override fun onPause() {
     super.onPause()
     Timber.d("onPause(): Stopping periodic ping on devices")
-    viewModel.stopDevicesPeriodicPing()
+    viewModel.stopMonitoringStateChanges()
   }
 
   // -----------------------------------------------------------------------------------------------
@@ -267,7 +265,7 @@ class HomeFragment : Fragment() {
     // Add device button click listener. This triggers the commissioning of a Matter device.
     binding.addDeviceButton.setOnClickListener {
       Timber.d("addDeviceButton.setOnClickListener")
-      viewModel.stopDevicesPeriodicPing()
+      viewModel.stopMonitoringStateChanges()
       viewModel.commissionDevice(requireContext())
     }
   }

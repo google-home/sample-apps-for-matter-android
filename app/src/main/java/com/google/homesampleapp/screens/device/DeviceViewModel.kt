@@ -23,6 +23,15 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import chip.devicecontroller.ChipDeviceController
+import chip.devicecontroller.ChipIdLookup
+import chip.devicecontroller.ReportCallback
+import chip.devicecontroller.ResubscriptionAttemptCallback
+import chip.devicecontroller.SubscriptionEstablishedCallback
+import chip.devicecontroller.model.ChipAttributePath
+import chip.devicecontroller.model.ChipEventPath
+import chip.devicecontroller.model.ChipPathId
+import chip.devicecontroller.model.NodeState
 import com.google.android.gms.home.matter.Matter
 import com.google.android.gms.home.matter.commissioning.CommissioningWindow
 import com.google.android.gms.home.matter.commissioning.ShareDeviceRequest
@@ -36,9 +45,12 @@ import com.google.homesampleapp.OPEN_COMMISSIONING_WINDOW_DURATION_SECONDS
 import com.google.homesampleapp.OpenCommissioningWindowApi
 import com.google.homesampleapp.PERIODIC_UPDATE_INTERVAL_DEVICE_SCREEN_SECONDS
 import com.google.homesampleapp.SETUP_PIN_CODE
+import com.google.homesampleapp.STATE_CHANGES_MONITORING_MODE
+import com.google.homesampleapp.StateChangesMonitoringMode
 import com.google.homesampleapp.TaskStatus
 import com.google.homesampleapp.chip.ChipClient
 import com.google.homesampleapp.chip.ClustersHelper
+import com.google.homesampleapp.chip.SubscriptionHelper
 import com.google.homesampleapp.data.DevicesRepository
 import com.google.homesampleapp.data.DevicesStateRepository
 import com.google.homesampleapp.isDummyDevice
@@ -59,8 +71,13 @@ constructor(
     private val devicesRepository: DevicesRepository,
     private val devicesStateRepository: DevicesStateRepository,
     private val chipClient: ChipClient,
-    private val clustersHelper: ClustersHelper
+    private val clustersHelper: ClustersHelper,
+    private val subscriptionHelper: SubscriptionHelper
 ) : ViewModel() {
+
+  // The deviceId being shown by the Fragment.
+  // Initialized in Fragment onResume().
+  lateinit var deviceUiModel: DeviceUiModel
 
   // Controls whether a periodic ping to the device is enabled or not.
   private var devicePeriodicPingEnabled: Boolean = true
@@ -186,9 +203,9 @@ constructor(
 
   // Called by the fragment in Step 5 of the Device Sharing flow when the GPS activity for
   // Device Sharing has succeeded.
-  fun shareDeviceSucceeded(deviceUiModel: DeviceUiModel) {
+  fun shareDeviceSucceeded() {
     _shareDeviceStatus.postValue(TaskStatus.Completed("Device sharing completed successfully"))
-    startDevicePeriodicPing(deviceUiModel)
+    startDevicePeriodicPing()
   }
 
   // Called by the fragment in Step 5 of the Device Sharing flow when the GPS activity for
@@ -196,7 +213,7 @@ constructor(
   fun shareDeviceFailed(deviceUiModel: DeviceUiModel, resultCode: Int) {
     Timber.d("ShareDevice: Failed with errorCode [${resultCode}]")
     _shareDeviceStatus.postValue(TaskStatus.Failed("Device sharing failed [${resultCode}]", null))
-    startDevicePeriodicPing(deviceUiModel)
+    startDevicePeriodicPing()
   }
 
   // Called after we dismiss an error dialog. If we don't consume, a config change redisplays the
@@ -337,9 +354,162 @@ constructor(
   }
 
   // -----------------------------------------------------------------------------------------------
-  // Task that runs periodically to update the device state.
+  // State Changes Monitoring
 
-  fun startDevicePeriodicPing(deviceUiModel: DeviceUiModel) {
+  /**
+   * The way we monitor state changes is defined by constant [StateChangesMonitoringMode].
+   * [StateChangesMonitoringMode.Subscription] is the preferred mode.
+   * [StateChangesMonitoringMode.PeriodicRead] was used initially because of issues with
+   * subscriptions. We left its associated code as it could be useful to some developers.
+   */
+  fun startMonitoringStateChanges() {
+    Timber.d("startMonitoringStateChanges(): mode [$STATE_CHANGES_MONITORING_MODE]")
+    when (STATE_CHANGES_MONITORING_MODE) {
+      StateChangesMonitoringMode.Subscription -> subscribeToPeriodicUpdates()
+      StateChangesMonitoringMode.PeriodicRead -> startDevicePeriodicPing()
+    }
+  }
+
+  fun stopMonitoringStateChanges() {
+    when (STATE_CHANGES_MONITORING_MODE) {
+      StateChangesMonitoringMode.Subscription -> unsubscribeToPeriodicUpdates()
+      StateChangesMonitoringMode.PeriodicRead -> stopDevicePeriodicPing()
+    }
+  }
+
+  // -----------------------------------------------------------------------------------------------
+  // Subscription to periodic device updates.
+  // See:
+  //   - Spec section "8.5 Subscribe Interaction"
+  //   - Matter primer:
+  //       https://developers.home.google.com/matter/primer/interaction-model-reading#subscription_transaction
+
+  /*
+  FIXME
+  implement stopMonitoring
+   The subscriber MAY terminate the subscription and interaction by responding with a Status
+Response action with an INACTIVE_SUBSCRIPTION Status Code.
+
+  Implement OFFLINE
+  If the subscriber does not receive a Report transaction within the maximum interval from the
+last Report Data, the subscriber SHALL terminate the Subscribe interaction.
+   */
+
+
+    private fun subscribeToPeriodicUpdates() {
+      val reportCallback =
+        object : SubscriptionHelper.ReportCallbackForDevice(deviceUiModel.device.deviceId) {
+          override fun onReport(nodeState: NodeState) {
+            super.onReport(nodeState)
+            // FIXME: could be null...
+            val onOffState = subscriptionHelper.extractAttribute(nodeState, 1, 6L, 0L) as Boolean
+            if (onOffState == null) {
+              Timber.e("ONOFF STATE IS NULL!!!!")
+              return
+            }
+            Timber.d("onOffState [${onOffState}]")
+            viewModelScope.launch {
+              devicesStateRepository.updateDeviceState(
+                deviceUiModel.device.deviceId, isOnline = true, isOn = onOffState!!)
+            }
+          }
+        }
+      Timber.d("Calling subscriptionHelper.subscribeToPeriodicUpdates()")
+      subscriptionHelper.subscribeToPeriodicUpdates(
+        deviceUiModel.device.deviceId,
+        SubscriptionHelper.SubscriptionEstablishedCallbackForDevice(deviceUiModel.device.deviceId),
+        SubscriptionHelper.ResubscriptionAttemptCallbackForDevice(deviceUiModel.device.deviceId),
+        reportCallback
+      )
+    }
+
+//  private fun subscribeToPeriodicUpdates() {
+//    Timber.d("subscribeToPeriodicUpdates(): deviceId [${deviceUiModel.device.deviceId}]")
+//    val endpointId = ChipPathId.forWildcard()
+//    val clusterId = ChipPathId.forWildcard()
+//    val attributeId = ChipPathId.forWildcard()
+//    val minInterval = 1 // seconds
+//    val maxInterval = 10 // seconds
+//    val attributePath = ChipAttributePath.newInstance(endpointId, clusterId, attributeId)
+//    val eventPath = ChipEventPath.newInstance(endpointId, clusterId, attributeId)
+//    Timber.d("attributePath: [${attributePath}]")
+//    viewModelScope.launch {
+//      try {
+//        val connectedDevicePtr = chipClient.getConnectedDevicePointer(deviceUiModel.device.deviceId)
+//        chipClient.chipDeviceController.subscribeToPath(
+//            subscriptionEstablishedCallback,
+//            resubscriptionAttemptCallback,
+//            reportCallback,
+//            connectedDevicePtr,
+//            listOf(attributePath),
+//            listOf(eventPath),
+//            minInterval,
+//            maxInterval,
+//            // keepSubscriptions
+//            // false: all existing or pending subscriptions on the publisher for this
+//            // subscriber SHALL be terminated.
+//            false,
+//            // isFabricFiltered
+//            // limits the data read within fabric-scoped lists to the accessing fabric.
+//            // FIXME: don't quite understand this field...
+//            false
+//            )
+//      } catch (e: Throwable) {
+//        Timber.e("subscribeToPeriodicUpdates() failed: $e")
+//      }
+//    }
+//  }
+
+  private fun unsubscribeToPeriodicUpdates() {
+    subscriptionHelper.unsubscribeToPeriodicUpdates(deviceUiModel.device.deviceId)
+  }
+
+//  private fun nodeStateToDebugString(nodeState: NodeState): String {
+//    val stringBuilder = StringBuilder()
+//    nodeState.endpointStates.forEach { (endpointId, endpointState) ->
+//      stringBuilder.append("\nEndpoint [${endpointId}] {\n")
+//      endpointState.clusterStates.forEach { (clusterId, clusterState) ->
+//        stringBuilder.append(
+//            "\tCluster [${clusterId}] [${ChipIdLookup.clusterIdToName(clusterId)}] {\n")
+//        clusterState.attributeStates.forEach { (attributeId, attributeState) ->
+//          val attributeName = ChipIdLookup.attributeIdToName(clusterId, attributeId)
+//          stringBuilder.append("\t\t[${attributeId}] [${attributeName}] ${attributeState.value}\n")
+//        }
+//        clusterState.eventStates.forEach { (eventId, eventState) ->
+//          stringBuilder.append("\t\teventNumber: ${eventState.eventNumber}\n")
+//          stringBuilder.append("\t\tpriorityLevel: ${eventState.priorityLevel}\n")
+//          stringBuilder.append("\t\tsystemTimeStamp: ${eventState.systemTimeStamp}\n")
+//          val eventName = ChipIdLookup.eventIdToName(clusterId, eventId)
+//          stringBuilder.append("\t\t[${eventId}] [${eventName}] ${eventState.value}\n")
+//        }
+//        stringBuilder.append("\t}\n")
+//      }
+//      stringBuilder.append("}\n")
+//    }
+//    return stringBuilder.toString()
+//  }
+
+  /** Endpoint [1] { Cluster [6] [OnOff] { [0] [OnOff] false } } */
+//  private fun extractOnOffAttribute(nodeState: NodeState): Boolean? {
+//    nodeState.endpointStates.forEach { (endpointId, endpointState) ->
+//      if (endpointId != 1) return@forEach
+//      endpointState.clusterStates.forEach { (clusterId, clusterState) ->
+//        if (clusterId != 6L) return@forEach
+//        clusterState.attributeStates.forEach { (attributeId, attributeState) ->
+//          if (attributeId != 0L) return@forEach
+//          return attributeState.value as Boolean?
+//        }
+//      }
+//    }
+//    return null
+//  }
+
+  // -----------------------------------------------------------------------------------------------
+  // Task that runs periodically to get and update the device state.
+  // Periodic monitoring of a device state should be done with Subscription mode.
+  // This code is left here in case it might be useful to some developers.
+
+  private fun startDevicePeriodicPing() {
     Timber.d(
         "${LocalDateTime.now()} startDevicePeriodicPing every $PERIODIC_UPDATE_INTERVAL_DEVICE_SCREEN_SECONDS seconds")
     devicePeriodicPingEnabled = true
@@ -371,7 +541,7 @@ constructor(
     }
   }
 
-  fun stopDevicePeriodicPing() {
+  private fun stopDevicePeriodicPing() {
     devicePeriodicPingEnabled = false
   }
 
