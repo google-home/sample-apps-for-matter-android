@@ -390,6 +390,7 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
           .readOnOffAttribute(
               object : ChipClusters.BooleanAttributeCallback {
                 override fun onSuccess(value: Boolean) {
+                  Timber.d("readOnOffAttribute success: [$value]")
                   continuation.resume(value)
                 }
                 override fun onError(ex: Exception) {

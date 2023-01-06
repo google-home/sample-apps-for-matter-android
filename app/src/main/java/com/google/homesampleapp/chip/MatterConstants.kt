@@ -58,4 +58,8 @@ object MatterConstants {
           65L to "User label",
           1030L to "Occupancy Sensing",
       )
+
+  // Well known cluster attributes
+  data class ClusterAttribute(val clusterId: Long, val attributeId: Long)
+  val OnOffAttribute = ClusterAttribute(6L, 0L)
 }

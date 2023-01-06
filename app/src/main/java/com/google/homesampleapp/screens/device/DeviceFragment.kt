@@ -152,7 +152,7 @@ class DeviceFragment : Fragment() {
   override fun onPause() {
     super.onPause()
     Timber.d("onPause(): Stopping periodic ping on device")
-    // FIXME viewModel.stopMonitoringStateChanges()
+    viewModel.stopMonitoringStateChanges()
   }
 
   // -----------------------------------------------------------------------------------------------
@@ -324,7 +324,6 @@ class DeviceFragment : Fragment() {
     selectedDeviceViewModel.selectedDeviceIdLiveData.observe(viewLifecycleOwner) { deviceId ->
       Timber.d(
           "selectedDeviceViewModel.selectedDeviceIdLiveData.observe is called with deviceId [${deviceId}]")
-      // FIXME: set here or resume() or both?
       viewModel.deviceUiModel = selectedDeviceViewModel.selectedDeviceLiveData.value!!
       updateDeviceInfo(null)
     }

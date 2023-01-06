@@ -20,11 +20,6 @@ import android.app.Application
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
 
-/*
-TODO
-- cleanup the code
-- what to do when multiple devices...
- */
 /** Google Home Sample Application for Matter (GHSAFM) */
 @HiltAndroidApp
 class GHSAFMApplication : Application() {

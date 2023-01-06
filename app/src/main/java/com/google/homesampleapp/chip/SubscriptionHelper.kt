@@ -1,6 +1,5 @@
 package com.google.homesampleapp.chip
 
-import androidx.lifecycle.viewModelScope
 import chip.devicecontroller.ChipIdLookup
 import chip.devicecontroller.ReportCallback
 import chip.devicecontroller.ResubscriptionAttemptCallback
@@ -9,25 +8,24 @@ import chip.devicecontroller.model.ChipAttributePath
 import chip.devicecontroller.model.ChipEventPath
 import chip.devicecontroller.model.ChipPathId
 import chip.devicecontroller.model.NodeState
+import java.lang.Exception
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import java.lang.Exception
-import javax.inject.Inject
-import javax.inject.Singleton
 
 @Singleton
 class SubscriptionHelper @Inject constructor(private val chipClient: ChipClient) {
 
-  // FIXME
   private val scope = CoroutineScope(Dispatchers.Main)
 
   fun subscribeToPeriodicUpdates(
-    deviceId: Long,
-    subscriptionEstablishedCallback: SubscriptionEstablishedCallback,
-    resubscriptionAttemptCallback: ResubscriptionAttemptCallback,
-    reportCallback: ReportCallback
+      deviceId: Long,
+      subscriptionEstablishedCallback: SubscriptionEstablishedCallback,
+      resubscriptionAttemptCallback: ResubscriptionAttemptCallback,
+      reportCallback: ReportCallback
   ) {
     Timber.d("subscribeToPeriodicUpdates(): deviceId [${deviceId}]")
     val endpointId = ChipPathId.forWildcard()
@@ -42,23 +40,25 @@ class SubscriptionHelper @Inject constructor(private val chipClient: ChipClient)
       try {
         val connectedDevicePtr = chipClient.getConnectedDevicePointer(deviceId)
         chipClient.chipDeviceController.subscribeToPath(
-          subscriptionEstablishedCallback,
-          resubscriptionAttemptCallback,
-          reportCallback,
-          connectedDevicePtr,
-          listOf(attributePath),
-          listOf(eventPath),
-          minInterval,
-          maxInterval,
-          // keepSubscriptions
-          // false: all existing or pending subscriptions on the publisher for this
-          // subscriber SHALL be terminated.
-          false,
-          // isFabricFiltered
-          // limits the data read within fabric-scoped lists to the accessing fabric.
-          // FIXME: don't quite understand this field...
-          false
-        )
+            subscriptionEstablishedCallback,
+            resubscriptionAttemptCallback,
+            reportCallback,
+            connectedDevicePtr,
+            listOf(attributePath),
+            listOf(eventPath),
+            minInterval,
+            maxInterval,
+            // keepSubscriptions
+            // false: all existing or pending subscriptions on the publisher for this
+            // subscriber SHALL be terminated.
+            false,
+            // isFabricFiltered
+            // limits the data read within fabric-scoped lists to the accessing fabric.
+            // Some things (such as the list of fabrics on the device) need to *not be*
+            // fabric-scoped,
+            // i.e. isFabricFiltered = false, to allow reading all values not just the one for the
+            // current fabric
+            false)
       } catch (e: Throwable) {
         Timber.e("subscribeToPeriodicUpdates() failed: $e")
       }
@@ -79,17 +79,16 @@ class SubscriptionHelper @Inject constructor(private val chipClient: ChipClient)
 
   /** Endpoint [1] { Cluster [6] [OnOff] { [0] [OnOff] false } } */
   fun extractAttribute(
-    nodeState: NodeState,
-    endpointId: Int,
-    clusterId: Long,
-    attributeId: Long
+      nodeState: NodeState,
+      endpointId: Int,
+      clusterAttribute: MatterConstants.ClusterAttribute,
   ): Any? {
-    nodeState.endpointStates.forEach { (endpointId, endpointState) ->
-      if (endpointId != 1) return@forEach
+    nodeState.endpointStates.forEach { (_endpointId, endpointState) ->
+      if (_endpointId != endpointId) return@forEach
       endpointState.clusterStates.forEach { (clusterId, clusterState) ->
-        if (clusterId != 6L) return@forEach
+        if (clusterId != clusterAttribute.clusterId) return@forEach
         clusterState.attributeStates.forEach { (attributeId, attributeState) ->
-          if (attributeId != 0L) return@forEach
+          if (attributeId != clusterAttribute.attributeId) return@forEach
           return attributeState.value
         }
       }
@@ -97,11 +96,11 @@ class SubscriptionHelper @Inject constructor(private val chipClient: ChipClient)
     return null
   }
 
-  public open class ReportCallbackForDevice(val deviceId: Long) : ReportCallback {
+  open class ReportCallbackForDevice(val deviceId: Long) : ReportCallback {
     override fun onError(
-      attributePath: ChipAttributePath?,
-      eventPath: ChipEventPath?,
-      ex: Exception
+        attributePath: ChipAttributePath?,
+        eventPath: ChipEventPath?,
+        ex: Exception
     ) {
       if (attributePath != null) {
         Timber.e(ex, "reportCallback: error on device [${deviceId}] for [${attributePath}]")
@@ -124,24 +123,23 @@ class SubscriptionHelper @Inject constructor(private val chipClient: ChipClient)
     }
   }
 
-  public open class SubscriptionEstablishedCallbackForDevice(val deviceId: Long) :
-    SubscriptionEstablishedCallback {
+  open class SubscriptionEstablishedCallbackForDevice(val deviceId: Long) :
+      SubscriptionEstablishedCallback {
     override fun onSubscriptionEstablished() {
       Timber.d("onSubscriptionEstablished(): device [${deviceId}]")
     }
   }
 
-  public open class ResubscriptionAttemptCallbackForDevice(val deviceId: Long) :
-    ResubscriptionAttemptCallback {
+  open class ResubscriptionAttemptCallbackForDevice(val deviceId: Long) :
+      ResubscriptionAttemptCallback {
     override fun onResubscriptionAttempt(terminationCause: Int, nextResubscribeIntervalMsec: Int) {
       Timber.d(
-        "onResubscriptionAttempt(): device [$deviceId] terminationCause [$terminationCause] nextResubscribeIntervalMsec [$nextResubscribeIntervalMsec]")
+          "onResubscriptionAttempt(): device [$deviceId] terminationCause [$terminationCause] nextResubscribeIntervalMsec [$nextResubscribeIntervalMsec]")
     }
   }
 }
 
-
-  // TODO: If that function is in SubscriptionHelper, given that
+// TODO: If that function is in SubscriptionHelper, given that
 // ReportCallbackBase calls it, it must be made an inner class.
 // And if it is an inner class, then client code cannot inherit from it.
 // Maybe there's a cleaner way to achieve what I want?
@@ -151,7 +149,7 @@ fun nodeStateToDebugString(nodeState: NodeState): String {
     stringBuilder.append("\nEndpoint [${endpointId}] {\n")
     endpointState.clusterStates.forEach { (clusterId, clusterState) ->
       stringBuilder.append(
-        "\tCluster [${clusterId}] [${ChipIdLookup.clusterIdToName(clusterId)}] {\n")
+          "\tCluster [${clusterId}] [${ChipIdLookup.clusterIdToName(clusterId)}] {\n")
       clusterState.attributeStates.forEach { (attributeId, attributeState) ->
         val attributeName = ChipIdLookup.attributeIdToName(clusterId, attributeId)
         stringBuilder.append("\t\t[${attributeId}] [${attributeName}] ${attributeState.value}\n")
