@@ -30,6 +30,8 @@ import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.UiSelector
 import androidx.test.uiautomator.Until
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
 import java.time.Duration
 import org.junit.Assert.assertNotNull
 import org.junit.Before
@@ -50,6 +52,7 @@ import org.junit.runner.RunWith
  */
 @RunWith(AndroidJUnit4::class)
 @LargeTest
+@HiltAndroidTest
 class AddDeviceTest {
 
   private val TEN_SECONDS = Duration.ofSeconds(10).toMillis()
@@ -70,11 +73,14 @@ class AddDeviceTest {
   private lateinit var device: UiDevice
 
   @get:Rule val activityRule = ActivityScenarioRule(MainActivity::class.java)
+  @get:Rule var hiltRule = HiltAndroidRule(this)
 
   @Before
   fun init() {
     // Initialize UiDevice instance
     device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+    // Hilt injection.
+    hiltRule.inject()
   }
 
   fun triggerScanForQRCode() {
