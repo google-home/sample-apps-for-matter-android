@@ -525,6 +525,7 @@ last Report Data, the subscriber SHALL terminate the Subscribe interaction.
         // Do something here on the main thread
         var isOn: Boolean?
         var isOnline: Boolean
+        // FIXME: endpoint not necessarily 1
         isOn = clustersHelper.getDeviceStateOnOffCluster(deviceUiModel.device.deviceId, 1)
         if (isOn == null) {
           Timber.e("[device ping] failed")
