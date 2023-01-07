@@ -119,8 +119,7 @@ class AppCommissioningService : Service(), CommissioningService.Callback {
             }
             .addOnFailureListener { e2 ->
               Timber.e(
-                  e2,
-                  "Commissioning: commissioningServiceDelegate.sendCommissioningError() failed")
+                  e2, "Commissioning: commissioningServiceDelegate.sendCommissioningError() failed")
             }
         return@launch
       }

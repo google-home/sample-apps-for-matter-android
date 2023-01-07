@@ -27,9 +27,6 @@ import androidx.test.filters.LargeTest
 import com.google.homesampleapp.Device
 import com.google.homesampleapp.MainActivity
 import com.google.homesampleapp.R
-import com.google.homesampleapp.TEST_DEVICE_NAME_PREFIX
-import com.google.homesampleapp.TEST_DEVICE_NAME_SUFFIX
-import com.google.homesampleapp.TEST_DEVICE_ROOM_PREFIX
 import com.google.homesampleapp.data.DevicesRepository
 import com.google.homesampleapp.data.DevicesStateRepository
 import com.google.homesampleapp.getTimestampForNow
@@ -63,6 +60,11 @@ class HomeFragmentRecyclerViewTest {
 
   val scope = CoroutineScope(Dispatchers.Main)
 
+  // Test device creation
+  val TEST_DEVICE_NAME_PREFIX = "[Test-"
+  val TEST_DEVICE_NAME_SUFFIX = "]"
+  val TEST_DEVICE_ROOM_PREFIX = "Room-"
+
   @Before
   fun init() {
     // Hilt injection.
@@ -85,12 +87,6 @@ class HomeFragmentRecyclerViewTest {
     pressBack()
   }
 
-  /**
-   * Adds a dummy device to the app. Useful to test the various components of the app without having
-   * to commission a large number of physical devices.
-   *
-   * deviceType: "Light" or "Outlet"
-   */
   fun addDevice(testDevice: TestDevice) {
     val timestamp = getTimestampForNow()
     val deviceType =

@@ -41,7 +41,6 @@ import com.google.homesampleapp.chip.ChipClient
 import com.google.homesampleapp.chip.ClustersHelper
 import com.google.homesampleapp.data.DevicesRepository
 import com.google.homesampleapp.data.DevicesStateRepository
-import com.google.homesampleapp.isDummyDevice
 import com.google.homesampleapp.screens.home.DeviceUiModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDateTime
@@ -218,20 +217,16 @@ constructor(
     Timber.d("updateDeviceStateOn: isOn [${isOn}]")
     val deviceId = deviceUiModel.device.deviceId
     viewModelScope.launch {
-      if (isDummyDevice(deviceUiModel.device.name)) {
-        Timber.d("Handling test device")
-        devicesStateRepository.updateDeviceState(deviceId, true, isOn)
-      } else {
-        // CODELAB: toggle
-        Timber.d("Handling real device")
-        try {
-          clustersHelper.setOnOffDeviceStateOnOffCluster(deviceUiModel.device.deviceId, isOn, 1)
-          devicesStateRepository.updateDeviceState(deviceUiModel.device.deviceId, true, isOn)
-        } catch (e: Throwable) {
-          Timber.e("Failed setting on/off state")
-        }
-        // CODELAB SECTION END
+
+      // CODELAB: toggle
+      Timber.d("Handling real device")
+      try {
+        clustersHelper.setOnOffDeviceStateOnOffCluster(deviceUiModel.device.deviceId, isOn, 1)
+        devicesStateRepository.updateDeviceState(deviceUiModel.device.deviceId, true, isOn)
+      } catch (e: Throwable) {
+        Timber.e("Failed setting on/off state")
       }
+      // CODELAB SECTION END
     }
   }
 
@@ -242,39 +237,32 @@ constructor(
     val nodeId = deviceUiModel.device.deviceId
     val name = deviceUiModel.device.name
     val divider = "-".repeat(20)
-    if (isDummyDevice(deviceUiModel.device.name)) {
-      Timber.d(
-          "Inspect Dummy Device\n${divider} Inspect Dummy Device [${name}] [${nodeId}] $divider" +
-              "\n[Device Types List]\nBogus data\n[Server Clusters]\nBogus data\n[Client Clusters]\nBogus data\n[Parts List]\nBogus data")
-      Timber.d(
-          "Inspect Dummy Device\n${divider} End of Inspect Dummy Device [${name}] [${nodeId}] $divider")
-    } else {
-      Timber.d("\n${divider} Inspect Device [${name}] [${nodeId}] $divider")
-      viewModelScope.launch {
-        val partsListAttribute =
-            clustersHelper.readDescriptorClusterPartsListAttribute(
-                chipClient.getConnectedDevicePointer(nodeId), 0)
-        Timber.d("partsListAttribute [${partsListAttribute}]")
 
-        partsListAttribute?.forEach { part ->
-          Timber.d("part [$part] is [${part.javaClass}]")
-          val endpoint =
-              when (part) {
-                is Int -> part.toInt()
-                else -> return@forEach
-              }
-          Timber.d("Processing part [$part]")
+    Timber.d("\n${divider} Inspect Device [${name}] [${nodeId}] $divider")
+    viewModelScope.launch {
+      val partsListAttribute =
+          clustersHelper.readDescriptorClusterPartsListAttribute(
+              chipClient.getConnectedDevicePointer(nodeId), 0)
+      Timber.d("partsListAttribute [${partsListAttribute}]")
 
-          val deviceListAttribute =
-              clustersHelper.readDescriptorClusterDeviceListAttribute(
-                  chipClient.getConnectedDevicePointer(nodeId), endpoint)
-          deviceListAttribute.forEach { Timber.d("device attribute: [${it}]") }
+      partsListAttribute?.forEach { part ->
+        Timber.d("part [$part] is [${part.javaClass}]")
+        val endpoint =
+            when (part) {
+              is Int -> part.toInt()
+              else -> return@forEach
+            }
+        Timber.d("Processing part [$part]")
 
-          val serverListAttribute =
-              clustersHelper.readDescriptorClusterServerListAttribute(
-                  chipClient.getConnectedDevicePointer(nodeId), endpoint)
-          serverListAttribute.forEach { Timber.d("server attribute: [${it}]") }
-        }
+        val deviceListAttribute =
+            clustersHelper.readDescriptorClusterDeviceListAttribute(
+                chipClient.getConnectedDevicePointer(nodeId), endpoint)
+        deviceListAttribute.forEach { Timber.d("device attribute: [${it}]") }
+
+        val serverListAttribute =
+            clustersHelper.readDescriptorClusterServerListAttribute(
+                chipClient.getConnectedDevicePointer(nodeId), endpoint)
+        serverListAttribute.forEach { Timber.d("server attribute: [${it}]") }
       }
     }
   }

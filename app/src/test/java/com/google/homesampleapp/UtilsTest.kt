@@ -37,8 +37,6 @@ class UtilsTest {
 
   @Test fun stringToBoolean() {}
 
-  @Test fun isDummyDevice() {}
-
   @Test
   fun stripLinkLocalInIpAddress_ok() {
     val ipAddress = "fe80::84b1:c2f6:b1b7:67d4"

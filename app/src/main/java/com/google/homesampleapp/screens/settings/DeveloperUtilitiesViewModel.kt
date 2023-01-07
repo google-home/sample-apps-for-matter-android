@@ -18,17 +18,9 @@ package com.google.homesampleapp.screens.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.homesampleapp.DUMMY_PRODUCT_ID
-import com.google.homesampleapp.DUMMY_VENDOR_ID
-import com.google.homesampleapp.Device
-import com.google.homesampleapp.TEST_DEVICE_NAME_PREFIX
-import com.google.homesampleapp.TEST_DEVICE_NAME_SUFFIX
-import com.google.homesampleapp.TEST_DEVICE_ROOM_PREFIX
 import com.google.homesampleapp.data.DevicesRepository
 import com.google.homesampleapp.data.DevicesStateRepository
 import com.google.homesampleapp.data.UserPreferencesRepository
-import com.google.homesampleapp.getTimestampForNow
-import com.google.homesampleapp.screens.home.DeviceUiModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.launch
@@ -55,39 +47,6 @@ constructor(
       val devicesState = devicesStateRepository.getAllDevicesState()
       Timber.d(
           "DevicesState Repository\n${divider} [DevicesState Repository] ${divider}\n${devicesState}\n${divider} End of [DevicesState Repository] $divider")
-    }
-  }
-
-  /**
-   * Adds a dummy device to the app. Useful to test the various components of the app without having
-   * to commission a large number of physical devices.
-   *
-   * deviceType: "Light" or "Outlet"
-   */
-  fun addDummyDevice(_deviceType: String, isOnline: Boolean, isOn: Boolean) {
-    val timestamp = getTimestampForNow()
-    val deviceType =
-        when (_deviceType) {
-          "Light" -> Device.DeviceType.TYPE_LIGHT
-          "Outlet" -> Device.DeviceType.TYPE_OUTLET
-          else -> Device.DeviceType.TYPE_UNSPECIFIED
-        }
-    viewModelScope.launch {
-      val deviceId = devicesRepository.incrementAndReturnLastDeviceId()
-      val device =
-          Device.newBuilder()
-              .setDateCommissioned(timestamp)
-              .setVendorId(DUMMY_VENDOR_ID)
-              .setProductId(DUMMY_PRODUCT_ID)
-              .setDeviceType(deviceType)
-              .setDeviceId(deviceId)
-              .setName(TEST_DEVICE_NAME_PREFIX + deviceId + TEST_DEVICE_NAME_SUFFIX)
-              .setRoom(TEST_DEVICE_ROOM_PREFIX + deviceId)
-              .build()
-      val deviceUiModel = DeviceUiModel(device, isOnline, isOn)
-      // Add the device to the repository.
-      devicesRepository.addDevice(deviceUiModel.device)
-      devicesStateRepository.addDeviceState(deviceId, isOnline, isOn)
     }
   }
 }

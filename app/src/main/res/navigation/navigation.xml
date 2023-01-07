@@ -88,9 +88,6 @@
             android:id="@+id/action_settingsDeveloperUtilitiesFragment_to_homeFragment"
             app:destination="@id/homeFragment" />
         <action
-            android:id="@+id/action_settingsDeveloperUtilitiesFragment_to_dummyDeviceDialogFragment3"
-            app:destination="@id/dummyDeviceDialogFragment3" />
-        <action
             android:id="@+id/action_settingsDeveloperUtilitiesFragment_to_discoveryFragment"
             app:destination="@id/commissionableFragment" />
     </fragment>
@@ -102,11 +99,6 @@
             android:id="@+id/action_settingsDeveloperUtilitiesNestedFragment_to_settingsFragment"
             app:destination="@id/settingsFragment" />
     </fragment>
-    <dialog
-        android:id="@+id/dummyDeviceDialogFragment3"
-        android:name="com.google.homesampleapp.screens.settings.DummyDeviceDialogFragment"
-        android:label="fragment_dummy_device_info"
-        tools:layout="@layout/fragment_dummy_device" />
     <fragment
         android:id="@+id/inspectFragment"
         android:name="com.google.homesampleapp.screens.inspect.InspectFragment"

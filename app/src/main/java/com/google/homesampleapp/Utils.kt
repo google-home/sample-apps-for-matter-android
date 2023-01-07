@@ -228,13 +228,6 @@ fun stripLinkLocalInIpAddress(ipAddress: String): String {
 // -------------------------------------------------------------------------------------------------
 // Constants used when creating devices on the app's fabric.
 
-// Dummy device creation
-const val DUMMY_VENDOR_ID = "777"
-const val DUMMY_PRODUCT_ID = "888"
-const val TEST_DEVICE_NAME_PREFIX = "[Test-"
-const val TEST_DEVICE_NAME_SUFFIX = "]"
-const val TEST_DEVICE_ROOM_PREFIX = "Room-"
-
 // Shared device creation
 const val SHARED_DEVICE_NAME_PREFIX = "Shared-"
 const val SHARED_DEVICE_NAME_SUFFIX = ""
@@ -242,10 +235,6 @@ const val SHARED_DEVICE_ROOM_PREFIX = "Room-"
 
 // Temporary device name used when commissioning the device to the 3P fabric.
 const val REAL_DEVICE_NAME_PREFIX = "Real-"
-
-fun isDummyDevice(name: String): Boolean {
-  return name.startsWith(TEST_DEVICE_NAME_PREFIX)
-}
 
 // -------------------------------------------------------------------------------------------------
 // Dialogs
@@ -291,10 +280,6 @@ const val PERIODIC_UPDATE_INTERVAL_DEVICE_SCREEN_SECONDS = 2
 
 // Whether the device should be queried right after commissioning.
 const val QUERY_DEVICE_RIGHT_AFTER_COMMISSIONING = false
-
-// Whether device sharing should be triggered for dummy devices.
-// Allows to see what the shar sheet looks like without have a real device commissioned.
-const val ALLOW_DEVICE_SHARING_ON_DUMMY_DEVICE = true
 
 // Whether the on/off switch is disabled when the device is offline.
 const val ON_OFF_SWITCH_DISABLED_WHEN_DEVICE_OFFLINE = false
