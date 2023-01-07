@@ -112,6 +112,10 @@ class DevicesRepository @Inject constructor(@ApplicationContext context: Context
     return devicesFlow.first()
   }
 
+  suspend fun clearAllData() {
+    devicesDataStore.updateData { devicesList -> devicesList.toBuilder().clear().build() }
+  }
+
   private suspend fun getIndex(deviceId: Long): Int {
     val devices = devicesFlow.first()
     return getIndex(devices, deviceId)

@@ -34,13 +34,13 @@ import com.google.android.gms.home.matter.commissioning.CommissioningResult
 import com.google.android.gms.home.matter.commissioning.DeviceInfo
 import com.google.android.gms.home.matter.commissioning.SharedDeviceData
 import com.google.android.gms.home.matter.commissioning.SharedDeviceData.*
-import com.google.homesampleapp.DUMMY_DEVICE_NAME_PREFIX
 import com.google.homesampleapp.Device
 import com.google.homesampleapp.Devices
 import com.google.homesampleapp.DevicesState
 import com.google.homesampleapp.ErrorInfo
 import com.google.homesampleapp.MIN_COMMISSIONING_WINDOW_EXPIRATION_SECONDS
 import com.google.homesampleapp.PERIODIC_UPDATE_INTERVAL_HOME_SCREEN_SECONDS
+import com.google.homesampleapp.TEST_DEVICE_NAME_PREFIX
 import com.google.homesampleapp.TaskStatus
 import com.google.homesampleapp.UserPreferences
 import com.google.homesampleapp.chip.ClustersHelper
@@ -431,7 +431,7 @@ constructor(
         // For each ne of the real devices
         val devicesList = devicesRepository.getAllDevices().devicesList
         devicesList.forEach { device ->
-          if (device.name.startsWith(DUMMY_DEVICE_NAME_PREFIX)) {
+          if (device.name.startsWith(TEST_DEVICE_NAME_PREFIX)) {
             return@forEach
           }
           Timber.d("runDevicesPeriodicPing deviceId [${device.deviceId}]")

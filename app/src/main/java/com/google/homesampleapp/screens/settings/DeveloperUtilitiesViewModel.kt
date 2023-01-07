@@ -18,12 +18,12 @@ package com.google.homesampleapp.screens.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.homesampleapp.DUMMY_DEVICE_NAME_PREFIX
-import com.google.homesampleapp.DUMMY_DEVICE_NAME_SUFFIX
-import com.google.homesampleapp.DUMMY_DEVICE_ROOM_PREFIX
 import com.google.homesampleapp.DUMMY_PRODUCT_ID
 import com.google.homesampleapp.DUMMY_VENDOR_ID
 import com.google.homesampleapp.Device
+import com.google.homesampleapp.TEST_DEVICE_NAME_PREFIX
+import com.google.homesampleapp.TEST_DEVICE_NAME_SUFFIX
+import com.google.homesampleapp.TEST_DEVICE_ROOM_PREFIX
 import com.google.homesampleapp.data.DevicesRepository
 import com.google.homesampleapp.data.DevicesStateRepository
 import com.google.homesampleapp.data.UserPreferencesRepository
@@ -81,8 +81,8 @@ constructor(
               .setProductId(DUMMY_PRODUCT_ID)
               .setDeviceType(deviceType)
               .setDeviceId(deviceId)
-              .setName(DUMMY_DEVICE_NAME_PREFIX + deviceId + DUMMY_DEVICE_NAME_SUFFIX)
-              .setRoom(DUMMY_DEVICE_ROOM_PREFIX + deviceId)
+              .setName(TEST_DEVICE_NAME_PREFIX + deviceId + TEST_DEVICE_NAME_SUFFIX)
+              .setRoom(TEST_DEVICE_ROOM_PREFIX + deviceId)
               .build()
       val deviceUiModel = DeviceUiModel(device, isOnline, isOn)
       // Add the device to the repository.

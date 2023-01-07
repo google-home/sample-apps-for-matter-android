@@ -231,9 +231,9 @@ fun stripLinkLocalInIpAddress(ipAddress: String): String {
 // Dummy device creation
 const val DUMMY_VENDOR_ID = "777"
 const val DUMMY_PRODUCT_ID = "888"
-const val DUMMY_DEVICE_NAME_PREFIX = "[Test-"
-const val DUMMY_DEVICE_NAME_SUFFIX = "]"
-const val DUMMY_DEVICE_ROOM_PREFIX = "Room-"
+const val TEST_DEVICE_NAME_PREFIX = "[Test-"
+const val TEST_DEVICE_NAME_SUFFIX = "]"
+const val TEST_DEVICE_ROOM_PREFIX = "Room-"
 
 // Shared device creation
 const val SHARED_DEVICE_NAME_PREFIX = "Shared-"
@@ -244,7 +244,7 @@ const val SHARED_DEVICE_ROOM_PREFIX = "Room-"
 const val REAL_DEVICE_NAME_PREFIX = "Real-"
 
 fun isDummyDevice(name: String): Boolean {
-  return name.startsWith(DUMMY_DEVICE_NAME_PREFIX)
+  return name.startsWith(TEST_DEVICE_NAME_PREFIX)
 }
 
 // -------------------------------------------------------------------------------------------------
