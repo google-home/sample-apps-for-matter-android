@@ -123,10 +123,6 @@ class HomeFragmentRecyclerViewTest {
     }
   }
 
-  private fun verifyListCount(count: Int) {
-    // FIXME: not sure how to do that.
-  }
-
   private fun clickOnDevice(count: Int, device: TestDevice) {
     onView(ViewMatchers.withId(R.id.devicesListRecyclerView))
         .perform(RecyclerViewActions.actionOnItemAtPosition<DeviceViewHolder>(count - 1, click()))
@@ -174,7 +170,6 @@ class HomeFragmentRecyclerViewTest {
     TEST_DEVICES.forEach { device ->
       count++
       addDevice(device)
-      verifyListCount(count)
       Thread.sleep(1000)
       clickOnDevice(count, device)
       verifyDeviceOnDeviceScreen(count, device)
