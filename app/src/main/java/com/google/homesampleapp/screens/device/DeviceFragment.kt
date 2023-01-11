@@ -38,7 +38,6 @@ import com.google.homesampleapp.ALLOW_DEVICE_SHARING_ON_DUMMY_DEVICE
 import com.google.homesampleapp.BackgroundWorkAlertDialogAction
 import com.google.homesampleapp.DeviceState
 import com.google.homesampleapp.ON_OFF_SWITCH_DISABLED_WHEN_DEVICE_OFFLINE
-import com.google.homesampleapp.PERIODIC_UPDATE_INTERVAL_DEVICE_SCREEN_SECONDS
 import com.google.homesampleapp.R
 import com.google.homesampleapp.TaskStatus
 import com.google.homesampleapp.TaskStatus.InProgress
@@ -115,7 +114,7 @@ class DeviceFragment : Fragment() {
           val resultCode = result.resultCode
           if (resultCode == RESULT_OK) {
             Timber.d("ShareDevice: Success")
-            viewModel.shareDeviceSucceeded(selectedDeviceViewModel.selectedDeviceLiveData.value!!)
+            viewModel.shareDeviceSucceeded()
           } else {
             viewModel.shareDeviceFailed(
                 selectedDeviceViewModel.selectedDeviceLiveData.value!!, resultCode)
@@ -145,15 +144,15 @@ class DeviceFragment : Fragment() {
 
   override fun onResume() {
     super.onResume()
-    Timber.d(
-        "onResume(): Starting periodic ping on device with interval [${PERIODIC_UPDATE_INTERVAL_DEVICE_SCREEN_SECONDS}] seconds")
-    viewModel.startDevicePeriodicPing(selectedDeviceViewModel.selectedDeviceLiveData.value!!)
+    Timber.d("onResume(): Starting monitoring state changes on device")
+    viewModel.deviceUiModel = selectedDeviceViewModel.selectedDeviceLiveData.value!!
+    viewModel.startMonitoringStateChanges()
   }
 
   override fun onPause() {
     super.onPause()
     Timber.d("onPause(): Stopping periodic ping on device")
-    viewModel.stopDevicePeriodicPing()
+    viewModel.stopMonitoringStateChanges()
   }
 
   // -----------------------------------------------------------------------------------------------
@@ -325,6 +324,7 @@ class DeviceFragment : Fragment() {
     selectedDeviceViewModel.selectedDeviceIdLiveData.observe(viewLifecycleOwner) { deviceId ->
       Timber.d(
           "selectedDeviceViewModel.selectedDeviceIdLiveData.observe is called with deviceId [${deviceId}]")
+      viewModel.deviceUiModel = selectedDeviceViewModel.selectedDeviceLiveData.value!!
       updateDeviceInfo(null)
     }
   }
@@ -338,7 +338,7 @@ class DeviceFragment : Fragment() {
     // state to decide whether to show a dialog stating that the device is offline and therefore
     // the inspect screen cannot be shown, or go show the inspect information (when device is
     // online).
-    // This is why the sate of the device is cached in local variables.
+    // This is why the state of the device is cached in local variables.
     if (selectedDeviceViewModel.selectedDeviceIdLiveData.value == -1L) {
       // Device was just removed, nothing to do. We'll move to HomeFragment.
       isOnline = false
