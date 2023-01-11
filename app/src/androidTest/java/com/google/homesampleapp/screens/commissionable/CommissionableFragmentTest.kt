@@ -19,7 +19,7 @@ package com.google.homesampleapp.screens.commissionable
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.matcher.ViewMatchers
-import androidx.test.espresso.matcher.ViewMatchers.withId
+import androidx.test.espresso.matcher.ViewMatchers.*
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
@@ -60,14 +60,33 @@ class CommissionableFragmentTest {
   // ---------------------------------------------------------------------------
   // Tests support functions
 
-  fun navigateToDiscoverCommissionableDevices() {
-    // Click the Settings icon.
-    onView(withId(R.id.settings)).perform(click())
-    onView(withId(R.id.nested_settings_fragment)).perform(click())
-    // Click on "Developer utilities"
-    onView(ViewMatchers.withText(DEVELOPER_UTILITIES)).perform(click())
-    // Click on "Commissionable devices"
-    onView(ViewMatchers.withText(COMMISSIONABLE_DEVICES)).perform(click())
+  /**
+   * When the app starts, it may or may not display the codelab dialog depending on the state it was
+   * in the last time it was launched. Was unable to find a way to force the preferences datastore
+   * to be cleared prior to the test being run. Having the code below:
+   * ```
+   * @Before fun init() {
+   *   scope.launch {
+   *     userPreferencesRepository.clearData()
+   *   }
+   * }
+   * ```
+   *
+   * does not complete prior to the start of the test.
+   *
+   * So for now, if we fail clicking on "OK" this means the codelab dialog is not shown and we
+   * simply ignore the exception.
+   *
+   * TODO: If someone knows of a clean way to force a clear of the preferences datastore before the
+   *   test runs, please submit a PR!
+   */
+  private fun clickOkOnCodelabDialog() {
+    try {
+      onView(withText("OK")).perform(click())
+    } catch (e: Throwable) {
+      // The Codelab dialog was not shown. Simply ignore the error.
+      System.out.println("*** Codelab Dialog was not shown.")
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -75,8 +94,17 @@ class CommissionableFragmentTest {
 
   @Test
   fun testFragmentBehavior() {
-    navigateToDiscoverCommissionableDevices()
-    // Let the producers run for 10 seconds, giving the user a chance to verify that all beacons
+    // Click on "OK" of the codelab dialog.
+    // In its own function because the dialog may, or may not be shown and lots of comments
+    // associated with that :-).
+    clickOkOnCodelabDialog()
+    // Click on "Settings"
+    onView(withId(R.id.settings)).perform(click())
+    // Click on "Developer utilities"
+    onView(ViewMatchers.withText(DEVELOPER_UTILITIES)).perform(click())
+    // Click on "Commissionable devices"
+    onView(ViewMatchers.withText(COMMISSIONABLE_DEVICES)).perform(click())
+    // Let the producers run for 60 seconds, giving the user a chance to verify that all beacons
     // are properly shown on screen.
     Thread.sleep(60000)
   }

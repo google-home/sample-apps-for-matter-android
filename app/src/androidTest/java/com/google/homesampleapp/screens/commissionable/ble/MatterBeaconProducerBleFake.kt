@@ -28,7 +28,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import timber.log.Timber
 
-/** [MatterBeaconProducer] which emits mDNS beacons as they are discovered. */
+/** [MatterBeaconProducer] which emits BLE beacons as they are discovered. */
 class MatterBeaconProducerBleFake
 @Inject
 constructor(@ApplicationContext private val context: Context) : MatterBeaconProducer {
@@ -36,7 +36,7 @@ constructor(@ApplicationContext private val context: Context) : MatterBeaconProd
   private val EMIT_DELAY_MS = 1000L
 
   override fun getBeaconsFlow(): Flow<MatterBeacon> = callbackFlow {
-    Timber.d("Starting mDNS discovery -- NATIVE")
+    Timber.d("Starting BLE discovery -- NATIVE")
 
     var count = 0
     while (true) {
