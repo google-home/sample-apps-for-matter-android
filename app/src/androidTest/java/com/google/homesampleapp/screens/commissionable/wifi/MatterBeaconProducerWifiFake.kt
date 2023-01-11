@@ -28,7 +28,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import timber.log.Timber
 
-/** [MatterBeaconProducer] which emits mDNS beacons as they are discovered. */
+/** [MatterBeaconProducer] which emits WiFi beacons as they are discovered. */
 class MatterBeaconProducerWifiFake
 @Inject
 constructor(@ApplicationContext private val context: Context) : MatterBeaconProducer {
