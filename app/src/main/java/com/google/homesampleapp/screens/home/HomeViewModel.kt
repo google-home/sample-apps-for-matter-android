@@ -28,6 +28,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.liveData
 import androidx.lifecycle.viewModelScope
+import chip.devicecontroller.model.NodeState
 import com.google.android.gms.home.matter.Matter
 import com.google.android.gms.home.matter.commissioning.CommissioningRequest
 import com.google.android.gms.home.matter.commissioning.CommissioningResult
@@ -39,10 +40,15 @@ import com.google.homesampleapp.Devices
 import com.google.homesampleapp.DevicesState
 import com.google.homesampleapp.ErrorInfo
 import com.google.homesampleapp.MIN_COMMISSIONING_WINDOW_EXPIRATION_SECONDS
-import com.google.homesampleapp.PERIODIC_UPDATE_INTERVAL_HOME_SCREEN_SECONDS
+import com.google.homesampleapp.PERIODIC_READ_INTERVAL_HOME_SCREEN_SECONDS
+import com.google.homesampleapp.STATE_CHANGES_MONITORING_MODE
+import com.google.homesampleapp.StateChangesMonitoringMode
 import com.google.homesampleapp.TaskStatus
+import com.google.homesampleapp.UNSUBSCRIBE_ENABLED
 import com.google.homesampleapp.UserPreferences
 import com.google.homesampleapp.chip.ClustersHelper
+import com.google.homesampleapp.chip.MatterConstants.OnOffAttribute
+import com.google.homesampleapp.chip.SubscriptionHelper
 import com.google.homesampleapp.commissioning.AppCommissioningService
 import com.google.homesampleapp.convertToAppDeviceType
 import com.google.homesampleapp.data.DevicesRepository
@@ -94,6 +100,7 @@ constructor(
     private val devicesStateRepository: DevicesStateRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val clustersHelper: ClustersHelper,
+    private val subscriptionHelper: SubscriptionHelper,
 ) : ViewModel() {
 
   // Controls whether a periodic ping to the devices is enabled or not.
@@ -361,6 +368,8 @@ constructor(
       }
 
       // Introspect the device and update its deviceType.
+      // TODO: Need to get capabilities information and store that in the devices repository.
+      // (e.g on/off on which endpoint).
       val deviceMatterInfoList = clustersHelper.fetchDeviceMatterInfo(deviceId, 0)
       Timber.d("*** MATTER DEVICE INFO ***")
       deviceMatterInfoList.forEachIndexed { index, deviceMatterInfo ->
@@ -406,14 +415,92 @@ constructor(
   }
 
   // -----------------------------------------------------------------------------------------------
+  // State Changes Monitoring
+
+  /**
+   * The way we monitor state changes is defined by constant [StateChangesMonitoringMode].
+   * [StateChangesMonitoringMode.Subscription] is the preferred mode.
+   * [StateChangesMonitoringMode.PeriodicRead] was used initially because of issues with
+   * subscriptions. We left its associated code as it could be useful to some developers.
+   */
+  fun startMonitoringStateChanges() {
+    when (STATE_CHANGES_MONITORING_MODE) {
+      StateChangesMonitoringMode.Subscription -> subscribeToDevicesPeriodicUpdates()
+      StateChangesMonitoringMode.PeriodicRead -> startDevicesPeriodicPing()
+    }
+  }
+
+  fun stopMonitoringStateChanges() {
+    when (STATE_CHANGES_MONITORING_MODE) {
+      StateChangesMonitoringMode.Subscription -> unsubscribeToDevicesPeriodicUpdates()
+      StateChangesMonitoringMode.PeriodicRead -> stopDevicesPeriodicPing()
+    }
+  }
+
+  // -----------------------------------------------------------------------------------------------
+  // Subscription to periodic device updates.
+  // See:
+  //   - Spec section "8.5 Subscribe Interaction"
+  //   - Matter primer:
+  //
+  // https://developers.home.google.com/matter/primer/interaction-model-reading#subscription_transaction
+
+  private fun subscribeToDevicesPeriodicUpdates() {
+    Timber.d("subscribeToDevicesPeriodicUpdates()")
+    viewModelScope.launch {
+      // For each one of the real devices
+      val devicesList = devicesRepository.getAllDevices().devicesList
+      devicesList.forEach { device ->
+        val reportCallback =
+            object : SubscriptionHelper.ReportCallbackForDevice(device.deviceId) {
+              override fun onReport(nodeState: NodeState) {
+                super.onReport(nodeState)
+                // TODO: See HomeViewModel:CommissionDeviceSucceeded for device capabilities
+                val onOffState =
+                    subscriptionHelper.extractAttribute(nodeState, 1, OnOffAttribute) as Boolean?
+                Timber.d("onOffState [${onOffState}]")
+                if (onOffState == null) {
+                  Timber.e("onReport(): WARNING -> onOffState is NULL. Ignoring.")
+                  return
+                }
+                viewModelScope.launch {
+                  devicesStateRepository.updateDeviceState(
+                      device.deviceId, isOnline = true, isOn = onOffState)
+                }
+              }
+            }
+        subscriptionHelper.subscribeToPeriodicUpdates(
+            device.deviceId,
+            SubscriptionHelper.SubscriptionEstablishedCallbackForDevice(device.deviceId),
+            SubscriptionHelper.ResubscriptionAttemptCallbackForDevice(device.deviceId),
+            reportCallback)
+      }
+    }
+  }
+
+  private fun unsubscribeToDevicesPeriodicUpdates() {
+    Timber.d("unsubscribeToPeriodicUpdates(): UNSUBSCRIBE_ENABLED [$UNSUBSCRIBE_ENABLED]")
+    if (!UNSUBSCRIBE_ENABLED) {
+      return
+    }
+    viewModelScope.launch {
+      // For each one of the real devices
+      val devicesList = devicesRepository.getAllDevices().devicesList
+      devicesList.forEach { device ->
+        subscriptionHelper.unsubscribeToPeriodicUpdates(device.deviceId)
+      }
+    }
+  }
+
+  // -----------------------------------------------------------------------------------------------
   // Task that runs periodically to update the devices state.
 
-  fun startDevicesPeriodicPing() {
-    if (PERIODIC_UPDATE_INTERVAL_HOME_SCREEN_SECONDS == -1) {
+  private fun startDevicesPeriodicPing() {
+    if (PERIODIC_READ_INTERVAL_HOME_SCREEN_SECONDS == -1) {
       return
     }
     Timber.d(
-        "${LocalDateTime.now()} startDevicesPeriodicPing every $PERIODIC_UPDATE_INTERVAL_HOME_SCREEN_SECONDS seconds")
+        "${LocalDateTime.now()} startDevicesPeriodicPing every $PERIODIC_READ_INTERVAL_HOME_SCREEN_SECONDS seconds")
     devicesPeriodicPingEnabled = true
     runDevicesPeriodicPing()
   }
@@ -421,7 +508,7 @@ constructor(
   private fun runDevicesPeriodicPing() {
     viewModelScope.launch {
       while (devicesPeriodicPingEnabled) {
-        // For each ne of the real devices
+        // For each one of the real devices
         val devicesList = devicesRepository.getAllDevices().devicesList
         devicesList.forEach { device ->
           Timber.d("runDevicesPeriodicPing deviceId [${device.deviceId}]")
@@ -439,12 +526,12 @@ constructor(
           devicesStateRepository.updateDeviceState(
               device.deviceId, isOnline = isOnline, isOn = isOn)
         }
-        delay(PERIODIC_UPDATE_INTERVAL_HOME_SCREEN_SECONDS * 1000L)
+        delay(PERIODIC_READ_INTERVAL_HOME_SCREEN_SECONDS * 1000L)
       }
     }
   }
 
-  fun stopDevicesPeriodicPing() {
+  private fun stopDevicesPeriodicPing() {
     devicesPeriodicPingEnabled = false
   }
 }

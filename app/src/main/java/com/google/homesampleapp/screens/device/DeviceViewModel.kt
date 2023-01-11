@@ -23,6 +23,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import chip.devicecontroller.model.NodeState
 import com.google.android.gms.home.matter.Matter
 import com.google.android.gms.home.matter.commissioning.CommissioningWindow
 import com.google.android.gms.home.matter.commissioning.ShareDeviceRequest
@@ -34,11 +35,16 @@ import com.google.homesampleapp.ITERATION
 import com.google.homesampleapp.OPEN_COMMISSIONING_WINDOW_API
 import com.google.homesampleapp.OPEN_COMMISSIONING_WINDOW_DURATION_SECONDS
 import com.google.homesampleapp.OpenCommissioningWindowApi
-import com.google.homesampleapp.PERIODIC_UPDATE_INTERVAL_DEVICE_SCREEN_SECONDS
+import com.google.homesampleapp.PERIODIC_READ_INTERVAL_DEVICE_SCREEN_SECONDS
 import com.google.homesampleapp.SETUP_PIN_CODE
+import com.google.homesampleapp.STATE_CHANGES_MONITORING_MODE
+import com.google.homesampleapp.StateChangesMonitoringMode
 import com.google.homesampleapp.TaskStatus
+import com.google.homesampleapp.UNSUBSCRIBE_ENABLED
 import com.google.homesampleapp.chip.ChipClient
 import com.google.homesampleapp.chip.ClustersHelper
+import com.google.homesampleapp.chip.MatterConstants.OnOffAttribute
+import com.google.homesampleapp.chip.SubscriptionHelper
 import com.google.homesampleapp.data.DevicesRepository
 import com.google.homesampleapp.data.DevicesStateRepository
 import com.google.homesampleapp.screens.home.DeviceUiModel
@@ -58,8 +64,13 @@ constructor(
     private val devicesRepository: DevicesRepository,
     private val devicesStateRepository: DevicesStateRepository,
     private val chipClient: ChipClient,
-    private val clustersHelper: ClustersHelper
+    private val clustersHelper: ClustersHelper,
+    private val subscriptionHelper: SubscriptionHelper
 ) : ViewModel() {
+
+  // The deviceId being shown by the Fragment.
+  // Initialized in Fragment onResume().
+  lateinit var deviceUiModel: DeviceUiModel
 
   // Controls whether a periodic ping to the device is enabled or not.
   private var devicePeriodicPingEnabled: Boolean = true
@@ -185,9 +196,9 @@ constructor(
 
   // Called by the fragment in Step 5 of the Device Sharing flow when the GPS activity for
   // Device Sharing has succeeded.
-  fun shareDeviceSucceeded(deviceUiModel: DeviceUiModel) {
+  fun shareDeviceSucceeded() {
     _shareDeviceStatus.postValue(TaskStatus.Completed("Device sharing completed successfully"))
-    startDevicePeriodicPing(deviceUiModel)
+    startDevicePeriodicPing()
   }
 
   // Called by the fragment in Step 5 of the Device Sharing flow when the GPS activity for
@@ -195,7 +206,7 @@ constructor(
   fun shareDeviceFailed(deviceUiModel: DeviceUiModel, resultCode: Int) {
     Timber.d("ShareDevice: Failed with errorCode [${resultCode}]")
     _shareDeviceStatus.postValue(TaskStatus.Failed("Device sharing failed [${resultCode}]", null))
-    startDevicePeriodicPing(deviceUiModel)
+    startDevicePeriodicPing()
   }
 
   // Called after we dismiss an error dialog. If we don't consume, a config change redisplays the
@@ -325,17 +336,107 @@ constructor(
   }
 
   // -----------------------------------------------------------------------------------------------
-  // Task that runs periodically to update the device state.
+  // State Changes Monitoring
 
-  fun startDevicePeriodicPing(deviceUiModel: DeviceUiModel) {
+  /**
+   * The way we monitor state changes is defined by constant [StateChangesMonitoringMode].
+   * [StateChangesMonitoringMode.Subscription] is the preferred mode.
+   * [StateChangesMonitoringMode.PeriodicRead] was used initially because of issues with
+   * subscriptions. We left its associated code as it could be useful to some developers.
+   */
+  fun startMonitoringStateChanges() {
+    Timber.d("startMonitoringStateChanges(): mode [$STATE_CHANGES_MONITORING_MODE]")
+    when (STATE_CHANGES_MONITORING_MODE) {
+      StateChangesMonitoringMode.Subscription -> subscribeToPeriodicUpdates()
+      StateChangesMonitoringMode.PeriodicRead -> startDevicePeriodicPing()
+    }
+  }
+
+  fun stopMonitoringStateChanges() {
+    when (STATE_CHANGES_MONITORING_MODE) {
+      StateChangesMonitoringMode.Subscription -> unsubscribeToPeriodicUpdates()
+      StateChangesMonitoringMode.PeriodicRead -> stopDevicePeriodicPing()
+    }
+  }
+
+  // -----------------------------------------------------------------------------------------------
+  // Subscription to periodic device updates.
+  // See:
+  //   - Spec section "8.5 Subscribe Interaction"
+  //   - Matter primer:
+  // https://developers.home.google.com/matter/primer/interaction-model-reading#subscription_transaction
+  //
+  // TODO:
+  //   - Properly implement unsubscribe behavior
+  //   - Implement algorithm for online/offline detection.
+  //     (Issue is that not clear how to register a callback for messages coming at maxInterval.
+
+  /*
+    Sample message coming at maxInterval.
+  ```
+  01-06 05:27:53.736 16814 16850 D EM      : >>> [E:59135r M:51879653] (S) Msg RX from 1:0000000000000001 [171D] --- Type 0001:05 (IM:ReportData)
+  01-06 05:27:53.736 16814 16850 D EM      : Handling via exchange: 59135r, Delegate: 0x76767a7668
+  01-06 05:27:53.736 16814 16850 D DMG     : ReportDataMessage =
+  01-06 05:27:53.737 16814 16850 D DMG     : {
+  01-06 05:27:53.737 16814 16850 D DMG     : 	SubscriptionId = 0x7e169ca8,
+  01-06 05:27:53.737 16814 16850 D DMG     : 	InteractionModelRevision = 1
+  01-06 05:27:53.737 16814 16850 D DMG     : }
+  01-06 05:27:53.737 16814 16850 D DMG     : Refresh LivenessCheckTime for 35000 milliseconds with SubscriptionId = 0x7e169ca8 Peer = 01:0000000000000001
+  01-06 05:27:53.737 16814 16850 D EM      : <<< [E:59135r M:213699489 (Ack:51879653)] (S) Msg TX to 1:0000000000000001 [171D] --- Type 0001:01 (IM:StatusResponse)
+  01-06 05:27:53.737 16814 16850 D IN      : (S) Sending msg 213699489 on secure session with LSID: 25418
+  01-06 05:27:53.838 16814 16850 D EM      : >>> [E:59135r M:51879654 (Ack:213699489)] (S) Msg RX from 1:0000000000000001 [171D] --- Type 0000:10 (SecureChannel:StandaloneAck)
+  01-06 05:27:53.839 16814 16850 D EM      : Found matching exchange: 59135r, Delegate: 0x0
+  01-06 05:27:53.839 16814 16850 D EM      : Rxd Ack; Removing MessageCounter:213699489 from Retrans Table on exchange 59135r
+  ```
+  */
+  private fun subscribeToPeriodicUpdates() {
+    val reportCallback =
+        object : SubscriptionHelper.ReportCallbackForDevice(deviceUiModel.device.deviceId) {
+          override fun onReport(nodeState: NodeState) {
+            super.onReport(nodeState)
+            val onOffState =
+                subscriptionHelper.extractAttribute(nodeState, 1, OnOffAttribute) as Boolean?
+            Timber.d("onOffState [${onOffState}]")
+            if (onOffState == null) {
+              Timber.e("onReport(): WARNING -> onOffState is NULL. Ignoring.")
+              return
+            }
+            viewModelScope.launch {
+              devicesStateRepository.updateDeviceState(
+                  deviceUiModel.device.deviceId, isOnline = true, isOn = onOffState!!)
+            }
+          }
+        }
+    Timber.d("Calling subscriptionHelper.subscribeToPeriodicUpdates()")
+    subscriptionHelper.subscribeToPeriodicUpdates(
+        deviceUiModel.device.deviceId,
+        SubscriptionHelper.SubscriptionEstablishedCallbackForDevice(deviceUiModel.device.deviceId),
+        SubscriptionHelper.ResubscriptionAttemptCallbackForDevice(deviceUiModel.device.deviceId),
+        reportCallback)
+  }
+
+  private fun unsubscribeToPeriodicUpdates() {
+    Timber.d("unsubscribeToPeriodicUpdates(): UNSUBSCRIBE_ENABLED [$UNSUBSCRIBE_ENABLED]")
+    if (!UNSUBSCRIBE_ENABLED) {
+      return
+    }
+    subscriptionHelper.unsubscribeToPeriodicUpdates(deviceUiModel.device.deviceId)
+  }
+
+  // -----------------------------------------------------------------------------------------------
+  // Task that runs periodically to get and update the device state.
+  // Periodic monitoring of a device state should be done with Subscription mode.
+  // This code is left here in case it might be useful to some developers.
+
+  private fun startDevicePeriodicPing() {
     Timber.d(
-        "${LocalDateTime.now()} startDevicePeriodicPing every $PERIODIC_UPDATE_INTERVAL_DEVICE_SCREEN_SECONDS seconds")
+        "${LocalDateTime.now()} startDevicePeriodicPing every $PERIODIC_READ_INTERVAL_DEVICE_SCREEN_SECONDS seconds")
     devicePeriodicPingEnabled = true
     runDevicePeriodicUpdate(deviceUiModel)
   }
 
   private fun runDevicePeriodicUpdate(deviceUiModel: DeviceUiModel) {
-    if (PERIODIC_UPDATE_INTERVAL_DEVICE_SCREEN_SECONDS == -1) {
+    if (PERIODIC_READ_INTERVAL_DEVICE_SCREEN_SECONDS == -1) {
       return
     }
     viewModelScope.launch {
@@ -343,6 +444,7 @@ constructor(
         // Do something here on the main thread
         var isOn: Boolean?
         var isOnline: Boolean
+        // TODO: See HomeViewModel:CommissionDeviceSucceeded for device capabilities
         isOn = clustersHelper.getDeviceStateOnOffCluster(deviceUiModel.device.deviceId, 1)
         if (isOn == null) {
           Timber.e("[device ping] failed")
@@ -354,12 +456,12 @@ constructor(
         }
         devicesStateRepository.updateDeviceState(
             deviceUiModel.device.deviceId, isOnline = isOnline, isOn = isOn == true)
-        delay(PERIODIC_UPDATE_INTERVAL_DEVICE_SCREEN_SECONDS * 1000L)
+        delay(PERIODIC_READ_INTERVAL_DEVICE_SCREEN_SECONDS * 1000L)
       }
     }
   }
 
-  fun stopDevicePeriodicPing() {
+  private fun stopDevicePeriodicPing() {
     devicePeriodicPingEnabled = false
   }
 
