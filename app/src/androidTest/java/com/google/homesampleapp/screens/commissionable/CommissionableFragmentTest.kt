@@ -75,7 +75,7 @@ class CommissionableFragmentTest {
    * does not complete prior to the start of the test.
    *
    * So for now, if we fail clicking on "OK" this means the codelab dialog is not shown and we
-   * simplky ignore the exception.
+   * simply ignore the exception.
    *
    * TODO: If someone knows of a clean way to force a clear of the preferences datastore before the
    *   test runs, please submit a PR!

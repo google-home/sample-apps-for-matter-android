@@ -19,8 +19,10 @@ package com.google.homesampleapp.screens.home
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.Espresso.pressBack
 import androidx.test.espresso.action.ViewActions.click
+import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.contrib.RecyclerViewActions
 import androidx.test.espresso.matcher.ViewMatchers
+import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
@@ -79,8 +81,14 @@ class HomeFragmentRecyclerViewTest {
   // ---------------------------------------------------------------------------
   // Tests support functions
 
-  fun navigateToHomeScreen() {
-    // Nothing to do. When app is launched, we are initially at the Home screen.
+  /** See CommissionableFragmentTest for issue with codelab dialog. */
+  private fun clickOkOnCodelabDialog() {
+    try {
+      onView(ViewMatchers.withText("OK")).perform(click())
+    } catch (e: Throwable) {
+      // The Codelab dialog was not shown. Simply ignore the error.
+      System.out.println("*** Codelab Dialog was not shown.")
+    }
   }
 
   fun navigateBack() {
@@ -124,7 +132,12 @@ class HomeFragmentRecyclerViewTest {
         .perform(RecyclerViewActions.actionOnItemAtPosition<DeviceViewHolder>(count - 1, click()))
   }
 
-  private fun verifyDeviceOnDeviceScreen(device: TestDevice) {}
+  private fun verifyDeviceOnDeviceScreen(count: Int, device: TestDevice) {
+    onView(
+            ViewMatchers.withText(
+                "Share " + TEST_DEVICE_NAME_PREFIX + count + TEST_DEVICE_NAME_SUFFIX))
+        .check(matches(isDisplayed()))
+  }
 
   // ---------------------------------------------------------------------------
   // Tests
@@ -156,19 +169,19 @@ class HomeFragmentRecyclerViewTest {
   @Test
   fun testRecyclerView() {
     var count = 0
-    navigateToHomeScreen()
-    Thread.sleep(3000)
+    Thread.sleep(1000)
+    clickOkOnCodelabDialog()
     TEST_DEVICES.forEach { device ->
       count++
       addDevice(device)
       verifyListCount(count)
-      Thread.sleep(3000)
+      Thread.sleep(1000)
       clickOnDevice(count, device)
-      verifyDeviceOnDeviceScreen(device)
-      Thread.sleep(2000)
+      verifyDeviceOnDeviceScreen(count, device)
+      Thread.sleep(1000)
       navigateBack()
     }
     // Give 30s to review the screen and play with it.
-    Thread.sleep(30000)
+    Thread.sleep(10000)
   }
 }
