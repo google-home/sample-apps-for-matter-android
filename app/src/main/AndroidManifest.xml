@@ -19,14 +19,28 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.google.homesampleapp">
 
+    <!-- BluetoothLE (BLE) -->
+    <!-- https://developer.android.com/reference/android/bluetooth/le/BluetoothLeScanner#startScan(java.util.List%3Candroid.bluetooth.le.ScanFilter%3E,%20android.bluetooth.le.ScanSettings,%20android.bluetooth.le.ScanCallback)  -->
+    <!-- Android Q (28) or later must have ACCESS_FINE_LOCATION -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"
+        tools:ignore="CoarseFineLocation" />
+    <!-- Needed for <= Build.VERSION_CODES#R (30) (only needed in Manifest) -->
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <!-- Needed for >= Build.VERSION_CODES#S (31) (must be requested) -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-feature
+        android:name="android.hardware.bluetooth_le"
+        android:required="true" />
+
+    <!-- Wi-Fi Scan -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
     <!-- TODO: clarify what specifically requires the permission -->
     <uses-permission android:name="android.permission.BLUETOOTH" />
-    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"
-        tools:ignore="CoarseFineLocation" />
     <uses-permission android:name="android.permission.NFC" />
 
     <application

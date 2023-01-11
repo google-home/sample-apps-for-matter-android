@@ -22,6 +22,7 @@ import android.os.IBinder
 import com.google.android.gms.home.matter.commissioning.CommissioningCompleteMetadata
 import com.google.android.gms.home.matter.commissioning.CommissioningRequestMetadata
 import com.google.android.gms.home.matter.commissioning.CommissioningService
+import com.google.android.gms.home.matter.commissioning.CommissioningService.CommissioningError
 import com.google.homesampleapp.APP_NAME
 import com.google.homesampleapp.R
 import com.google.homesampleapp.chip.ChipClient
@@ -95,15 +96,34 @@ class AppCommissioningService : Service(), CommissioningService.Callback {
     // Perform commissioning on custom fabric for the sample app.
     serviceScope.launch {
       val deviceId = devicesRepository.incrementAndReturnLastDeviceId()
-      Timber.d(
-          "Commissioning: App fabric -> ChipClient.establishPaseConnection(): deviceId [${deviceId}]")
-      chipClient.awaitEstablishPaseConnection(
-          deviceId,
-          metadata.networkLocation.ipAddress.hostAddress!!,
-          metadata.networkLocation.port,
-          metadata.passcode)
-      Timber.d("Commissioning: App fabric -> ChipClient.commissionDevice(): deviceId [${deviceId}]")
-      chipClient.awaitCommissionDevice(deviceId, null)
+      try {
+        Timber.d(
+            "Commissioning: App fabric -> ChipClient.establishPaseConnection(): deviceId [${deviceId}]")
+        chipClient.awaitEstablishPaseConnection(
+            deviceId,
+            metadata.networkLocation.ipAddress.hostAddress!!,
+            metadata.networkLocation.port,
+            metadata.passcode)
+
+        Timber.d(
+            "Commissioning: App fabric -> ChipClient.commissionDevice(): deviceId [${deviceId}]")
+        chipClient.awaitCommissionDevice(deviceId, null)
+      } catch (e: Exception) {
+        Timber.e(e, "onCommissioningRequested() failed")
+        // No way to determine whether this was ATTESTATION_FAILED or DEVICE_UNREACHABLE.
+        commissioningServiceDelegate
+            .sendCommissioningError(CommissioningError.OTHER)
+            .addOnSuccessListener {
+              Timber.d(
+                  "Commissioning: commissioningServiceDelegate.sendCommissioningError() succeeded")
+            }
+            .addOnFailureListener { e2 ->
+              Timber.e(
+                  e2,
+                  "Commissioning: commissioningServiceDelegate.sendCommissioningError() failed")
+            }
+        return@launch
+      }
 
       Timber.d("Commissioning: Calling commissioningServiceDelegate.sendCommissioningComplete()")
       commissioningServiceDelegate
@@ -111,10 +131,11 @@ class AppCommissioningService : Service(), CommissioningService.Callback {
               CommissioningCompleteMetadata.builder().setToken(deviceId.toString()).build())
           .addOnSuccessListener {
             Timber.d(
-                "Commissioning: OnSuccess for commissioningServiceDelegate.sendCommissioningComplete()")
+                "Commissioning: commissioningServiceDelegate.sendCommissioningComplete() succeeded")
           }
-          .addOnFailureListener { ex ->
-            Timber.e("Commissioning: Failed to send commissioning complete.", ex)
+          .addOnFailureListener { e ->
+            Timber.e(
+                e, "Commissioning: commissioningServiceDelegate.sendCommissioningComplete() failed")
           }
     }
     // CODELAB SECTION END

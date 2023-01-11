@@ -19,6 +19,7 @@ package com.google.homesampleapp.chip
 import android.content.Context
 import chip.devicecontroller.ChipDeviceController
 import chip.devicecontroller.ControllerParams
+import chip.devicecontroller.DiscoveredDevice
 import chip.devicecontroller.GetConnectedDeviceCallbackJni.GetConnectedDeviceCallback
 import chip.devicecontroller.NetworkCredentials
 import chip.devicecontroller.OpenCommissioningCallback
@@ -221,5 +222,18 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
             }
           })
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // We use our own mDNS discovery code, but interesting to note that
+  // ChipDeviceController also offers that feature.
+
+  fun getCommissionableNodes() {
+    chipDeviceController.discoverCommissionableNodes()
+  }
+
+  fun getDiscoveredDevice(index: Int): DiscoveredDevice? {
+    Timber.d("getDiscoveredDevice(${index})")
+    return chipDeviceController.getDiscoveredDevice(index)
   }
 }

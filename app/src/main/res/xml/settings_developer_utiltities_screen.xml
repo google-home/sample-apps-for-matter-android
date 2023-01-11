@@ -20,6 +20,12 @@
     xmlns:android="http://schemas.android.com/apk/res/android">
 
         <Preference
+            app:key="commissionable"
+            app:title="Commissionable devices"
+            app:summary="Discover commissionable Matter devices"
+            app:icon="@drawable/ic_baseline_search_24"/>
+
+        <Preference
             app:key="logrepos"
             app:title="Log repositories content"
             app:summary="View in the logs the content of repositories used in the app"

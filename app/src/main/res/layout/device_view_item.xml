@@ -15,9 +15,9 @@
 -->
 
 <RelativeLayout
-    android:id="@+id/root_layout"
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/root_layout"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/device_item_shape_off"
@@ -38,7 +38,6 @@
         android:layout_toEndOf="@id/zeicon"
         android:layout_centerVertical="true"
         android:gravity="center_vertical"
-
         android:orientation="vertical">
 
     <TextView
@@ -46,11 +45,12 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:paddingEnd="16dp"
-        tools:text="Light A"
         android:layout_toEndOf="@id/zeicon"
         android:maxLines="1"
         android:textAppearance="?attr/textAppearanceSubtitle1"
-        android:textColor="@color/mtrl_list_item_tint"/>
+        android:textColor="@color/mtrl_list_item_tint"
+        tools:text="Light A"
+        />
 
     <TextView
         android:id="@+id/zestate"
@@ -60,11 +60,11 @@
         android:layout_toEndOf="@id/zeicon"
         android:paddingEnd="16dp"
         android:maxLines="2"
-        tools:text="Online OFF"
         android:textAppearance="?attr/textAppearanceBody2"
-        android:textColor="@color/mtrl_list_item_tint"/>
+        android:textColor="@color/mtrl_list_item_tint"
+        tools:text="Online OFF"
+        />
     </LinearLayout>
-
 
     <com.google.android.material.switchmaterial.SwitchMaterial
         android:id="@+id/onoff_switch"

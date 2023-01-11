@@ -90,6 +90,9 @@
         <action
             android:id="@+id/action_settingsDeveloperUtilitiesFragment_to_dummyDeviceDialogFragment3"
             app:destination="@id/dummyDeviceDialogFragment3" />
+        <action
+            android:id="@+id/action_settingsDeveloperUtilitiesFragment_to_discoveryFragment"
+            app:destination="@id/commissionableFragment" />
     </fragment>
     <fragment
         android:id="@+id/settingsDeveloperUtilitiesNestedFragment"
@@ -109,4 +112,16 @@
         android:name="com.google.homesampleapp.screens.inspect.InspectFragment"
         android:label="fragment_inspect"
         tools:layout="@layout/fragment_inspect" />
+    <fragment
+        android:id="@+id/commissionableFragment"
+        android:name="com.google.homesampleapp.screens.commissionable.CommissionableFragment"
+        android:label="fragment_commissionable"
+        tools:layout="@layout/fragment_commissionable" >
+        <action
+            android:id="@+id/action_commissionableFragment_to_settingsFragment"
+            app:destination="@id/settingsFragment" />
+        <action
+            android:id="@+id/action_commissionableFragment_to_homeFragment"
+            app:destination="@id/homeFragment" />
+    </fragment>
 </navigation>
