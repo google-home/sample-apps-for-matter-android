@@ -30,11 +30,4 @@
             app:title="Log repositories content"
             app:summary="View in the logs the content of repositories used in the app"
             app:icon="@drawable/ic_outline_storage_24"/>
-
-        <Preference
-            app:key="adddummydevice"
-            app:title="Add a dummy device"
-            app:summary="Create a dummy device to exercise the Home screen UI"
-            app:icon="@drawable/ic_outline_device_unknown_24"/>
-
 </PreferenceScreen>

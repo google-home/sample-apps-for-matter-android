@@ -43,17 +43,13 @@ import javax.inject.Inject
 import timber.log.Timber
 
 @AndroidEntryPoint
-class SettingsDeveloperUtilitiesNestedFragment :
-    PreferenceFragmentCompat(), DummyDeviceDialogFragment.DummyDeviceDialogListener {
+class SettingsDeveloperUtilitiesNestedFragment : PreferenceFragmentCompat() {
 
   @Inject internal lateinit var appPreferenceDataStore: AppPreferenceDataStore
   @Inject internal lateinit var userPreferencesRepository: UserPreferencesRepository
 
   // The fragment's ViewModel
   private val viewModel: DeveloperUtilitiesViewModel by viewModels()
-
-  // The DialogFragment to capture device information when adding dummy device.
-  private val dummyDeviceDialogFragment = DummyDeviceDialogFragment()
 
   private lateinit var scanningPermissionsLauncher: ActivityResultLauncher<Array<String>>
 
@@ -123,15 +119,6 @@ class SettingsDeveloperUtilitiesNestedFragment :
           .show()
       true
     }
-
-    // Create dummy device.
-    val addDummyDevicePreference: Preference? = findPreference("adddummydevice")
-    addDummyDevicePreference?.setOnPreferenceClickListener {
-      Timber.d("adddummydevice!")
-      // Show the Dialog to capture the device information.
-      dummyDeviceDialogFragment.show(childFragmentManager, "DummyDeviceDialogFragment")
-      true
-    }
   }
 
   private fun setupObservers() {
@@ -145,17 +132,6 @@ class SettingsDeveloperUtilitiesNestedFragment :
 
   // -----------------------------------------------------------------------------------------------
   // DeviceInfoDialogListener interface
-
-  // "Add Device" button was clicked, which triggered the display of the DummyDeviceDialogFragment.
-  // The positive button on that DummyDeviceDialogFragment has been clicked.
-  // Process the addition of a dummy device in the app.
-  override fun onDialogPositiveClick(deviceType: String, isOnline: Boolean, isOn: Boolean) {
-    Timber.d("onDialogPositiveClick deviceType [$deviceType] isOnline [$isOnline] isOn [$isOn]")
-    viewModel.addDummyDevice(deviceType, isOnline, isOn)
-    requireView()
-        .findNavController()
-        .navigate(R.id.action_settingsDeveloperUtilitiesFragment_to_homeFragment)
-  }
 
   private fun allScanningPermissionsGranted() =
       getRequiredScanningPermissions().all {

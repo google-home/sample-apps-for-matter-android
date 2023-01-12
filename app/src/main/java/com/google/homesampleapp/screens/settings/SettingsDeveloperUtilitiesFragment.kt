@@ -63,7 +63,7 @@ class SettingsDeveloperUtilitiesFragment :
   ): Boolean {
     view
         ?.findNavController()
-        ?.navigate(R.id.action_settingsDeveloperUtilitiesFragment_to_dummyDeviceDialogFragment3)
+        ?.navigate(R.id.action_settingsDeveloperUtilitiesFragment_to_discoveryFragment)
     return true
   }
 

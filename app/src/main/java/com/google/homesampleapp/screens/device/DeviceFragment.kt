@@ -34,7 +34,6 @@ import androidx.fragment.app.viewModels
 import androidx.navigation.findNavController
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.homesampleapp.ALLOW_DEVICE_SHARING_ON_DUMMY_DEVICE
 import com.google.homesampleapp.BackgroundWorkAlertDialogAction
 import com.google.homesampleapp.DeviceState
 import com.google.homesampleapp.ON_OFF_SWITCH_DISABLED_WHEN_DEVICE_OFFLINE
@@ -46,7 +45,6 @@ import com.google.homesampleapp.databinding.FragmentDeviceBinding
 import com.google.homesampleapp.displayString
 import com.google.homesampleapp.formatTimestamp
 import com.google.homesampleapp.intentSenderToString
-import com.google.homesampleapp.isDummyDevice
 import com.google.homesampleapp.lifeCycleEvent
 import com.google.homesampleapp.screens.shared.SelectedDeviceViewModel
 import com.google.homesampleapp.showAlertDialog
@@ -187,21 +185,8 @@ class DeviceFragment : Fragment() {
     binding.shareButton.setOnClickListener {
       val deviceName = selectedDeviceViewModel.selectedDeviceLiveData.value?.device?.name!!
       val deviceId = selectedDeviceViewModel.selectedDeviceLiveData.value?.device?.deviceId
-      if (isDummyDevice(deviceName) && !ALLOW_DEVICE_SHARING_ON_DUMMY_DEVICE) {
-        // Device sharing not allowed on a dummy device.
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Share device $deviceName")
-            .setMessage(getString(R.string.share_dummy_device))
-            .setPositiveButton(resources.getString(R.string.ok)) { _, _ -> }
-            .setPositiveButton(resources.getString(R.string.ok)) { _, _ ->
-              viewModel.inspectDescriptorCluster(
-                  selectedDeviceViewModel.selectedDeviceLiveData.value!!)
-            }
-            .show()
-      } else {
-        // Trigger the processing for sharing the device
-        viewModel.shareDevice(requireActivity(), deviceId!!)
-      }
+      // Trigger the processing for sharing the device
+      viewModel.shareDevice(requireActivity(), deviceId!!)
     }
 
     // CODELAB FEATURED BEGIN

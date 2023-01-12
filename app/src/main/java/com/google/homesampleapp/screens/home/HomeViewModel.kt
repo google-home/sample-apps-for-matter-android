@@ -35,7 +35,6 @@ import com.google.android.gms.home.matter.commissioning.CommissioningResult
 import com.google.android.gms.home.matter.commissioning.DeviceInfo
 import com.google.android.gms.home.matter.commissioning.SharedDeviceData
 import com.google.android.gms.home.matter.commissioning.SharedDeviceData.*
-import com.google.homesampleapp.DUMMY_DEVICE_NAME_PREFIX
 import com.google.homesampleapp.Device
 import com.google.homesampleapp.Devices
 import com.google.homesampleapp.DevicesState
@@ -56,7 +55,6 @@ import com.google.homesampleapp.data.DevicesRepository
 import com.google.homesampleapp.data.DevicesStateRepository
 import com.google.homesampleapp.data.UserPreferencesRepository
 import com.google.homesampleapp.getTimestampForNow
-import com.google.homesampleapp.isDummyDevice
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -404,14 +402,9 @@ constructor(
   fun updateDeviceStateOn(deviceUiModel: DeviceUiModel, isOn: Boolean) {
     Timber.d("updateDeviceStateOn: Device [${deviceUiModel}]  isOn [${isOn}]")
     viewModelScope.launch {
-      if (isDummyDevice(deviceUiModel.device.name)) {
-        Timber.d("Handling test device")
-        devicesStateRepository.updateDeviceState(deviceUiModel.device.deviceId, true, isOn)
-      } else {
-        Timber.d("Handling real device")
-        clustersHelper.setOnOffDeviceStateOnOffCluster(deviceUiModel.device.deviceId, isOn, 1)
-        devicesStateRepository.updateDeviceState(deviceUiModel.device.deviceId, true, isOn)
-      }
+      Timber.d("Handling real device")
+      clustersHelper.setOnOffDeviceStateOnOffCluster(deviceUiModel.device.deviceId, isOn, 1)
+      devicesStateRepository.updateDeviceState(deviceUiModel.device.deviceId, true, isOn)
     }
   }
 
@@ -458,9 +451,6 @@ constructor(
       // For each one of the real devices
       val devicesList = devicesRepository.getAllDevices().devicesList
       devicesList.forEach { device ->
-        if (device.name.startsWith(DUMMY_DEVICE_NAME_PREFIX)) {
-          return@forEach
-        }
         val reportCallback =
             object : SubscriptionHelper.ReportCallbackForDevice(device.deviceId) {
               override fun onReport(nodeState: NodeState) {
@@ -497,9 +487,6 @@ constructor(
       // For each one of the real devices
       val devicesList = devicesRepository.getAllDevices().devicesList
       devicesList.forEach { device ->
-        if (device.name.startsWith(DUMMY_DEVICE_NAME_PREFIX)) {
-          return@forEach
-        }
         subscriptionHelper.unsubscribeToPeriodicUpdates(device.deviceId)
       }
     }
@@ -524,9 +511,6 @@ constructor(
         // For each one of the real devices
         val devicesList = devicesRepository.getAllDevices().devicesList
         devicesList.forEach { device ->
-          if (device.name.startsWith(DUMMY_DEVICE_NAME_PREFIX)) {
-            return@forEach
-          }
           Timber.d("runDevicesPeriodicPing deviceId [${device.deviceId}]")
           var isOn = clustersHelper.getDeviceStateOnOffCluster(device.deviceId, 1)
           val isOnline: Boolean

@@ -105,4 +105,10 @@ class DevicesStateRepository @Inject constructor(@ApplicationContext context: Co
   suspend fun getAllDevicesState(): DevicesState {
     return devicesStateFlow.first()
   }
+
+  suspend fun clearAllData() {
+    devicesStateDataStore.updateData { devicesStateList ->
+      devicesStateList.toBuilder().clear().build()
+    }
+  }
 }

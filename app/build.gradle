@@ -96,7 +96,7 @@ dependencies {
     // Hilt
     // https://dagger.dev/hilt/gradle-setup
     implementation 'com.google.dagger:hilt-android:2.44.2'
-    implementation 'com.google.ar:core:1.30.0'
+    implementation 'com.google.ar:core:1.35.0'
     kapt 'com.google.dagger:hilt-compiler:2.44.2'
 
     // Hilt For instrumentation tests
@@ -109,12 +109,19 @@ dependencies {
 
     // Test
     testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.4'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.0'
-    androidTestImplementation 'androidx.test.espresso:espresso-intents:3.5.0'
-    androidTestImplementation 'androidx.test:runner:1.5.1'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-intents:3.5.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-contrib:3.5.1'
+    androidTestImplementation 'androidx.test:runner:1.5.2'
     androidTestImplementation 'androidx.test:rules:1.5.0'
     androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.2.0'
+}
+
+// Issue with androidx.test.espresso:espresso-contrib:3.5.1
+// https://github.com/android/android-test/issues/999
+configurations.configureEach {
+    exclude group: "com.google.protobuf", module: "protobuf-lite"
 }
 
 kapt {
