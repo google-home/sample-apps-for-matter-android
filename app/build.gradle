@@ -60,10 +60,6 @@ android {
             versionNameSuffix = "-targetcommissioner"
         }
     }
-
-    hilt {
-        enableTransformForLocalTests = true
-    }
 }
 
 dependencies {

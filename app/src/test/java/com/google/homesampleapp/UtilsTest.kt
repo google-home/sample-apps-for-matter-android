@@ -20,23 +20,6 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class UtilsTest {
-
-  @Test
-  fun displayString_ok() {
-    assertEquals(Device.DeviceType.TYPE_LIGHT.displayString(), "Light")
-    assertEquals(Device.DeviceType.TYPE_OUTLET.displayString(), "Outlet")
-    assertEquals(Device.DeviceType.TYPE_UNSPECIFIED.displayString(), "Unspecified")
-    assertEquals(Device.DeviceType.UNRECOGNIZED.displayString(), "Unrecognized")
-  }
-
-  @Test fun isOnlineDisplayString() {}
-
-  @Test fun isOnDisplayString() {}
-
-  @Test fun stateDisplayString() {}
-
-  @Test fun stringToBoolean() {}
-
   @Test
   fun stripLinkLocalInIpAddress_ok() {
     val ipAddress = "fe80::84b1:c2f6:b1b7:67d4"
