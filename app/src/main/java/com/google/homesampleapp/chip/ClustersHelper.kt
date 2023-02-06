@@ -72,7 +72,7 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
       val deviceListAttribute =
           readDescriptorClusterDeviceListAttribute(connectedDevicePtr, endpointInt)
       val types = arrayListOf<Long>()
-      deviceListAttribute.forEach { types.add(it.type) }
+      deviceListAttribute.forEach { types.add(it.deviceType) }
 
       // ServerListAttribute
       val serverListAttribute =
@@ -264,7 +264,7 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
     return suspendCoroutine { continuation ->
       getBasicClusterForDevice(connectedDevicePtr, endpoint)
           .readVendorIDAttribute(
-              object : ChipClusters.BasicCluster.VendorIDAttributeCallback {
+              object : ChipClusters.ApplicationBasicCluster.VendorIDAttributeCallback {
                 override fun onSuccess(value: Int?) {
                   continuation.resume(value)
                 }
@@ -287,7 +287,7 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
     return suspendCoroutine { continuation ->
       getBasicClusterForDevice(connectedDevicePtr, endpoint)
           .readAttributeListAttribute(
-              object : ChipClusters.BasicCluster.AttributeListAttributeCallback {
+              object : ChipClusters.ApplicationBasicCluster.AttributeListAttributeCallback {
                 override fun onSuccess(values: MutableList<Long>) {
                   continuation.resume(values)
                 }
@@ -298,8 +298,8 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
     }
   }
 
-  private fun getBasicClusterForDevice(devicePtr: Long, endpoint: Int): ChipClusters.BasicCluster {
-    return ChipClusters.BasicCluster(devicePtr, endpoint)
+  private fun getBasicClusterForDevice(devicePtr: Long, endpoint: Int): ChipClusters.ApplicationBasicCluster {
+    return ChipClusters.ApplicationBasicCluster(devicePtr, endpoint)
   }
 
   // -----------------------------------------------------------------------------------------------

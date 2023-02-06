@@ -147,6 +147,7 @@ fun nodeStateToDebugString(nodeState: NodeState): String {
   val stringBuilder = StringBuilder()
   nodeState.endpointStates.forEach { (endpointId, endpointState) ->
     stringBuilder.append("\nEndpoint [${endpointId}] {\n")
+    // Map<Long, ClusterState>
     endpointState.clusterStates.forEach { (clusterId, clusterState) ->
       stringBuilder.append(
           "\tCluster [${clusterId}] [${ChipIdLookup.clusterIdToName(clusterId)}] {\n")
@@ -154,12 +155,15 @@ fun nodeStateToDebugString(nodeState: NodeState): String {
         val attributeName = ChipIdLookup.attributeIdToName(clusterId, attributeId)
         stringBuilder.append("\t\t[${attributeId}] [${attributeName}] ${attributeState.value}\n")
       }
-      clusterState.eventStates.forEach { (eventId, eventState) ->
-        stringBuilder.append("\t\teventNumber: ${eventState.eventNumber}\n")
-        stringBuilder.append("\t\tpriorityLevel: ${eventState.priorityLevel}\n")
-        stringBuilder.append("\t\tsystemTimeStamp: ${eventState.systemTimeStamp}\n")
-        val eventName = ChipIdLookup.eventIdToName(clusterId, eventId)
-        stringBuilder.append("\t\t[${eventId}] [${eventName}] ${eventState.value}\n")
+      // Map<Long, ArrayList<EventState>>
+      clusterState.eventStates.forEach { (eventId, eventStates) ->
+        eventStates.forEach { eventState ->
+          stringBuilder.append("\t\teventNumber: ${eventState.eventNumber}\n")
+          stringBuilder.append("\t\tpriorityLevel: ${eventState.priorityLevel}\n")
+          stringBuilder.append("\t\tsystemTimeStamp: ${eventState.systemTimeStamp}\n")
+          val eventName = ChipIdLookup.eventIdToName(clusterId, eventId)
+          stringBuilder.append("\t\t[${eventId}] [${eventName}] ${eventState.value}\n")
+        }
       }
       stringBuilder.append("\t}\n")
     }
