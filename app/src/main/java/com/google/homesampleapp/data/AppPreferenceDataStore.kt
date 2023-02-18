@@ -50,6 +50,11 @@ class AppPreferenceDataStore @Inject constructor() : PreferenceDataStore() {
         "offline_devices" -> {
           userPreferencesRepository.updateHideOfflineDevices(!boolValue)
         }
+        // halfsheet_notification represents "showing" the offline devices which is the
+        // same as the "show" proto value.
+        "halfsheet_notification" -> {
+          userPreferencesRepository.updateShowHalfsheetNotification(boolValue)
+        }
         else -> {
           throw InvalidParameterException()
         }
@@ -72,6 +77,9 @@ class AppPreferenceDataStore @Inject constructor() : PreferenceDataStore() {
             // offline_devices represents "showing" the offline devices which is the inverse of the
             // "hide" proto value.
             "offline_devices" -> (!userPreferences.hideOfflineDevices).toString()
+            // halfsheet_notification represents "showing" the halfsheetnotification which is the
+            // same as the "show" proto value.
+            "halfsheet_notification" -> (userPreferences.showHalfsheetNotification).toString()
             else -> throw InvalidParameterException()
           }
     }
@@ -91,6 +99,11 @@ class AppPreferenceDataStore @Inject constructor() : PreferenceDataStore() {
         // "hide" proto value.
         "offline_devices" -> {
           userPreferencesRepository.updateHideOfflineDevices(!value)
+        }
+        // halfsheet_notification represents "showing" the halfsheet notifications which is
+        // the same as the "show" proto value.
+        "halfsheet_notification" -> {
+          userPreferencesRepository.updateShowHalfsheetNotification(value)
         }
         else -> {
           throw InvalidParameterException()
@@ -112,6 +125,10 @@ class AppPreferenceDataStore @Inject constructor() : PreferenceDataStore() {
             // offline_devices represents "showing" the offline devices which is the inverse of the
             // "hide" proto value.
             "offline_devices" -> !userPreferences.hideOfflineDevices
+            // halfsheet_notification represents "showing" the halfsheet notification
+            // which is the same as the "show" proto value.
+            "halfsheet_notification" -> userPreferences.showHalfsheetNotification
+            // Not supported.
             else -> throw InvalidParameterException()
           }
     }

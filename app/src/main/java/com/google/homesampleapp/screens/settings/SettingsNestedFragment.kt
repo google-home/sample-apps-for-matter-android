@@ -44,8 +44,9 @@ class SettingsNestedFragment :
   @Inject internal lateinit var appPreferenceDataStore: AppPreferenceDataStore
   @Inject internal lateinit var userPreferencesRepository: UserPreferencesRepository
 
-  // Help and Feedback dialog.
+  // Dialogs
   private lateinit var helpAndFeedbackAlertDialog: AlertDialog
+  private lateinit var halfsheetNotificationAlertDialog: AlertDialog
 
   override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
     // Enable the custom data store for the entire preferences hierarchy.
@@ -75,6 +76,26 @@ class SettingsNestedFragment :
   }
 
   private fun setupUiElements() {
+    // Alert dialog triggered when the value for "Halfsheet Notification" changes.
+    halfsheetNotificationAlertDialog =
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Halfsheet Notification")
+            .setMessage(
+                Html.fromHtml(
+                    getString(R.string.halfsheet_notification_alert), Html.FROM_HTML_MODE_LEGACY))
+            .setPositiveButton(resources.getString(R.string.ok)) { _, _ ->
+              // Respond to positive button press
+            }
+            .create()
+
+    // Show Halfsheet Notification
+    val halfsheetNotificationPref: SwitchPreferenceCompat? =
+        findPreference("halfsheet_notification")
+    halfsheetNotificationPref?.setOnPreferenceClickListener {
+      showHalfsheetNotificationAlertDialog()
+      true
+    }
+
     // Help and Feedback AlertDialog
     helpAndFeedbackAlertDialog =
         MaterialAlertDialogBuilder(requireContext())
@@ -118,19 +139,28 @@ class SettingsNestedFragment :
     msgTextView?.movementMethod = LinkMovementMethod.getInstance()
   }
 
+  // Show the Halfsheet Notification AlertDialog.
+  private fun showHalfsheetNotificationAlertDialog() {
+    halfsheetNotificationAlertDialog.show()
+  }
+
   private fun setupObservers() {
     userPreferencesRepository.userPreferencesLiveData.observe(viewLifecycleOwner) { userPreferences
       ->
       Timber.d(
           "userPreferencesRepository.userPreferencesLiveData.observe called\n[${userPreferences}]")
       Timber.d(
-          "Setting codelab [${!userPreferences.hideCodelabInfo}] offline_devices [${!userPreferences.hideOfflineDevices}]")
+          "Setting codelab [${!userPreferences.hideCodelabInfo}] offline_devices [${!userPreferences.hideOfflineDevices}] showHalfsheetNotification [${userPreferences.showHalfsheetNotification}]")
       // This is for "show" (inverse of the "hide" proto value).
       val codelabPref: SwitchPreferenceCompat? = findPreference("codelab")
       codelabPref?.isChecked = !userPreferences.hideCodelabInfo
       // This is for "show" (inverse of the "hide" proto value).
       val offlineDevicesPref: SwitchPreferenceCompat? = findPreference("offline_devices")
       offlineDevicesPref?.isChecked = !userPreferences.hideOfflineDevices
+      // This is for "show" (same as the "show" proto value).
+      val halfsheetNotificationPref: SwitchPreferenceCompat? =
+          findPreference("halfsheet_notification")
+      halfsheetNotificationPref?.isChecked = userPreferences.showHalfsheetNotification
     }
   }
 }

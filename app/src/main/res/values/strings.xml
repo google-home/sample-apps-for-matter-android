@@ -97,5 +97,9 @@ All of the information will be logged in logcat. Use this command  to only view 
     <string name="beacon_detail_text" translatable="false">VID: 0x%04X PID: 0x%04X Disc: 0x%03X</string>
     <string name="discovery">Discovery</string>
     <string name="commissionable_devices">Commissionable Devices</string>
+    <string name="halfsheet_notification_alert">
+        Changing the setting for "Halfsheet Notification" will only take effect when the application
+        exits and then re-enters the foreground state.
+    </string>
 
 </resources>
