@@ -17,13 +17,12 @@
 package com.google.homesampleapp.chip
 
 import android.content.Context
-import chip.devicecontroller.ChipDeviceController
-import chip.devicecontroller.ControllerParams
-import chip.devicecontroller.DiscoveredDevice
+import chip.devicecontroller.*
 import chip.devicecontroller.GetConnectedDeviceCallbackJni.GetConnectedDeviceCallback
-import chip.devicecontroller.NetworkCredentials
-import chip.devicecontroller.OpenCommissioningCallback
-import chip.devicecontroller.PaseVerifierParams
+import chip.devicecontroller.model.AttributeState
+import chip.devicecontroller.model.ChipAttributePath
+import chip.devicecontroller.model.ChipEventPath
+import chip.devicecontroller.model.NodeState
 import chip.platform.AndroidBleManager
 import chip.platform.AndroidChipPlatform
 import chip.platform.ChipMdnsCallbackImpl
@@ -235,5 +234,37 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
   fun getDiscoveredDevice(index: Int): DiscoveredDevice? {
     Timber.d("getDiscoveredDevice(${index})")
     return chipDeviceController.getDiscoveredDevice(index)
+  }
+
+  /**
+   * Wrapper around [ChipDeviceController.readAttributePath]
+   */
+  suspend fun readAttributes(devicePtr: Long, attributePaths: List<ChipAttributePath>): Map<ChipAttributePath, AttributeState> {
+      return suspendCoroutine { continuation ->
+          val callback: ReportCallback = object : ReportCallback {
+              override fun onError(
+                  attributePath: ChipAttributePath?,
+                  eventPath: ChipEventPath?,
+                  e: Exception?
+              ) {
+                  continuation.resumeWithException(IllegalStateException("readAttributes failed", e))
+              }
+
+              override fun onReport(nodeState: NodeState?) {
+                  val states: HashMap<ChipAttributePath, AttributeState> = HashMap<ChipAttributePath, AttributeState> ()
+                  for(path in attributePaths) {
+                      states[path] = nodeState!!.getEndpointState(path.endpointId.id as Int)!!
+                          .getClusterState(path.clusterId.id)!!
+                          .getAttributeState(path.attributeId.id)!!
+                  }
+                  continuation.resume(states);
+              }
+
+              override fun onDone() {
+                  super.onDone()
+              }
+          }
+          chipDeviceController.readAttributePath(callback, devicePtr, attributePaths);
+      }
   }
 }
