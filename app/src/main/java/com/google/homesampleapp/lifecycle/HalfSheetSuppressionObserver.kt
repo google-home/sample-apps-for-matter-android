@@ -24,17 +24,19 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import timber.log.Timber
 
 class HalfSheetSuppressionObserver
 @Inject
 internal constructor(
-    @ApplicationContext appContext: Context,
-    userPreferencesRepository: UserPreferencesRepository
+    @ApplicationContext private val context: Context,
+    private val preferencesRepository: UserPreferencesRepository
 ) : AppLifecycleObserver {
-  private val context = appContext
-  private val preferencesRepository = userPreferencesRepository
+
+  private val scope = CoroutineScope(Dispatchers.Main)
 
   /**
    * Handle user's preference for suppressing HalfSheet Notifications (proactive commissionable
@@ -43,19 +45,20 @@ internal constructor(
    */
   override fun onStart(owner: LifecycleOwner) {
     Timber.d("onStart()")
-    val scope = CoroutineScope(Dispatchers.Main)
     scope.launch {
-      val suppressHalfSheetNotification = !preferencesRepository.isShowHalfsheetNotification()
+      val suppressHalfSheetNotification = !preferencesRepository.shouldShowHalfsheetNotification()
       if (suppressHalfSheetNotification) {
-        Matter.getCommissioningClient(context)
-            .suppressHalfSheetNotification()
-            .addOnSuccessListener { result ->
-              Timber.d("suppressHalfSheetNotification: Success [$result]")
-            }
-            .addOnFailureListener { error ->
-              Timber.d("suppressHalfSheetNotification: ERROR [$error]")
-            }
+        try {
+          Matter.getCommissioningClient(context).suppressHalfSheetNotification().await()
+          Timber.d("suppressHalfSheetNotification: Successful")
+        } catch (e: Exception) {
+          Timber.e(e, "Error on suppressHalfSheetNotification")
+        }
       }
     }
+  }
+
+  override fun onStop(owner: LifecycleOwner) {
+    scope.cancel()
   }
 }

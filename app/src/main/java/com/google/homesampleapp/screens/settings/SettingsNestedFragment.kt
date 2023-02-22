@@ -46,7 +46,6 @@ class SettingsNestedFragment :
 
   // Dialogs
   private lateinit var helpAndFeedbackAlertDialog: AlertDialog
-  private lateinit var halfsheetNotificationAlertDialog: AlertDialog
 
   override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
     // Enable the custom data store for the entire preferences hierarchy.
@@ -77,7 +76,7 @@ class SettingsNestedFragment :
 
   private fun setupUiElements() {
     // Alert dialog triggered when the value for "Halfsheet Notification" changes.
-    halfsheetNotificationAlertDialog =
+    val halfsheetNotificationAlertDialog =
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("Halfsheet Notification")
             .setMessage(
@@ -92,7 +91,7 @@ class SettingsNestedFragment :
     val halfsheetNotificationPref: SwitchPreferenceCompat? =
         findPreference("halfsheet_notification")
     halfsheetNotificationPref?.setOnPreferenceClickListener {
-      showHalfsheetNotificationAlertDialog()
+      halfsheetNotificationAlertDialog.show()
       true
     }
 
@@ -137,11 +136,6 @@ class SettingsNestedFragment :
     // Make the hyperlink clickable. Must be set after show().
     val msgTextView: TextView? = helpAndFeedbackAlertDialog.findViewById(android.R.id.message)
     msgTextView?.movementMethod = LinkMovementMethod.getInstance()
-  }
-
-  // Show the Halfsheet Notification AlertDialog.
-  private fun showHalfsheetNotificationAlertDialog() {
-    halfsheetNotificationAlertDialog.show()
   }
 
   private fun setupObservers() {

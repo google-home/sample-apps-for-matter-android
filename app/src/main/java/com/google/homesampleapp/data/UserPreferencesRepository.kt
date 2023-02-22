@@ -62,8 +62,8 @@ class UserPreferencesRepository @Inject constructor(@ApplicationContext context:
     }
   }
 
-  suspend fun isShowHalfsheetNotification(): Boolean {
-    Timber.d("isShowHalfsheetNotification")
+  suspend fun shouldShowHalfsheetNotification(): Boolean {
+    Timber.d("shouldShowHalfsheetNotification")
     return userPreferencesFlow.first().showHalfsheetNotification
   }
 
