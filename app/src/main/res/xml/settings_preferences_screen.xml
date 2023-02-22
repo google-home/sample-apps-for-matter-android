@@ -31,7 +31,13 @@
             app:summary="Show offline devices"
             app:icon="@drawable/ic_baseline_signal_wifi_off_24"/>
 
-        <Preference
+        <SwitchPreferenceCompat
+            app:key="halfsheet_notification"
+            app:title="Halfsheet Notification"
+            app:summary="Shows proactive commissionable discovery notifications for Matter devices"
+            app:icon="@drawable/baseline_notifications_24"/>
+
+    <Preference
             app:key="developer_utilities"
             app:title="Developer utilities"
             app:summary="Various utility functions for developers who want to dig deeper!"

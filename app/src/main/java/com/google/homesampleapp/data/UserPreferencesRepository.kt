@@ -62,6 +62,18 @@ class UserPreferencesRepository @Inject constructor(@ApplicationContext context:
     }
   }
 
+  suspend fun shouldShowHalfsheetNotification(): Boolean {
+    Timber.d("shouldShowHalfsheetNotification")
+    return userPreferencesFlow.first().showHalfsheetNotification
+  }
+
+  suspend fun updateShowHalfsheetNotification(show: Boolean) {
+    Timber.d("updateShowHalfsheetNotification [$show]")
+    userPreferencesDataStore.updateData { prefs ->
+      prefs.toBuilder().setShowHalfsheetNotification(show).build()
+    }
+  }
+
   suspend fun isHideCodelabInfo(): Boolean {
     return userPreferencesFlow.first().hideCodelabInfo
   }

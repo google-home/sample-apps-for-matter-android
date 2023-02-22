@@ -44,7 +44,7 @@ class SettingsNestedFragment :
   @Inject internal lateinit var appPreferenceDataStore: AppPreferenceDataStore
   @Inject internal lateinit var userPreferencesRepository: UserPreferencesRepository
 
-  // Help and Feedback dialog.
+  // Dialogs
   private lateinit var helpAndFeedbackAlertDialog: AlertDialog
 
   override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
@@ -75,6 +75,26 @@ class SettingsNestedFragment :
   }
 
   private fun setupUiElements() {
+    // Alert dialog triggered when the value for "Halfsheet Notification" changes.
+    val halfsheetNotificationAlertDialog =
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Halfsheet Notification")
+            .setMessage(
+                Html.fromHtml(
+                    getString(R.string.halfsheet_notification_alert), Html.FROM_HTML_MODE_LEGACY))
+            .setPositiveButton(resources.getString(R.string.ok)) { _, _ ->
+              // Respond to positive button press
+            }
+            .create()
+
+    // Show Halfsheet Notification
+    val halfsheetNotificationPref: SwitchPreferenceCompat? =
+        findPreference("halfsheet_notification")
+    halfsheetNotificationPref?.setOnPreferenceClickListener {
+      halfsheetNotificationAlertDialog.show()
+      true
+    }
+
     // Help and Feedback AlertDialog
     helpAndFeedbackAlertDialog =
         MaterialAlertDialogBuilder(requireContext())
@@ -124,13 +144,17 @@ class SettingsNestedFragment :
       Timber.d(
           "userPreferencesRepository.userPreferencesLiveData.observe called\n[${userPreferences}]")
       Timber.d(
-          "Setting codelab [${!userPreferences.hideCodelabInfo}] offline_devices [${!userPreferences.hideOfflineDevices}]")
+          "Setting codelab [${!userPreferences.hideCodelabInfo}] offline_devices [${!userPreferences.hideOfflineDevices}] showHalfsheetNotification [${userPreferences.showHalfsheetNotification}]")
       // This is for "show" (inverse of the "hide" proto value).
       val codelabPref: SwitchPreferenceCompat? = findPreference("codelab")
       codelabPref?.isChecked = !userPreferences.hideCodelabInfo
       // This is for "show" (inverse of the "hide" proto value).
       val offlineDevicesPref: SwitchPreferenceCompat? = findPreference("offline_devices")
       offlineDevicesPref?.isChecked = !userPreferences.hideOfflineDevices
+      // This is for "show" (same as the "show" proto value).
+      val halfsheetNotificationPref: SwitchPreferenceCompat? =
+          findPreference("halfsheet_notification")
+      halfsheetNotificationPref?.isChecked = userPreferences.showHalfsheetNotification
     }
   }
 }

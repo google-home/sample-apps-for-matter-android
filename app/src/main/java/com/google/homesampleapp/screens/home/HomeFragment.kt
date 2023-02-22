@@ -234,6 +234,11 @@ class HomeFragment : Fragment() {
     viewModel.stopMonitoringStateChanges()
   }
 
+  override fun onStart() {
+    super.onStart()
+    Timber.d("onStart()")
+  }
+
   // -----------------------------------------------------------------------------------------------
   // Setup UI elements of the fragment
 

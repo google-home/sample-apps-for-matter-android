@@ -20,7 +20,9 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.databinding.DataBindingUtil.setContentView
 import com.google.homesampleapp.databinding.ActivityMainBinding
+import com.google.homesampleapp.lifecycle.AppLifecycleObserver
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import timber.log.Timber
 
 /** Main Activity for the "Google Home Sample App for Matter" (GHSAFM). */
@@ -29,14 +31,27 @@ class MainActivity : AppCompatActivity() {
 
   private lateinit var binding: ActivityMainBinding
 
+  @Inject internal lateinit var lifecycleObservers: Set<@JvmSuppressWildcards AppLifecycleObserver>
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     initContextDependentConstants()
+    Timber.d("onCreate()")
 
     binding = setContentView(this, R.layout.activity_main)
 
+    // See package "com.google.homesampleapp.lifecycle" for all the lifecycle observers
+    // defined for the application.
+    Timber.d("lifecycleObservers [$lifecycleObservers]")
+    lifecycleObservers.forEach { lifecycle.addObserver(it) }
+
     // Useful to see which preferences are set under the hood by Matter libraries.
     displayPreferences(this)
+  }
+
+  override fun onStart() {
+    super.onStart()
+    Timber.d("onStart()")
   }
 
   /**
