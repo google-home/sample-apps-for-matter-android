@@ -281,7 +281,7 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
   /**
    * Wrapper around [ChipDeviceController.subscribeToAttributePath]
    */
-  suspend fun subscribeToAttributePath(
+  suspend fun subscribeToAttribute(
       devicePtr: Long,
       attributePath: ChipAttributePath,
       minInterval: Int, maxInterval: Int,
