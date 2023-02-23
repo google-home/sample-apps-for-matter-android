@@ -39,7 +39,6 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 import timber.log.Timber
-import kotlin.math.max
 
 /** Singleton to interact with the CHIP APIs. */
 @Singleton
@@ -237,64 +236,66 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
     return chipDeviceController.getDiscoveredDevice(index)
   }
 
-  suspend fun readAttribute(
-      devicePtr: Long,
-      attributePath: ChipAttributePath): AttributeState? {
-    return readAttributes(devicePtr, listOf(attributePath))[attributePath];
+  // ---------------------------------------------------------------------------
+  // Access clusters via numeric ids. Useful to access manufacturer specific clusters.
+
+  suspend fun readAttribute(devicePtr: Long, attributePath: ChipAttributePath): AttributeState? {
+    return readAttributes(devicePtr, listOf(attributePath))[attributePath]
   }
 
-  /**
-   * Wrapper around [ChipDeviceController.readAttributePath]
-   */
+  /** Wrapper around [ChipDeviceController.readAttributePath] */
   suspend fun readAttributes(
       devicePtr: Long,
-      attributePaths: List<ChipAttributePath>): Map<ChipAttributePath, AttributeState> {
+      attributePaths: List<ChipAttributePath>
+  ): Map<ChipAttributePath, AttributeState> {
     return suspendCoroutine { continuation ->
-        val callback: ReportCallback = object : ReportCallback {
+      val callback: ReportCallback =
+          object : ReportCallback {
             override fun onError(
                 attributePath: ChipAttributePath?,
                 eventPath: ChipEventPath?,
                 e: Exception?
             ) {
-                continuation.resumeWithException(IllegalStateException("readAttributes failed", e))
+              continuation.resumeWithException(IllegalStateException("readAttributes failed", e))
             }
 
             override fun onReport(nodeState: NodeState?) {
-                val states: HashMap<ChipAttributePath, AttributeState> = HashMap()
-                for(path in attributePaths) {
-                    var endpoint: Int = path.endpointId.id.toInt()
-                    states[path] = nodeState!!.getEndpointState(endpoint)!!
+              val states: HashMap<ChipAttributePath, AttributeState> = HashMap()
+              for (path in attributePaths) {
+                var endpoint: Int = path.endpointId.id.toInt()
+                states[path] =
+                    nodeState!!
+                        .getEndpointState(endpoint)!!
                         .getClusterState(path.clusterId.id)!!
                         .getAttributeState(path.attributeId.id)!!
-                }
-                continuation.resume(states);
+              }
+              continuation.resume(states)
             }
 
             override fun onDone() {
-                super.onDone()
+              super.onDone()
             }
-        }
-        chipDeviceController.readAttributePath(callback, devicePtr, attributePaths);
-      }
+          }
+      chipDeviceController.readAttributePath(callback, devicePtr, attributePaths)
+    }
   }
 
-  /**
-   * Wrapper around [ChipDeviceController.subscribeToAttributePath]
-   */
+  /** Wrapper around [ChipDeviceController.subscribeToAttributePath] */
   suspend fun subscribeToAttribute(
       devicePtr: Long,
       attributePath: ChipAttributePath,
-      minInterval: Int, maxInterval: Int,
-      callback: ReportCallback) {
+      minInterval: Int,
+      maxInterval: Int,
+      callback: ReportCallback
+  ) {
     return suspendCoroutine { continuation ->
-        chipDeviceController.subscribeToAttributePath(
-            { continuation.resume(Unit) },
-            callback,
-            devicePtr,
-            listOf(attributePath),
-            minInterval,
-            maxInterval
-        )
+      chipDeviceController.subscribeToAttributePath(
+          { continuation.resume(Unit) },
+          callback,
+          devicePtr,
+          listOf(attributePath),
+          minInterval,
+          maxInterval)
     }
   }
 }
