@@ -139,7 +139,10 @@ class HomeFragment : Fragment() {
     super.onCreate(savedInstanceState)
     Timber.d("onCreate bundle is: ${savedInstanceState.toString()}")
 
-    // We need our own device attestation delegate.
+    // We need our own device attestation delegate as we currently only support attestation
+    // of test Matter devices. This DeviceAttestationDelegate makes it possible to ignore device
+    // attestation failures, which happen if commissioning production devices.
+    // TODO: Look into supporting different Root CAs.
     setDeviceAttestationDelegate()
 
     // Commission Device Step 1, where An activity launcher is registered.
