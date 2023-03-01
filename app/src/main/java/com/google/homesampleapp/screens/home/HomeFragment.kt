@@ -109,6 +109,12 @@ class HomeFragment : Fragment() {
   // Error alert dialog.
   private lateinit var errorAlertDialog: AlertDialog
 
+  // Tells whether a device attestation failure was ignored.
+  // This is used in the "Device information" screen to warn the user about that fact.
+  // We're doing it this way as we cannot ask permission to the user while the
+  // decision has to be made because UI is fully controlled by GPS at that point.
+  private var deviceAttestationFailureIgnored = false
+
   // The adapter used by the RecyclerView (where we show the list of devices).
   private val adapter =
       DevicesAdapter(
@@ -171,17 +177,26 @@ class HomeFragment : Fragment() {
   }
 
   private fun showNewDeviceAlertDialog(activityResult: ActivityResult?) {
-    MaterialAlertDialogBuilder(requireContext())
-        .setView(newDeviceAlertDialogBinding.root)
-        .setTitle("New device information")
-        .setPositiveButton(resources.getString(R.string.ok)) { _, _ ->
-          // Extract the info entered by user and process it.
-          val nameTextView: TextInputEditText = newDeviceAlertDialogBinding.nameTextView
-          val deviceName = nameTextView.text.toString()
-          viewModel.commissionDeviceSucceeded(activityResult!!, deviceName)
-        }
-        .create()
-        .show()
+    val dialog =
+        MaterialAlertDialogBuilder(requireContext())
+            .setView(newDeviceAlertDialogBinding.root)
+            .setTitle("New device information")
+            .setPositiveButton(resources.getString(R.string.ok)) { _, _ ->
+              // Extract the info entered by user and process it.
+              val nameTextView: TextInputEditText = newDeviceAlertDialogBinding.nameTextView
+              val deviceName = nameTextView.text.toString()
+              viewModel.commissionDeviceSucceeded(activityResult!!, deviceName)
+            }
+            .create()
+
+    if (deviceAttestationFailureIgnored) {
+      dialog.setMessage(
+          Html.fromHtml(getString(R.string.device_attestation_warning), FROM_HTML_MODE_LEGACY))
+    }
+    dialog.show()
+    // Make the hyperlink clickable. Must be set after show().
+    val msgTextView: TextView? = dialog.findViewById(android.R.id.message)
+    msgTextView?.movementMethod = LinkMovementMethod.getInstance()
   }
 
   override fun onCreateView(
@@ -286,6 +301,7 @@ class HomeFragment : Fragment() {
     // Add device button click listener. This triggers the commissioning of a Matter device.
     binding.addDeviceButton.setOnClickListener {
       Timber.d("addDeviceButton.setOnClickListener")
+      deviceAttestationFailureIgnored = false
       viewModel.stopMonitoringStateChanges()
       viewModel.commissionDevice(requireContext())
     }
@@ -433,6 +449,7 @@ class HomeFragment : Fragment() {
             // Dialog will only show up after GPS gives us back control.
             // So, we simply ignore the attestation failure for now.
             // TODO: Add a new setting to control that behavior.
+            deviceAttestationFailureIgnored = true
             Timber.w("Ignoring attestation failure.")
             lifecycleScope.launch {
               chipClient.chipDeviceController.continueCommissioning(devicePtr, true)
