@@ -101,5 +101,8 @@ All of the information will be logged in logcat. Use this command  to only view 
         Changing the setting for "Halfsheet Notification" will only take effect when the application
         exits and then re-enters the foreground state.
     </string>
-
+    <string name="device_attestation_warning">
+        WARNING: The device attestation failed but was ignored.&lt;p>
+        For details, see &lt;a href="https://github.com/google-home/sample-app-for-matter-android/wiki/Device-Attestation-Failure">Device Attestation Failure&lt;/a>.
+    </string>
 </resources>

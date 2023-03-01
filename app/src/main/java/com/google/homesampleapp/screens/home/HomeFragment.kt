@@ -34,12 +34,16 @@ import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.findNavController
+import chip.devicecontroller.AttestationInfo
+import chip.devicecontroller.DeviceAttestationDelegate
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.android.material.textfield.TextInputEditText
 import com.google.homesampleapp.R
 import com.google.homesampleapp.TaskStatus
+import com.google.homesampleapp.chip.ChipClient
 import com.google.homesampleapp.data.DevicesRepository
 import com.google.homesampleapp.data.DevicesStateRepository
 import com.google.homesampleapp.data.UserPreferencesRepository
@@ -53,6 +57,7 @@ import com.google.homesampleapp.screens.shared.UserPreferencesViewModel
 import com.google.homesampleapp.showAlertDialog
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 /**
@@ -81,6 +86,7 @@ class HomeFragment : Fragment() {
   @Inject internal lateinit var devicesRepository: DevicesRepository
   @Inject internal lateinit var devicesStateRepository: DevicesStateRepository
   @Inject internal lateinit var userPreferencesRepository: UserPreferencesRepository
+  @Inject internal lateinit var chipClient: ChipClient
 
   // Fragment binding.
   private lateinit var binding: FragmentHomeBinding
@@ -102,6 +108,12 @@ class HomeFragment : Fragment() {
 
   // Error alert dialog.
   private lateinit var errorAlertDialog: AlertDialog
+
+  // Tells whether a device attestation failure was ignored.
+  // This is used in the "Device information" screen to warn the user about that fact.
+  // We're doing it this way as we cannot ask permission to the user while the
+  // decision has to be made because UI is fully controlled by GPS at that point.
+  private var deviceAttestationFailureIgnored = false
 
   // The adapter used by the RecyclerView (where we show the list of devices).
   private val adapter =
@@ -133,6 +145,12 @@ class HomeFragment : Fragment() {
     super.onCreate(savedInstanceState)
     Timber.d("onCreate bundle is: ${savedInstanceState.toString()}")
 
+    // We need our own device attestation delegate as we currently only support attestation
+    // of test Matter devices. This DeviceAttestationDelegate makes it possible to ignore device
+    // attestation failures, which happen if commissioning production devices.
+    // TODO: Look into supporting different Root CAs.
+    setDeviceAttestationDelegate()
+
     // Commission Device Step 1, where An activity launcher is registered.
     // At step 2 of the "Commission Device" flow, the user triggers the "Commission Device"
     // action and the ViewModel calls the Google Play Services (GPS) API
@@ -159,17 +177,26 @@ class HomeFragment : Fragment() {
   }
 
   private fun showNewDeviceAlertDialog(activityResult: ActivityResult?) {
-    MaterialAlertDialogBuilder(requireContext())
-        .setView(newDeviceAlertDialogBinding.root)
-        .setTitle("New device information")
-        .setPositiveButton(resources.getString(R.string.ok)) { _, _ ->
-          // Extract the info entered by user and process it.
-          val nameTextView: TextInputEditText = newDeviceAlertDialogBinding.nameTextView
-          val deviceName = nameTextView.text.toString()
-          viewModel.commissionDeviceSucceeded(activityResult!!, deviceName)
-        }
-        .create()
-        .show()
+    val dialog =
+        MaterialAlertDialogBuilder(requireContext())
+            .setView(newDeviceAlertDialogBinding.root)
+            .setTitle("New device information")
+            .setPositiveButton(resources.getString(R.string.ok)) { _, _ ->
+              // Extract the info entered by user and process it.
+              val nameTextView: TextInputEditText = newDeviceAlertDialogBinding.nameTextView
+              val deviceName = nameTextView.text.toString()
+              viewModel.commissionDeviceSucceeded(activityResult!!, deviceName)
+            }
+            .create()
+
+    if (deviceAttestationFailureIgnored) {
+      dialog.setMessage(
+          Html.fromHtml(getString(R.string.device_attestation_warning), FROM_HTML_MODE_LEGACY))
+    }
+    dialog.show()
+    // Make the hyperlink clickable. Must be set after show().
+    val msgTextView: TextView? = dialog.findViewById(android.R.id.message)
+    msgTextView?.movementMethod = LinkMovementMethod.getInstance()
   }
 
   override fun onCreateView(
@@ -239,6 +266,11 @@ class HomeFragment : Fragment() {
     Timber.d("onStart()")
   }
 
+  override fun onDestroy() {
+    super.onDestroy()
+    chipClient.chipDeviceController.setDeviceAttestationDelegate(0, EmptyAttestationDelegate())
+  }
+
   // -----------------------------------------------------------------------------------------------
   // Setup UI elements of the fragment
 
@@ -269,6 +301,7 @@ class HomeFragment : Fragment() {
     // Add device button click listener. This triggers the commissioning of a Matter device.
     binding.addDeviceButton.setOnClickListener {
       Timber.d("addDeviceButton.setOnClickListener")
+      deviceAttestationFailureIgnored = false
       viewModel.stopMonitoringStateChanges()
       viewModel.commissionDevice(requireContext())
     }
@@ -382,5 +415,56 @@ class HomeFragment : Fragment() {
     // Make the hyperlink clickable. Must be set after show().
     val msgTextView: TextView? = codelabInfoAlertDialog.findViewById(android.R.id.message)
     msgTextView?.movementMethod = LinkMovementMethod.getInstance()
+  }
+
+  // ---------------------------------------------------------------------------
+  // Device Attestation Delegate
+
+  private class EmptyAttestationDelegate : DeviceAttestationDelegate {
+    override fun onDeviceAttestationCompleted(
+        devicePtr: Long,
+        attestationInfo: AttestationInfo,
+        errorCode: Int
+    ) {}
+  }
+
+  private fun setDeviceAttestationDelegate() {
+    chipClient.chipDeviceController.setDeviceAttestationDelegate(
+        DEVICE_ATTESTATION_FAILED_TIMEOUT_SECONDS) { devicePtr, attestationInfo, errorCode ->
+          Timber.d(
+              "Device attestation errorCode: $errorCode, " +
+                  "Look at 'src/credentials/attestation_verifier/DeviceAttestationVerifier.h' " +
+                  "AttestationVerificationResult enum to understand the errors")
+
+          if (errorCode == STATUS_PAIRING_SUCCESS) {
+            Timber.d("DeviceAttestationDelegate: Success on device attestation.")
+            lifecycleScope.launch {
+              chipClient.chipDeviceController.continueCommissioning(devicePtr, true)
+            }
+          } else {
+            Timber.d("DeviceAttestationDelegate: Error on device attestation [$errorCode].")
+            // Ideally, we'd want to show a Dialog and ask the user whether the attestation
+            // failure should be ignored or not.
+            // Unfortunately, the GPS commissioning API is in control at this point, and the
+            // Dialog will only show up after GPS gives us back control.
+            // So, we simply ignore the attestation failure for now.
+            // TODO: Add a new setting to control that behavior.
+            deviceAttestationFailureIgnored = true
+            Timber.w("Ignoring attestation failure.")
+            lifecycleScope.launch {
+              chipClient.chipDeviceController.continueCommissioning(devicePtr, true)
+            }
+          }
+        }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Companion object
+
+  companion object {
+    private const val STATUS_PAIRING_SUCCESS = 0
+
+    /** Set for the fail-safe timer before onDeviceAttestationFailed is invoked. */
+    private const val DEVICE_ATTESTATION_FAILED_TIMEOUT_SECONDS = 60
   }
 }
