@@ -43,20 +43,13 @@ class InspectViewModel @Inject constructor(private val clustersHelper: ClustersH
     viewModelScope.launch {
       try {
         // Introspect the device.
-        val deviceMatterInfoList = clustersHelper.fetchDeviceMatterInfo(deviceId, 0)
+        val deviceMatterInfoList = clustersHelper.fetchDeviceMatterInfo(deviceId)
         _instrospectionInfo.postValue(deviceMatterInfoList)
-        for (deviceMatterInfo in deviceMatterInfoList) {
-          Timber.d("[${deviceMatterInfo}]")
-          val deviceMatterInfoListEndpoint =
-              clustersHelper.fetchDeviceMatterInfo(deviceId, deviceMatterInfo.endpoint)
-          if (deviceMatterInfoListEndpoint.isEmpty()) {
-            Timber.d("No parts in ${deviceMatterInfo.endpoint}")
-          } else {
-            for (deviceMatterInfoEndpoint in deviceMatterInfoListEndpoint) {
-              Timber.d(
-                  "*** FIXME: MATTER DEVICE INFO ENDPOINT [${deviceMatterInfoEndpoint.endpoint}***")
-              Timber.d("[${deviceMatterInfoEndpoint}]")
-            }
+        if (deviceMatterInfoList.isEmpty()) {
+          Timber.d("deviceMatterInfoList is empty")
+        } else {
+          for (deviceMatterInfo in deviceMatterInfoList) {
+            Timber.d("[${deviceMatterInfo}]")
           }
         }
       } catch (e: Exception) {
