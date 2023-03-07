@@ -370,17 +370,27 @@ constructor(
       // Introspect the device and update its deviceType.
       // TODO: Need to get capabilities information and store that in the devices repository.
       // (e.g on/off on which endpoint).
-      val deviceMatterInfoList = clustersHelper.fetchDeviceMatterInfo(deviceId, 0)
+      val deviceMatterInfoList = clustersHelper.fetchDeviceMatterInfo(deviceId)
       Timber.d("*** MATTER DEVICE INFO ***")
-      deviceMatterInfoList.forEachIndexed { index, deviceMatterInfo ->
-        Timber.d("Processing [[${index}] ${deviceMatterInfo}]")
-        if (index == 0) {
+      var gotDeviceType = false
+      deviceMatterInfoList.forEach { deviceMatterInfo ->
+        Timber.d("Processing endpoint [$deviceMatterInfo.endpoint]")
+        // Endpoint 0 is the Root Node, so we disregard it.
+        if (deviceMatterInfo.endpoint != 0) {
+          if (gotDeviceType) {
+            // TODO: Handle this properly once we have specific examples to learn from.
+            Timber.w(
+                "The device has more than one endpoint. We're simply using the first one to define the device type.")
+            return@forEach
+          }
           if (deviceMatterInfo.types.size > 1) {
-            // TODO: Handle this properly
-            Timber.w("The device has more than one type. We're simply using the first one.")
+            // TODO: Handle this properly once we have specific examples to learn from.
+            Timber.w(
+                "The endpoint has more than one type. We're simply using the first one to define the device type.")
           }
           devicesRepository.updateDeviceType(
               deviceId, convertToAppDeviceType(deviceMatterInfo.types.first()))
+          gotDeviceType = true
         }
       }
     }
