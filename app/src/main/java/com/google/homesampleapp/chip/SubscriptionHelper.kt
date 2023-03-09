@@ -70,7 +70,7 @@ class SubscriptionHelper @Inject constructor(private val chipClient: ChipClient)
     scope.launch {
       try {
         val connectedDevicePtr = chipClient.getConnectedDevicePointer(deviceId)
-        chipClient.chipDeviceController.shutdownSubscriptions(connectedDevicePtr)
+        chipClient.chipDeviceController.shutdownSubscriptions(true)
       } catch (e: Throwable) {
         Timber.e("unsubscribeToPeriodicUpdates() failed: $e")
       }
@@ -125,8 +125,8 @@ class SubscriptionHelper @Inject constructor(private val chipClient: ChipClient)
 
   open class SubscriptionEstablishedCallbackForDevice(val deviceId: Long) :
       SubscriptionEstablishedCallback {
-    override fun onSubscriptionEstablished() {
-      Timber.d("onSubscriptionEstablished(): device [${deviceId}]")
+    override fun onSubscriptionEstablished(subscriptionId: Long) {
+      Timber.d("onSubscriptionEstablished(): subscriptionId [${subscriptionId}]")
     }
   }
 
