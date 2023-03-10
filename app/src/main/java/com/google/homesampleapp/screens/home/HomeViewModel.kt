@@ -44,8 +44,8 @@ import com.google.homesampleapp.PERIODIC_READ_INTERVAL_HOME_SCREEN_SECONDS
 import com.google.homesampleapp.STATE_CHANGES_MONITORING_MODE
 import com.google.homesampleapp.StateChangesMonitoringMode
 import com.google.homesampleapp.TaskStatus
-import com.google.homesampleapp.UNSUBSCRIBE_ENABLED
 import com.google.homesampleapp.UserPreferences
+import com.google.homesampleapp.chip.ChipClient
 import com.google.homesampleapp.chip.ClustersHelper
 import com.google.homesampleapp.chip.MatterConstants.OnOffAttribute
 import com.google.homesampleapp.chip.SubscriptionHelper
@@ -100,6 +100,7 @@ constructor(
     private val devicesStateRepository: DevicesStateRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val clustersHelper: ClustersHelper,
+    private val chipClient: ChipClient,
     private val subscriptionHelper: SubscriptionHelper,
 ) : ViewModel() {
 
@@ -479,25 +480,36 @@ constructor(
                 }
               }
             }
-        subscriptionHelper.subscribeToPeriodicUpdates(
-            device.deviceId,
+
+        try {
+          val connectedDevicePointer = chipClient.getConnectedDevicePointer(device.deviceId)
+          subscriptionHelper.awaitSubscribeToPeriodicUpdates(
+            connectedDevicePointer,
             SubscriptionHelper.SubscriptionEstablishedCallbackForDevice(device.deviceId),
             SubscriptionHelper.ResubscriptionAttemptCallbackForDevice(device.deviceId),
             reportCallback)
+        } catch (e: IllegalStateException) {
+          Timber.e("Can't get connectedDevicePointer for ${device.deviceId}.")
+          return@forEach
+        }
       }
     }
   }
 
   private fun unsubscribeToDevicesPeriodicUpdates() {
-    Timber.d("unsubscribeToPeriodicUpdates(): UNSUBSCRIBE_ENABLED [$UNSUBSCRIBE_ENABLED]")
-    if (!UNSUBSCRIBE_ENABLED) {
-      return
-    }
+    Timber.d("unsubscribeToPeriodicUpdates()")
     viewModelScope.launch {
       // For each one of the real devices
       val devicesList = devicesRepository.getAllDevices().devicesList
       devicesList.forEach { device ->
-        subscriptionHelper.unsubscribeToPeriodicUpdates(device.deviceId)
+        try {
+          val connectedDevicePtr =
+            chipClient.getConnectedDevicePointer(device.deviceId)
+          subscriptionHelper.awaitUnsubscribeToPeriodicUpdates(connectedDevicePtr)
+        } catch (e: IllegalStateException) {
+          Timber.e("Can't get connectedDevicePointer for ${device.deviceId}.")
+          return@forEach
+        }
       }
     }
   }

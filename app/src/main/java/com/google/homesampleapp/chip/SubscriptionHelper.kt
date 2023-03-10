@@ -15,65 +15,57 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 @Singleton
 class SubscriptionHelper @Inject constructor(private val chipClient: ChipClient) {
 
-  private val scope = CoroutineScope(Dispatchers.Main)
-
-  fun subscribeToPeriodicUpdates(
-      deviceId: Long,
-      subscriptionEstablishedCallback: SubscriptionEstablishedCallback,
-      resubscriptionAttemptCallback: ResubscriptionAttemptCallback,
-      reportCallback: ReportCallback
+  suspend fun awaitSubscribeToPeriodicUpdates(
+    connectedDevicePtr: Long,
+    subscriptionEstablishedCallback: SubscriptionEstablishedCallback,
+    resubscriptionAttemptCallback: ResubscriptionAttemptCallback,
+    reportCallback: ReportCallback
   ) {
-    Timber.d("subscribeToPeriodicUpdates(): deviceId [${deviceId}]")
-    val endpointId = ChipPathId.forWildcard()
-    val clusterId = ChipPathId.forWildcard()
-    val attributeId = ChipPathId.forWildcard()
-    val minInterval = 1 // seconds
-    val maxInterval = 10 // seconds
-    val attributePath = ChipAttributePath.newInstance(endpointId, clusterId, attributeId)
-    val eventPath = ChipEventPath.newInstance(endpointId, clusterId, attributeId)
-    Timber.d("attributePath: [${attributePath}]")
-    scope.launch {
-      try {
-        val connectedDevicePtr = chipClient.getConnectedDevicePointer(deviceId)
+    return suspendCoroutine { continuation ->
+      Timber.d("subscribeToPeriodicUpdates()")
+      val endpointId = ChipPathId.forWildcard()
+      val clusterId = ChipPathId.forWildcard()
+      val attributeId = ChipPathId.forWildcard()
+      val minInterval = 1 // seconds
+      val maxInterval = 10 // seconds
+      val attributePath = ChipAttributePath.newInstance(endpointId, clusterId, attributeId)
+      val eventPath = ChipEventPath.newInstance(endpointId, clusterId, attributeId)
+      Timber.d("attributePath: [${attributePath}]")
         chipClient.chipDeviceController.subscribeToPath(
-            subscriptionEstablishedCallback,
-            resubscriptionAttemptCallback,
-            reportCallback,
-            connectedDevicePtr,
-            listOf(attributePath),
-            listOf(eventPath),
-            minInterval,
-            maxInterval,
-            // keepSubscriptions
-            // false: all existing or pending subscriptions on the publisher for this
-            // subscriber SHALL be terminated.
-            false,
-            // isFabricFiltered
-            // limits the data read within fabric-scoped lists to the accessing fabric.
-            // Some things (such as the list of fabrics on the device) need to *not be*
-            // fabric-scoped,
-            // i.e. isFabricFiltered = false, to allow reading all values not just the one for the
-            // current fabric
-            false)
-      } catch (e: Throwable) {
-        Timber.e("subscribeToPeriodicUpdates() failed: $e")
-      }
+          subscriptionEstablishedCallback,
+          resubscriptionAttemptCallback,
+          reportCallback,
+          connectedDevicePtr,
+          listOf(attributePath),
+          listOf(eventPath),
+          minInterval,
+          maxInterval,
+          // keepSubscriptions
+          // false: all existing or pending subscriptions on the publisher for this
+          // subscriber SHALL be terminated.
+          false,
+          // isFabricFiltered
+          // limits the data read within fabric-scoped lists to the accessing fabric.
+          // Some things (such as the list of fabrics on the device) need to *not be*
+          // fabric-scoped,
+          // i.e. isFabricFiltered = false, to allow reading all values not just the one for the
+          // current fabric
+          false)
+      continuation.resume(Unit)
     }
   }
 
-  fun unsubscribeToPeriodicUpdates(deviceId: Long) {
-    Timber.d("unsubscribeToPeriodicUpdates(): deviceId [${deviceId}]")
-    scope.launch {
-      try {
-        val connectedDevicePtr = chipClient.getConnectedDevicePointer(deviceId)
-        chipClient.chipDeviceController.shutdownSubscriptions(true)
-      } catch (e: Throwable) {
-        Timber.e("unsubscribeToPeriodicUpdates() failed: $e")
-      }
+  suspend fun awaitUnsubscribeToPeriodicUpdates(connectedDevicePtr: Long) {
+    Timber.d("awaitUnsubscribeToPeriodicUpdates()")
+    return suspendCoroutine { continuation ->
+      chipClient.chipDeviceController.shutdownSubscriptions()
+      continuation.resume(Unit)
     }
   }
 

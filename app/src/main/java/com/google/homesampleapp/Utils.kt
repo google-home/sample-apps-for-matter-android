@@ -288,10 +288,6 @@ enum class StateChangesMonitoringMode {
 
 val STATE_CHANGES_MONITORING_MODE = StateChangesMonitoringMode.Subscription
 
-// We currently have issues with terminating subscriptions.
-// Toggle this switch to test both behaviors.
-const val UNSUBSCRIBE_ENABLED = false
-
 // Intervals for PeriodicRead mode.
 const val PERIODIC_READ_INTERVAL_HOME_SCREEN_SECONDS = 10
 const val PERIODIC_READ_INTERVAL_DEVICE_SCREEN_SECONDS = 2
