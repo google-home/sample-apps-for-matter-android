@@ -140,11 +140,6 @@ kapt {
     correctErrorTypes true
 }
 
-ktfmt {
-    // Google style - 2 space indentation
-    googleStyle()
-}
-
 protobuf {
     protoc {
         // For Apple M1 Chip

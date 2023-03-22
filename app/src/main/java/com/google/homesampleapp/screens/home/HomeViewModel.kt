@@ -484,10 +484,10 @@ constructor(
         try {
           val connectedDevicePointer = chipClient.getConnectedDevicePointer(device.deviceId)
           subscriptionHelper.awaitSubscribeToPeriodicUpdates(
-            connectedDevicePointer,
-            SubscriptionHelper.SubscriptionEstablishedCallbackForDevice(device.deviceId),
-            SubscriptionHelper.ResubscriptionAttemptCallbackForDevice(device.deviceId),
-            reportCallback)
+              connectedDevicePointer,
+              SubscriptionHelper.SubscriptionEstablishedCallbackForDevice(device.deviceId),
+              SubscriptionHelper.ResubscriptionAttemptCallbackForDevice(device.deviceId),
+              reportCallback)
         } catch (e: IllegalStateException) {
           Timber.e("Can't get connectedDevicePointer for ${device.deviceId}.")
           return@forEach
@@ -503,8 +503,7 @@ constructor(
       val devicesList = devicesRepository.getAllDevices().devicesList
       devicesList.forEach { device ->
         try {
-          val connectedDevicePtr =
-            chipClient.getConnectedDevicePointer(device.deviceId)
+          val connectedDevicePtr = chipClient.getConnectedDevicePointer(device.deviceId)
           subscriptionHelper.awaitUnsubscribeToPeriodicUpdates(connectedDevicePtr)
         } catch (e: IllegalStateException) {
           Timber.e("Can't get connectedDevicePointer for ${device.deviceId}.")

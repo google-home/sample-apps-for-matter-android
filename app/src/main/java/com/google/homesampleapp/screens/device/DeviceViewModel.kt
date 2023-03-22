@@ -410,13 +410,14 @@ constructor(
     viewModelScope.launch {
       try {
         val connectedDevicePointer =
-          chipClient.getConnectedDevicePointer(deviceUiModel.device.deviceId)
+            chipClient.getConnectedDevicePointer(deviceUiModel.device.deviceId)
         subscriptionHelper.awaitSubscribeToPeriodicUpdates(
-          connectedDevicePointer,
-          SubscriptionHelper.SubscriptionEstablishedCallbackForDevice(deviceUiModel.device.deviceId),
-          SubscriptionHelper.ResubscriptionAttemptCallbackForDevice(deviceUiModel.device.deviceId),
-          reportCallback
-        )
+            connectedDevicePointer,
+            SubscriptionHelper.SubscriptionEstablishedCallbackForDevice(
+                deviceUiModel.device.deviceId),
+            SubscriptionHelper.ResubscriptionAttemptCallbackForDevice(
+                deviceUiModel.device.deviceId),
+            reportCallback)
       } catch (e: IllegalStateException) {
         Timber.e("Can't get connectedDevicePointer for ${deviceUiModel.device.deviceId}.")
         return@launch
@@ -428,8 +429,7 @@ constructor(
     Timber.d("unsubscribeToPeriodicUpdates()")
     viewModelScope.launch {
       try {
-        val connectedDevicePtr =
-          chipClient.getConnectedDevicePointer(deviceUiModel.device.deviceId)
+        val connectedDevicePtr = chipClient.getConnectedDevicePointer(deviceUiModel.device.deviceId)
         subscriptionHelper.awaitUnsubscribeToPeriodicUpdates(connectedDevicePtr)
       } catch (e: IllegalStateException) {
         Timber.e("Can't get connectedDevicePointer for ${deviceUiModel.device.deviceId}.")
