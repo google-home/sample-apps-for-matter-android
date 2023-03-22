@@ -64,7 +64,9 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
             DiagnosticDataProviderImpl(context)
         )
         ChipDeviceController(
-            ControllerParams.newBuilder().setUdpListenPort(0).setControllerVendorId(VENDOR_ID)
+            ControllerParams.newBuilder()
+                .setUdpListenPort(0)
+                .setControllerVendorId(VENDOR_ID)
                 .build()
         )
     }
@@ -87,7 +89,8 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
                         Timber.e(errorMessage, error)
                         continuation.resumeWithException(IllegalStateException(errorMessage))
                     }
-                })
+                }
+            )
         }
     }
 
@@ -117,8 +120,10 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
                         continuation.resume(Unit)
                     }
 
-                    // Note that an error in processing is not necessarily communicated via onError().
-                    // onCommissioningComplete with a "code != 0" also denotes an error in processing.
+                    // Note that an error in processing is not necessarily communicated via
+                    // onError().
+                    // onCommissioningComplete with a "code != 0" also denotes an error in
+                    // processing.
                     override fun onPairingComplete(code: Int) {
                         super.onPairingComplete(code)
                         if (code != 0) {
@@ -158,12 +163,16 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
                         super.onCommissioningStatusUpdate(nodeId, stage, errorCode)
                         continuation.resume(Unit)
                     }
-                })
+                }
+            )
 
             // Temporary workaround to remove interface indexes from ipAddress
             // due to https://github.com/project-chip/connectedhomeip/pull/19394/files
             chipDeviceController.establishPaseConnection(
-                deviceId, stripLinkLocalInIpAddress(ipAddress), port, setupPinCode
+                deviceId,
+                stripLinkLocalInIpAddress(ipAddress),
+                port,
+                setupPinCode
             )
         }
     }
@@ -172,13 +181,17 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
         return suspendCoroutine { continuation ->
             chipDeviceController.setCompletionListener(
                 object : BaseCompletionListener() {
-                    // Note that an error in processing is not necessarily communicated via onError().
-                    // onCommissioningComplete with an "errorCode != 0" also denotes an error in processing.
+                    // Note that an error in processing is not necessarily communicated via
+                    // onError().
+                    // onCommissioningComplete with an "errorCode != 0" also denotes an error in
+                    // processing.
                     override fun onCommissioningComplete(nodeId: Long, errorCode: Int) {
                         super.onCommissioningComplete(nodeId, errorCode)
                         if (errorCode != 0) {
                             continuation.resumeWithException(
-                                IllegalStateException("Commissioning failed with error code [${errorCode}]")
+                                IllegalStateException(
+                                    "Commissioning failed with error code [${errorCode}]"
+                                )
                             )
                         } else {
                             continuation.resume(Unit)
@@ -189,7 +202,8 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
                         super.onError(error)
                         continuation.resumeWithException(error)
                     }
-                })
+                }
+            )
             chipDeviceController.commissionDevice(deviceId, networkCredentials)
         }
     }
@@ -228,7 +242,12 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
                     }
                 }
             chipDeviceController.openPairingWindowWithPINCallback(
-                connectedDevicePointer, duration, iteration, discriminator, setupPinCode, callback
+                connectedDevicePointer,
+                duration,
+                iteration,
+                discriminator,
+                setupPinCode,
+                callback
             )
         }
     }
@@ -251,7 +270,8 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
                         Timber.e(errorMessage, error)
                         continuation.resumeWithException(IllegalStateException(errorMessage))
                     }
-                })
+                }
+            )
         }
     }
 
@@ -294,36 +314,39 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
         imTimeoutMs: Int = DEFAULT_TIMEOUT
     ) {
         return suspendCoroutine { continuation ->
-            val requests: List<AttributeWriteRequest> = attributes.toList().map {
-                AttributeWriteRequest.newInstance(
-                    it.first.endpointId,
-                    it.first.clusterId,
-                    it.first.attributeId,
-                    it.second
-                )
-            }
-            val callback: WriteAttributesCallback = object : WriteAttributesCallback {
-                override fun onError(attributePath: ChipAttributePath?, e: java.lang.Exception?) {
-                    continuation.resumeWithException(
-                        IllegalStateException(
-                            "writeAttributes failed",
-                            e
-                        )
+            val requests: List<AttributeWriteRequest> =
+                attributes.toList().map {
+                    AttributeWriteRequest.newInstance(
+                        it.first.endpointId,
+                        it.first.clusterId,
+                        it.first.attributeId,
+                        it.second
                     )
                 }
-
-                override fun onResponse(attributePath: ChipAttributePath?) {
-                    if (attributePath!! == ChipAttributePath.newInstance(
-                            requests.last().endpointId,
-                            requests.last().clusterId,
-                            requests.last().attributeId
-                        )
+            val callback: WriteAttributesCallback =
+                object : WriteAttributesCallback {
+                    override fun onError(
+                        attributePath: ChipAttributePath?,
+                        e: java.lang.Exception?
                     ) {
-                        continuation.resume(Unit)
+                        continuation.resumeWithException(
+                            IllegalStateException("writeAttributes failed", e)
+                        )
+                    }
+
+                    override fun onResponse(attributePath: ChipAttributePath?) {
+                        if (
+                            attributePath!! ==
+                            ChipAttributePath.newInstance(
+                                requests.last().endpointId,
+                                requests.last().clusterId,
+                                requests.last().attributeId
+                            )
+                        ) {
+                            continuation.resume(Unit)
+                        }
                     }
                 }
-
-            }
 
             chipDeviceController.write(
                 callback,
@@ -353,10 +376,7 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
                         e: Exception?
                     ) {
                         continuation.resumeWithException(
-                            IllegalStateException(
-                                "readAttributes failed",
-                                e
-                            )
+                            IllegalStateException("readAttributes failed", e)
                         )
                     }
 
@@ -409,16 +429,16 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
         imTimeoutMs: Int = DEFAULT_TIMEOUT
     ): Long {
         return suspendCoroutine { continuation ->
-            val invokeCallback: InvokeCallback = object : InvokeCallback {
-                override fun onError(e: java.lang.Exception?) {
-                    continuation.resumeWithException(IllegalStateException("invoke failed", e))
-                }
+            val invokeCallback: InvokeCallback =
+                object : InvokeCallback {
+                    override fun onError(e: java.lang.Exception?) {
+                        continuation.resumeWithException(IllegalStateException("invoke failed", e))
+                    }
 
-                override fun onResponse(invokeElement: InvokeElement?, successCode: Long) {
-                    continuation.resume(successCode)
+                    override fun onResponse(invokeElement: InvokeElement?, successCode: Long) {
+                        continuation.resume(successCode)
+                    }
                 }
-
-            }
             chipDeviceController.invoke(
                 invokeCallback,
                 devicePtr,
