@@ -11,21 +11,18 @@ import chip.devicecontroller.model.NodeState
 import java.lang.Exception
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import timber.log.Timber
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
+import timber.log.Timber
 
 @Singleton
 class SubscriptionHelper @Inject constructor(private val chipClient: ChipClient) {
 
   suspend fun awaitSubscribeToPeriodicUpdates(
-    connectedDevicePtr: Long,
-    subscriptionEstablishedCallback: SubscriptionEstablishedCallback,
-    resubscriptionAttemptCallback: ResubscriptionAttemptCallback,
-    reportCallback: ReportCallback
+      connectedDevicePtr: Long,
+      subscriptionEstablishedCallback: SubscriptionEstablishedCallback,
+      resubscriptionAttemptCallback: ResubscriptionAttemptCallback,
+      reportCallback: ReportCallback
   ) {
     return suspendCoroutine { continuation ->
       Timber.d("subscribeToPeriodicUpdates()")
@@ -37,7 +34,7 @@ class SubscriptionHelper @Inject constructor(private val chipClient: ChipClient)
       val attributePath = ChipAttributePath.newInstance(endpointId, clusterId, attributeId)
       val eventPath = ChipEventPath.newInstance(endpointId, clusterId, attributeId)
       Timber.d("attributePath: [${attributePath}]")
-        chipClient.chipDeviceController.subscribeToPath(
+      chipClient.chipDeviceController.subscribeToPath(
           subscriptionEstablishedCallback,
           resubscriptionAttemptCallback,
           reportCallback,
