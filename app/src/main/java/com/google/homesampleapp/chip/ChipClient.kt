@@ -19,10 +19,7 @@ package com.google.homesampleapp.chip
 import android.content.Context
 import chip.devicecontroller.*
 import chip.devicecontroller.GetConnectedDeviceCallbackJni.GetConnectedDeviceCallback
-import chip.devicecontroller.model.AttributeState
-import chip.devicecontroller.model.ChipAttributePath
-import chip.devicecontroller.model.ChipEventPath
-import chip.devicecontroller.model.NodeState
+import chip.devicecontroller.model.*
 import chip.platform.AndroidBleManager
 import chip.platform.AndroidChipPlatform
 import chip.platform.ChipMdnsCallbackImpl
@@ -46,6 +43,8 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
 
   /* 0xFFF4 is a test vendor ID, replace with your assigned company ID */
   private val VENDOR_ID = 0xFFF4
+
+  private val DEFAULT_TIMEOUT = 1000
 
   // Lazily instantiate [ChipDeviceController] and hold a reference to it.
   val chipDeviceController: ChipDeviceController by lazy {
@@ -239,6 +238,51 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
   // ---------------------------------------------------------------------------
   // Access clusters via numeric ids. Useful to access manufacturer specific clusters.
 
+  suspend fun writeAttribute(
+      devicePtr: Long,
+      attributePath: ChipAttributePath,
+      tlv: ByteArray,
+      timedRequestTimeoutMs: Int = DEFAULT_TIMEOUT,
+      imTimeoutMs: Int = DEFAULT_TIMEOUT
+  ) {
+    return writeAttributes(
+        devicePtr, mapOf(attributePath to tlv), timedRequestTimeoutMs, imTimeoutMs)
+  }
+
+  /** Wrapper around [ChipDeviceController.write] */
+  suspend fun writeAttributes(
+      devicePtr: Long,
+      attributes: Map<ChipAttributePath, ByteArray>,
+      timedRequestTimeoutMs: Int = DEFAULT_TIMEOUT,
+      imTimeoutMs: Int = DEFAULT_TIMEOUT
+  ) {
+    return suspendCoroutine { continuation ->
+      val requests: List<AttributeWriteRequest> =
+          attributes.toList().map {
+            AttributeWriteRequest.newInstance(
+                it.first.endpointId, it.first.clusterId, it.first.attributeId, it.second)
+          }
+      val callback: WriteAttributesCallback =
+          object : WriteAttributesCallback {
+            override fun onError(attributePath: ChipAttributePath?, e: java.lang.Exception?) {
+              continuation.resumeWithException(IllegalStateException("writeAttributes failed", e))
+            }
+
+            override fun onResponse(attributePath: ChipAttributePath?) {
+              if (attributePath!! ==
+                  ChipAttributePath.newInstance(
+                      requests.last().endpointId,
+                      requests.last().clusterId,
+                      requests.last().attributeId)) {
+                continuation.resume(Unit)
+              }
+            }
+          }
+
+      chipDeviceController.write(callback, devicePtr, requests, timedRequestTimeoutMs, imTimeoutMs)
+    }
+  }
+
   suspend fun readAttribute(devicePtr: Long, attributePath: ChipAttributePath): AttributeState? {
     return readAttributes(devicePtr, listOf(attributePath))[attributePath]
   }
@@ -296,6 +340,29 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
           listOf(attributePath),
           minInterval,
           maxInterval)
+    }
+  }
+
+  /** Wrapper around [ChipDeviceController.invoke] */
+  suspend fun invoke(
+      devicePtr: Long,
+      invokeElement: InvokeElement,
+      timedRequestTimeoutMs: Int = DEFAULT_TIMEOUT,
+      imTimeoutMs: Int = DEFAULT_TIMEOUT
+  ): Long {
+    return suspendCoroutine { continuation ->
+      val invokeCallback: InvokeCallback =
+          object : InvokeCallback {
+            override fun onError(e: java.lang.Exception?) {
+              continuation.resumeWithException(IllegalStateException("invoke failed", e))
+            }
+
+            override fun onResponse(invokeElement: InvokeElement?, successCode: Long) {
+              continuation.resume(successCode)
+            }
+          }
+      chipDeviceController.invoke(
+          invokeCallback, devicePtr, invokeElement, timedRequestTimeoutMs, imTimeoutMs)
     }
   }
 }
