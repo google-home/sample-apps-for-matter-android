@@ -188,6 +188,8 @@ class HomeFragment : Fragment() {
               viewModel.commissionDeviceSucceeded(activityResult!!, deviceName)
             }
             .create()
+    dialog.setCancelable(false)
+    dialog.setCanceledOnTouchOutside(false)
 
     if (deviceAttestationFailureIgnored) {
       dialog.setMessage(
