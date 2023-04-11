@@ -219,8 +219,12 @@ constructor(
 
   fun removeDevice(deviceId: Long) {
     Timber.d("Removing device [${deviceId}]")
-    // TODO: send message to device to unlink.
-    viewModelScope.launch { devicesRepository.removeDevice(deviceId) }
+    chipClient.unpairDevice(deviceId)
+    // ToDo() add UnpairDeviceCallback to unpairDevice and move the block below into
+    //  UnpairDeviceCallback.onSuccess
+    viewModelScope.launch {
+        devicesRepository.removeDevice(deviceId)
+    }
   }
 
   fun updateDeviceStateOn(deviceUiModel: DeviceUiModel, isOn: Boolean) {

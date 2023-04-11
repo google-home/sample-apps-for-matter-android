@@ -83,6 +83,15 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
     }
   }
 
+  /**
+   * Removes device from fabric
+   *
+   * @param nodeId node identifier
+   */
+  fun unpairDevice(nodeId: Long) {
+      chipDeviceController.unpairDevice(nodeId)
+  }
+
   fun computePaseVerifier(
       devicePtr: Long,
       pinCode: Long,
