@@ -89,7 +89,7 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
    * @param nodeId node identifier
    */
   fun unpairDevice(nodeId: Long) {
-      chipDeviceController.unpairDevice(nodeId)
+    chipDeviceController.unpairDevice(nodeId)
   }
 
   fun computePaseVerifier(

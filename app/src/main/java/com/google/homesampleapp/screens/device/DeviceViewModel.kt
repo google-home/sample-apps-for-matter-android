@@ -222,9 +222,7 @@ constructor(
     chipClient.unpairDevice(deviceId)
     // ToDo() add UnpairDeviceCallback to unpairDevice and move the block below into
     //  UnpairDeviceCallback.onSuccess
-    viewModelScope.launch {
-        devicesRepository.removeDevice(deviceId)
-    }
+    viewModelScope.launch { devicesRepository.removeDevice(deviceId) }
   }
 
   fun updateDeviceStateOn(deviceUiModel: DeviceUiModel, isOn: Boolean) {
