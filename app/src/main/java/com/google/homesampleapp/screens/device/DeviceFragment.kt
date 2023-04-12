@@ -309,8 +309,11 @@ class DeviceFragment : Fragment() {
     selectedDeviceViewModel.selectedDeviceIdLiveData.observe(viewLifecycleOwner) { deviceId ->
       Timber.d(
           "selectedDeviceViewModel.selectedDeviceIdLiveData.observe is called with deviceId [${deviceId}]")
-      viewModel.deviceUiModel = selectedDeviceViewModel.selectedDeviceLiveData.value!!
-      updateDeviceInfo(null)
+      // After a device is removed, this is called with deviceId set to -1. Needs to be ignored.
+      if (deviceId != -1L) {
+        viewModel.deviceUiModel = selectedDeviceViewModel.selectedDeviceLiveData.value!!
+        updateDeviceInfo(null)
+      }
     }
   }
 
