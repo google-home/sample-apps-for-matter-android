@@ -74,6 +74,8 @@
     <string name="admin_label">Admin</string>
     <string name="info_label">Info</string>
     <string name="ok">OK</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
     <string name="add_your_first">Start by adding your first Matter device</string>
     <string name="no_devices_yet">No devices yet</string>
     <string name="codelab">Codelab</string>

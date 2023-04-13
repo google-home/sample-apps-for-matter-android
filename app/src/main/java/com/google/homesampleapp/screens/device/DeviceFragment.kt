@@ -46,6 +46,8 @@ import com.google.homesampleapp.displayString
 import com.google.homesampleapp.formatTimestamp
 import com.google.homesampleapp.intentSenderToString
 import com.google.homesampleapp.lifeCycleEvent
+import com.google.homesampleapp.screens.device.DeviceViewModel.Companion.DEVICE_REMOVAL_COMPLETED
+import com.google.homesampleapp.screens.device.DeviceViewModel.Companion.DEVICE_REMOVAL_CONFIRM
 import com.google.homesampleapp.screens.shared.SelectedDeviceViewModel
 import com.google.homesampleapp.showAlertDialog
 import com.google.homesampleapp.stateDisplayString
@@ -159,6 +161,9 @@ class DeviceFragment : Fragment() {
   private fun setupUiElements() {
     // Background Work AlertDialog.
     backgroundWorkAlertDialog = MaterialAlertDialogBuilder(requireContext()).create()
+    // Prevents the ability to remove the dialog.
+    backgroundWorkAlertDialog.setCancelable(false)
+    backgroundWorkAlertDialog.setCanceledOnTouchOutside(false)
 
     // Error AlertDialog
     errorAlertDialog =
@@ -208,16 +213,6 @@ class DeviceFragment : Fragment() {
             // nothing to do
           }
           .setPositiveButton(resources.getString(R.string.yes_remove_it)) { _, _ ->
-            // TODO: the log message below never shows up, don't know why.
-            selectedDeviceViewModel.resetSelectedDevice()
-            val bundle = Bundle()
-            bundle.putString("snackbarMsg", "Removing device [${deviceId}]")
-            // This must be done before calling viewModel.removeDevice() otherwise the bundle won't
-            // make it in HomeFragment.onViewCreated().
-            // TODO: to be investigated
-            requireView()
-                .findNavController()
-                .navigate(R.id.action_deviceFragment_to_homeFragment, bundle)
             viewModel.removeDevice(deviceId!!)
           }
           .show()
@@ -315,6 +310,18 @@ class DeviceFragment : Fragment() {
         updateDeviceInfo(null)
       }
     }
+
+    viewModel.uiActionLiveData.observe(viewLifecycleOwner) { uiAction ->
+      Timber.d("uiActionLiveData.observe is called with [${uiAction}]")
+      if (uiAction != null) {
+        when (uiAction.id) {
+          DEVICE_REMOVAL_CONFIRM -> confirmDeviceRemoval(uiAction.data!!.toLong())
+          DEVICE_REMOVAL_COMPLETED -> deviceRemovalCompleted()
+          else -> Timber.e("Invalid ID in errorInfo: [${uiAction.id}]")
+        }
+        viewModel.consumeUiActionLiveData()
+      }
+    }
   }
 
   // -----------------------------------------------------------------------------------------------
@@ -378,5 +385,25 @@ class DeviceFragment : Fragment() {
     val resources: Resources = requireContext().resources
     val resourceId = resources.getIdentifier(name, "drawable", requireContext().packageName)
     return resources.getDrawable(resourceId)
+  }
+
+  // -----------------------------------------------------------------------------------------------
+  // UIAction handling
+
+  private fun confirmDeviceRemoval(deviceId: Long) {
+    MaterialAlertDialogBuilder(requireContext())
+        .setTitle("Error removing the fabric from the device")
+        .setMessage(
+            "Removing the fabric from the device failed. " +
+                "Do you still want to remove the device from the application?")
+        .setPositiveButton(resources.getString(R.string.yes)) { _, _ ->
+          viewModel.removeDeviceWithoutUnlink(deviceId)
+        }
+        .setNegativeButton(resources.getString(R.string.no)) { _, _ -> }
+        .show()
+  }
+
+  private fun deviceRemovalCompleted() {
+    requireView().findNavController().navigate(R.id.action_deviceFragment_to_homeFragment)
   }
 }
