@@ -251,6 +251,9 @@ fun showAlertDialog(alertDialog: AlertDialog, title: String?, message: String?) 
 
 data class ErrorInfo(val title: String?, val message: String?)
 
+// Used by ViewModel to communicate a UI action to be processed by a Fragment.
+data class UiAction(val id: String, val data: String? = null)
+
 // -------------------------------------------------------------------------------------------------
 // Device Sharing constants
 

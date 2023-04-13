@@ -40,6 +40,7 @@ import com.google.homesampleapp.SETUP_PIN_CODE
 import com.google.homesampleapp.STATE_CHANGES_MONITORING_MODE
 import com.google.homesampleapp.StateChangesMonitoringMode
 import com.google.homesampleapp.TaskStatus
+import com.google.homesampleapp.UiAction
 import com.google.homesampleapp.chip.ChipClient
 import com.google.homesampleapp.chip.ClustersHelper
 import com.google.homesampleapp.chip.MatterConstants.OnOffAttribute
@@ -95,6 +96,15 @@ constructor(
   private val _shareDeviceIntentSender = MutableLiveData<IntentSender?>()
   val shareDeviceIntentSender: LiveData<IntentSender?>
     get() = _shareDeviceIntentSender
+
+  /** Let the fragment know about a UI action to handle. */
+  private val _uiActionLiveData = MutableLiveData<UiAction?>()
+  val uiActionLiveData: LiveData<UiAction?>
+    get() = _uiActionLiveData
+
+  fun consumeUiActionLiveData() {
+    _uiActionLiveData.postValue(null)
+  }
 
   // -----------------------------------------------------------------------------------------------
   // Device Sharing (aka Multi-Admin)
@@ -217,13 +227,50 @@ constructor(
   // -----------------------------------------------------------------------------------------------
   // Operations on device
 
+  // Removes the device. First we remove the fabric from the device, and then we remove the
+  // device from the app's devices repository.
+  // If removing the fabric from the device fails (e.g. device is offline), a dialog is shown so
+  // the user has the option to force remove the device without unlinking the fabric at the
+  // device. If a forced removal is selected, then function removeDeviceWithoutUnlink is called.
+  // TODO: The device will still be linked to the local Android fabric. We should remove all the
+  //  fabrics at the device.
   fun removeDevice(deviceId: Long) {
     Timber.d("Removing device [${deviceId}]")
-    chipClient.unpairDevice(deviceId)
-    // ToDo() add UnpairDeviceCallback to unpairDevice and move the block below into
-    //  UnpairDeviceCallback.onSuccess
     viewModelScope.launch {
-        devicesRepository.removeDevice(deviceId)
+      try {
+        _backgroundWorkAlertDialogAction.postValue(
+            BackgroundWorkAlertDialogAction.Show(
+                "Unlinking the device",
+                "Calling the device to remove the sample app's fabric. " +
+                    "If the device is offline, this will fail when the call times out, " +
+                    "and this may take a while."))
+        chipClient.awaitUnpairDevice(deviceId)
+      } catch (e: Exception) {
+        Timber.e(e, "Unlinking the device failed.")
+        _backgroundWorkAlertDialogAction.postValue(BackgroundWorkAlertDialogAction.Hide)
+        // Show a dialog so the user has the option to force remove without unlinking the device.
+        _uiActionLiveData.postValue(
+            UiAction(id = DEVICE_REMOVAL_CONFIRM, data = deviceId.toString()))
+        return@launch
+      }
+      // Remove device from the app's devices repository.
+      _backgroundWorkAlertDialogAction.postValue(BackgroundWorkAlertDialogAction.Hide)
+      devicesRepository.removeDevice(deviceId)
+      _uiActionLiveData.postValue(UiAction(id = DEVICE_REMOVAL_COMPLETED))
+    }
+  }
+
+  // Removes the device from the app's devices repository, and does not unlink the fabric
+  // from the device.
+  // This function is called after removeDevice() has failed trying to unlink the device
+  // and the user has confirmed that the device should still be removed from the app's device
+  // repository.
+  fun removeDeviceWithoutUnlink(deviceId: Long) {
+    Timber.d("removeDeviceWithoutUnlink: [${deviceId}]")
+    viewModelScope.launch {
+      // Remove device from the app's devices repository.
+      devicesRepository.removeDevice(deviceId)
+      _uiActionLiveData.postValue(UiAction(id = DEVICE_REMOVAL_COMPLETED))
     }
   }
 
@@ -494,5 +541,13 @@ constructor(
       delay(seconds.toLong() * 1000)
       _backgroundWorkAlertDialogAction.postValue(BackgroundWorkAlertDialogAction.Hide)
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Companion object
+
+  companion object {
+    public const val DEVICE_REMOVAL_CONFIRM = "DEVICE_REMOVAL_CONFIRM"
+    public const val DEVICE_REMOVAL_COMPLETED = "DEVICE_REMOVAL_COMPLETED"
   }
 }
