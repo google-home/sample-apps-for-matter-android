@@ -26,6 +26,9 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import timber.log.Timber
+import java.lang.Long.max
+import java.security.SecureRandom
+import kotlin.math.abs
 
 /** Variety of constants and utility functions used in the app. */
 
@@ -204,6 +207,21 @@ fun <T> MutableList<T>.mapButReplace(targetItem: T, newItem: T) = map {
 }
 
 /**
+ * Generates a random number to be used as a device identifier during device commissioning
+ */
+fun generateNextDeviceId(): Long {
+  val secureRandom = try {
+    SecureRandom.getInstance("SHA1PRNG")
+  } catch (ex: Exception) {
+    Timber.w(ex, "Failed to instantiate SecureRandom with SHA1PRNG")
+    // instantiate with the default algorithm
+    SecureRandom()
+  }
+
+  return max(abs(secureRandom.nextLong()), 1)
+}
+
+/**
  * Strip the link-local portion of an IP Address. Was needed to handle
  * https://github.com/google-home/sample-app-for-matter-android/issues/15. For example:
  * ```
@@ -306,6 +324,12 @@ const val DEVICE_SHARING_WITH_GPS = true
 enum class OpenCommissioningWindowApi {
   ChipDeviceController,
   AdministratorCommissioningCluster
+}
+
+// Which method should be used to generate identifiers for devices being commissioned
+enum class DeviceIdGenerator {
+  Random,
+  Incremental
 }
 
 val OPEN_COMMISSIONING_WINDOW_API = OpenCommissioningWindowApi.ChipDeviceController
