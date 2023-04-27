@@ -22,13 +22,13 @@ import android.content.IntentSender
 import androidx.appcompat.app.AlertDialog
 import com.google.protobuf.Timestamp
 import java.io.File
+import java.lang.Long.max
+import java.security.SecureRandom
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import timber.log.Timber
-import java.lang.Long.max
-import java.security.SecureRandom
 import kotlin.math.abs
+import timber.log.Timber
 
 /** Variety of constants and utility functions used in the app. */
 
@@ -206,17 +206,16 @@ fun <T> MutableList<T>.mapButReplace(targetItem: T, newItem: T) = map {
   }
 }
 
-/**
- * Generates a random number to be used as a device identifier during device commissioning
- */
+/** Generates a random number to be used as a device identifier during device commissioning */
 fun generateNextDeviceId(): Long {
-  val secureRandom = try {
-    SecureRandom.getInstance("SHA1PRNG")
-  } catch (ex: Exception) {
-    Timber.w(ex, "Failed to instantiate SecureRandom with SHA1PRNG")
-    // instantiate with the default algorithm
-    SecureRandom()
-  }
+  val secureRandom =
+      try {
+        SecureRandom.getInstance("SHA1PRNG")
+      } catch (ex: Exception) {
+        Timber.w(ex, "Failed to instantiate SecureRandom with SHA1PRNG")
+        // instantiate with the default algorithm
+        SecureRandom()
+      }
 
   return max(abs(secureRandom.nextLong()), 1)
 }

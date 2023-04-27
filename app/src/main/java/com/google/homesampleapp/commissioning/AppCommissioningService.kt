@@ -143,20 +143,19 @@ class AppCommissioningService : Service(), CommissioningService.Callback {
   }
 
   /**
-   * Generates the device id for the device being commissioned
-   * ToDo() move this function into an appropriate class to make it visible in
-   *  HomeFragmentRecyclerViewTest
+   * Generates the device id for the device being commissioned ToDo() move this function into an
+   * appropriate class to make it visible in HomeFragmentRecyclerViewTest
    *
    * @param generator the method used to generate the device id
    */
-  private suspend fun getNextDeviceId(generator: DeviceIdGenerator): Long  {
-    return when(generator) {
-        DeviceIdGenerator.Incremental -> {
-          devicesRepository.incrementAndReturnLastDeviceId()
-        }
-        DeviceIdGenerator.Random -> {
-          generateNextDeviceId()
-        }
+  private suspend fun getNextDeviceId(generator: DeviceIdGenerator): Long {
+    return when (generator) {
+      DeviceIdGenerator.Incremental -> {
+        devicesRepository.incrementAndReturnLastDeviceId()
+      }
+      DeviceIdGenerator.Random -> {
+        generateNextDeviceId()
+      }
     }
   }
 }
