@@ -19,6 +19,7 @@ package com.google.homesampleapp.screens.commissionable.ble
 import com.google.homesampleapp.screens.commissionable.MatterBeaconProducer
 import dagger.Binds
 import dagger.Module
+import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dagger.hilt.testing.TestInstallIn
 import dagger.multibindings.IntoSet

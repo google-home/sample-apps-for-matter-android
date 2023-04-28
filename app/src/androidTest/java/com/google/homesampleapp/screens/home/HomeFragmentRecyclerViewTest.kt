@@ -16,22 +16,17 @@
 
 package com.google.homesampleapp.screens.home
 
-import androidx.test.espresso.Espresso.onView
-import androidx.test.espresso.Espresso.pressBack
-import androidx.test.espresso.action.ViewActions.click
-import androidx.test.espresso.assertion.ViewAssertions.matches
-import androidx.test.espresso.contrib.RecyclerViewActions
-import androidx.test.espresso.matcher.ViewMatchers
-import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import com.google.homesampleapp.Device
+import com.google.homesampleapp.DeviceScreen
+import com.google.homesampleapp.HomeScreen
 import com.google.homesampleapp.MainActivity
-import com.google.homesampleapp.R
 import com.google.homesampleapp.data.DevicesRepository
 import com.google.homesampleapp.data.DevicesStateRepository
 import com.google.homesampleapp.getTimestampForNow
+import com.google.homesampleapp.navigateBack
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import javax.inject.Inject
@@ -46,7 +41,7 @@ import org.junit.runner.RunWith
 /**
  * Test to verify that devices are properly shown in HomeFragment.
  *
- * The test navigates to the "Home" screen, and then a variety of devices is added. Simply visually
+ * The test navigates to the "Home" screen, and then a variety of devices are added. Simply visually
  * inspect that all these devices are properly shown on the screen (e.g. proper icon, state).
  */
 @RunWith(AndroidJUnit4::class)
@@ -60,12 +55,9 @@ class HomeFragmentRecyclerViewTest {
   @get:Rule val activityRule = ActivityScenarioRule(MainActivity::class.java)
   @get:Rule var hiltRule = HiltAndroidRule(this)
 
-  val scope = CoroutineScope(Dispatchers.Main)
+  private val scope = CoroutineScope(Dispatchers.Main)
 
   // Test device creation
-  val TEST_DEVICE_NAME_PREFIX = "[Test-"
-  val TEST_DEVICE_NAME_SUFFIX = "]"
-  val TEST_DEVICE_ROOM_PREFIX = "Room-"
 
   @Before
   fun init() {
@@ -79,23 +71,28 @@ class HomeFragmentRecyclerViewTest {
   }
 
   // ---------------------------------------------------------------------------
-  // Tests support functions
+  // Test
 
-  /** See CommissionableFragmentTest for issue with codelab dialog. */
-  private fun clickOkOnCodelabDialog() {
-    try {
-      onView(ViewMatchers.withText("OK")).perform(click())
-    } catch (e: Throwable) {
-      // The Codelab dialog was not shown. Simply ignore the error.
-      System.out.println("*** Codelab Dialog was not shown.")
+  data class TestDevice(
+      val vendorId: String,
+      val productId: String,
+      val deviceType: String,
+      val isOnline: Boolean,
+      val isOn: Boolean
+  ) {
+    fun getName(deviceId: Long): String {
+      val testDeviceNamePrefix = "[Test-"
+      val testDeviceNameSuffix = "]"
+      return testDeviceNamePrefix + deviceId + testDeviceNameSuffix
+    }
+
+    fun getRoom(deviceId: Long): String {
+      val testDeviceRoomPrefix = "Room-"
+      return testDeviceRoomPrefix + deviceId
     }
   }
 
-  fun navigateBack() {
-    pressBack()
-  }
-
-  fun addDevice(testDevice: TestDevice) {
+  private fun addDevice(testDevice: TestDevice) {
     val timestamp = getTimestampForNow()
     val deviceType =
         when (testDevice.deviceType) {
@@ -112,8 +109,8 @@ class HomeFragmentRecyclerViewTest {
               .setProductId(testDevice.productId)
               .setDeviceType(deviceType)
               .setDeviceId(deviceId)
-              .setName(TEST_DEVICE_NAME_PREFIX + deviceId + TEST_DEVICE_NAME_SUFFIX)
-              .setRoom(TEST_DEVICE_ROOM_PREFIX + deviceId)
+              .setName(testDevice.getName(deviceId))
+              .setRoom(testDevice.getRoom(deviceId))
               .build()
       val deviceUiModel = DeviceUiModel(device, testDevice.isOnline, testDevice.isOn)
       // Add the device to the repository.
@@ -123,31 +120,8 @@ class HomeFragmentRecyclerViewTest {
     }
   }
 
-  private fun clickOnDevice(count: Int, device: TestDevice) {
-    onView(ViewMatchers.withId(R.id.devicesListRecyclerView))
-        .perform(RecyclerViewActions.actionOnItemAtPosition<DeviceViewHolder>(count - 1, click()))
-  }
-
-  private fun verifyDeviceOnDeviceScreen(count: Int, device: TestDevice) {
-    onView(
-            ViewMatchers.withText(
-                "Share " + TEST_DEVICE_NAME_PREFIX + count + TEST_DEVICE_NAME_SUFFIX))
-        .check(matches(isDisplayed()))
-  }
-
-  // ---------------------------------------------------------------------------
-  // Tests
-
-  data class TestDevice(
-      val vendorId: String,
-      val productId: String,
-      val deviceType: String,
-      val isOnline: Boolean,
-      val isOn: Boolean
-  )
-
   private val TEST_DEVICES =
-      listOf<TestDevice>(
+      listOf(
           TestDevice("1", "11", "Light", false, false),
           TestDevice("2", "22", "Light", false, true),
           TestDevice("3", "33", "Light", true, false),
@@ -164,15 +138,16 @@ class HomeFragmentRecyclerViewTest {
 
   @Test
   fun testRecyclerView() {
+    // Handle codelab dialog.
+    HomeScreen.ensureCodelabDialogNotShown()
+
     var count = 0
-    Thread.sleep(1000)
-    clickOkOnCodelabDialog()
     TEST_DEVICES.forEach { device ->
       count++
       addDevice(device)
       Thread.sleep(1000)
-      clickOnDevice(count, device)
-      verifyDeviceOnDeviceScreen(count, device)
+      HomeScreen.selectDevice(count)
+      DeviceScreen.verifyDevice(count, device)
       Thread.sleep(1000)
       navigateBack()
     }
