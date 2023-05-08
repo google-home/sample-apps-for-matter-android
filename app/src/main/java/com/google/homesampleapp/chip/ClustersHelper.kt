@@ -17,6 +17,7 @@
 package com.google.homesampleapp.chip
 
 import chip.devicecontroller.ChipClusters
+import chip.devicecontroller.ChipClusters.BasicInformationCluster
 import chip.devicecontroller.ChipStructs
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -317,6 +318,68 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
       endpoint: Int
   ): ChipClusters.ApplicationBasicCluster {
     return ChipClusters.ApplicationBasicCluster(devicePtr, endpoint)
+  }
+
+  /**
+   * Writes NodeLabel attribute
+   *
+   * @param deviceId device identifier
+   * @param nodeLabel device name/node label
+   */
+  suspend fun writeBasicClusterNodeLabelAttribute(deviceId: Long, nodeLabel: String) {
+    val connectedDevicePtr =
+        try {
+          chipClient.getConnectedDevicePointer(deviceId)
+        } catch (e: IllegalStateException) {
+          Timber.e("Can't get connectedDevicePointer.")
+          return
+        }
+
+    return suspendCoroutine { continuation ->
+      val callback =
+          object : ChipClusters.DefaultClusterCallback {
+            override fun onSuccess() {
+              continuation.resume(Unit)
+            }
+
+            override fun onError(ex: Exception) {
+              continuation.resumeWithException(ex)
+            }
+          }
+
+      BasicInformationCluster(connectedDevicePtr, 0).writeNodeLabelAttribute(callback, nodeLabel)
+    }
+  }
+
+  /**
+   * Reads NodeLabel attribute
+   *
+   * @param deviceId device identifier
+   * @return the NodeLabel
+   */
+  suspend fun readBasicClusterNodeLabelAttribute(deviceId: Long): String? {
+    val connectedDevicePtr =
+        try {
+          chipClient.getConnectedDevicePointer(deviceId)
+        } catch (e: IllegalStateException) {
+          Timber.e("Can't get connectedDevicePointer.")
+          return null
+        }
+
+    return suspendCoroutine { continuation ->
+      val callback =
+          object : ChipClusters.CharStringAttributeCallback {
+            override fun onSuccess(value: String?) {
+              continuation.resume(value)
+            }
+
+            override fun onError(ex: Exception) {
+              continuation.resumeWithException(ex)
+            }
+          }
+
+      BasicInformationCluster(connectedDevicePtr, 0).readNodeLabelAttribute(callback)
+    }
   }
 
   // -----------------------------------------------------------------------------------------------
