@@ -394,6 +394,13 @@ constructor(
           gotDeviceType = true
         }
       }
+
+      // update device name
+      try {
+        clustersHelper.writeBasicClusterNodeLabelAttribute(deviceId, deviceName)
+      } catch (ex: Exception) {
+        Timber.d(ex, "Failed to write NodeLabel")
+      }
     }
   }
 
