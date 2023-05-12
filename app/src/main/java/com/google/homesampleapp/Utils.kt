@@ -19,7 +19,10 @@ package com.google.homesampleapp
 import android.content.Context
 import android.content.Intent
 import android.content.IntentSender
+import android.os.Looper
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.fragment.app.FragmentActivity
 import com.google.protobuf.Timestamp
 import java.io.File
 import java.lang.Long.max
@@ -354,3 +357,29 @@ enum class CommissioningWindowStatus(val status: Int) {
 }
 
 val OPEN_COMMISSIONING_WINDOW_API = OpenCommissioningWindowApi.ChipDeviceController
+
+/**
+ * ToastTimber logs the same message on both Timber and Toast, thus giving some feedback to the user
+ * that doesn't have ADB connected
+ */
+object ToastTimber {
+  fun d(msg: String, activity: FragmentActivity) {
+    Timber.d(msg)
+    checkLooper()
+    Toast.makeText(activity, msg, Toast.LENGTH_SHORT).show()
+  }
+
+  fun e(msg: String, activity: FragmentActivity) {
+    Timber.e(msg)
+    checkLooper()
+    Toast.makeText(activity, msg, Toast.LENGTH_SHORT).show()
+  }
+
+  /**
+   * Asserts Looper is running in the current thread. Important when using Timber in coroutine
+   * Threads that don't have a Looper running
+   */
+  private fun checkLooper() {
+    if (Looper.myLooper() == null) Looper.prepare()
+  }
+}

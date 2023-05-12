@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ Copyright 2022 Google LLC
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".screens.thread.ThreadFragment">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <com.google.android.material.appbar.AppBarLayout
+            android:id="@+id/topBarLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/topAppBar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                app:menu="@menu/top_app_bar"
+                app:navigationIcon="@drawable/ic_baseline_home_24"
+                app:title="Thread Network Credentials" />
+
+        </com.google.android.material.appbar.AppBarLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:layout_margin="16dp"
+            >
+
+        <RelativeLayout
+            android:id="@+id/infoLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="60sp"
+            android:background="@drawable/device_item_shape_off"
+            >
+
+            <Button
+                android:id="@+id/getGPSButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:layout_marginLeft="30dp"
+                android:layout_alignParentLeft="true"
+                android:text="Get GPS\npreferred\ncredentials"
+                app:icon="@drawable/ic_baseline_share_24" />
+
+            <Button
+                android:id="@+id/clearGPSButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:layout_marginLeft="30dp"
+                android:layout_alignParentLeft="true"
+                android:layout_below="@+id/getGPSButton"
+                android:text="Clear GPS\npreferred\ncredentials"
+                app:icon="@drawable/ic_baseline_share_24" />
+
+            <Button
+                android:id="@+id/setGPSButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:layout_marginLeft="30dp"
+                android:layout_alignParentLeft="true"
+                android:layout_below="@+id/clearGPSButton"
+                android:text="Set TBR\ncredentials\nin GPS"
+                app:icon="@drawable/ic_baseline_share_24" />
+
+            <Button
+                android:id="@+id/doGPSPreferredCredsExistButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:layout_marginLeft="30dp"
+                android:layout_alignParentLeft="true"
+                android:layout_below="@+id/setGPSButton"
+                android:text="Do pref.\ncredentials\nexist?"
+                app:icon="@drawable/ic_baseline_share_24" />
+
+            <Button
+                android:id="@+id/setOTBRButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:layout_marginRight="35dp"
+                android:layout_alignParentRight="true"
+                android:text="Set OTBR\npending\ncredentials"
+                app:icon="@drawable/ic_baseline_share_24" />
+
+            <Button
+                android:id="@+id/getOTBRButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:layout_marginRight="35dp"
+                android:layout_alignParentRight="true"
+                android:layout_below="@+id/setOTBRButton"
+                android:text="Get OTBR\nactive\ncredentials"
+                app:icon="@drawable/ic_baseline_share_24" />
+
+            <Button
+                android:id="@+id/readQRCode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:layout_marginRight="35dp"
+                android:layout_alignParentRight="true"
+                android:layout_below="@+id/getOTBRButton"
+                android:text="Read\ncredentials\nQR Code"
+                app:icon="@drawable/ic_baseline_share_24" />
+
+            <Button
+                android:id="@+id/showQRCode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:layout_marginRight="35dp"
+                android:layout_alignParentRight="true"
+                android:layout_below="@+id/readQRCode"
+                android:text="Show\ncredentials\nQR Code"
+                app:icon="@drawable/ic_baseline_share_24" />
+        </RelativeLayout>
+
+            <TextView
+                android:id="@+id/threadDatasetTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minHeight="24dp"
+                android:textAppearance="?attr/textAppearanceHeadlineSmall"
+                android:layout_marginTop="10dp"
+                android:textIsSelectable="true"
+                android:layout_below="@+id/infoLayout"
+                android:text="Working dataset"/>
+
+            <TextView
+                android:id="@+id/threadTLVTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:textAppearance="?attr/textAppearanceBody1"
+                android:layout_marginTop="10dp"
+                android:textIsSelectable="true"
+                android:layout_below="@+id/threadDatasetTitle"
+                android:hint="Thread TLV"/>
+
+            <TextView
+                android:id="@+id/threadNetworkInformationTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:textAppearance="?attr/textAppearanceBody1"
+                android:layout_marginTop="10sp"
+                android:textIsSelectable="true"
+                android:layout_below="@+id/threadTLVTextView"
+                android:hint="Thread network information"/>
+
+        </LinearLayout>
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>
+

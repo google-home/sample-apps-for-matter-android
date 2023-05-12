@@ -26,6 +26,12 @@
             app:icon="@drawable/ic_baseline_search_24"/>
 
         <Preference
+            app:key="thread"
+            app:title="Thread network"
+            app:summary="Information about the thread network"
+            app:icon="@drawable/baseline_device_hub_24"/>
+
+        <Preference
             app:key="logrepos"
             app:title="Log repositories content"
             app:summary="View in the logs the content of repositories used in the app"
