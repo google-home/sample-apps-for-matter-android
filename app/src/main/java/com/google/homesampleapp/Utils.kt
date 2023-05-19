@@ -331,4 +331,16 @@ enum class DeviceIdGenerator {
   Incremental
 }
 
+// Indicates the status of a node's commissioning window
+enum class CommissioningWindowStatus(val status: Int) {
+  /** Commissioning window not open */
+  WindowNotOpen(0),
+
+  /** An Enhanced Commissioning Method window is open */
+  EnhancedWindowOpen(1),
+
+  /** A Basic Commissioning Method window is open */
+  BasicWindowOpen(2)
+}
+
 val OPEN_COMMISSIONING_WINDOW_API = OpenCommissioningWindowApi.ChipDeviceController

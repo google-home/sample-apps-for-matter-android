@@ -350,11 +350,26 @@ constructor(
   // -----------------------------------------------------------------------------------------------
   // Open commissioning window
 
-  suspend fun openCommissioningWindowUsingOpenPairingWindowWithPin(deviceId: Long) {
+  private suspend fun openCommissioningWindowUsingOpenPairingWindowWithPin(deviceId: Long) {
     // TODO: Should generate random 64 bit value for SETUP_PIN_CODE (taking into account
     // spec constraints)
     Timber.d("ShareDevice: chipClient.awaitGetConnectedDevicePointer(${deviceId})")
     val connectedDevicePointer = chipClient.awaitGetConnectedDevicePointer(deviceId)
+
+    try {
+      // check if there a commission window that's already open
+      val status = clustersHelper.isCommissioningWindowOpen(connectedDevicePointer)
+      Timber.d("ShareDevice: is commissioning winding open: $status")
+      if (status) {
+        // close commission window
+        clustersHelper.closeCommissioningWindow(connectedDevicePointer)
+      }
+    } catch (ex: Exception) {
+      val errorMsg = "Failed to setup Administrator Commissioning Cluster"
+      Timber.d("$errorMsg. Cause: ${ex.localizedMessage}")
+      // ToDo() decide whether to terminate the OCW task if we fail to configure the window status.
+    }
+
     val duration = OPEN_COMMISSIONING_WINDOW_DURATION_SECONDS
     Timber.d(
         "ShareDevice: chipClient.chipClient.awaitOpenPairingWindowWithPIN " +
@@ -367,7 +382,7 @@ constructor(
 
   // TODO: Was not working when tested. Use openCommissioningWindowUsingOpenPairingWindowWithPin
   // for now.
-  suspend fun openCommissioningWindowWithAdministratorCommissioningCluster(deviceId: Long) {
+  private suspend fun openCommissioningWindowWithAdministratorCommissioningCluster(deviceId: Long) {
     Timber.d(
         "ShareDevice: openCommissioningWindowWithAdministratorCommissioningCluster [${deviceId}]")
     val salt = Random.nextBytes(32)

@@ -19,6 +19,7 @@ package com.google.homesampleapp.chip
 import chip.devicecontroller.ChipClusters
 import chip.devicecontroller.ChipClusters.BasicInformationCluster
 import chip.devicecontroller.ChipStructs
+import com.google.homesampleapp.CommissioningWindowStatus
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
@@ -530,6 +531,62 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
               iterations,
               salt,
               timedInvokeTimeoutMs)
+    }
+  }
+
+  /**
+   * Closes a node's commissioning window.
+   *
+   * @param devicePtr connected device pointer.
+   */
+  suspend fun closeCommissioningWindow(devicePtr: Long) {
+    return suspendCoroutine { continuation ->
+      val callback =
+          object : ChipClusters.DefaultClusterCallback {
+            override fun onSuccess() {
+              Timber.d("Window is closed successfully")
+              continuation.resume(Unit)
+            }
+
+            override fun onError(ex: Exception) {
+              Timber.e("Failed to close window. Cause: ${ex.localizedMessage}")
+            }
+          }
+      ChipClusters.AdministratorCommissioningCluster(devicePtr, 0)
+          .revokeCommissioning(callback, 100)
+    }
+  }
+
+  /**
+   * Checks if a device has an open commissioning window.
+   *
+   * @param devicePtr connected device pointer.
+   * @return true if a window is open, false otherwise.
+   */
+  suspend fun isCommissioningWindowOpen(devicePtr: Long): Boolean {
+    return suspendCoroutine { continuation ->
+      val callback =
+          object : ChipClusters.IntegerAttributeCallback {
+            override fun onSuccess(value: Int) {
+              when (value) {
+                CommissioningWindowStatus.WindowNotOpen.status -> {
+                  continuation.resume(false)
+                }
+                CommissioningWindowStatus.EnhancedWindowOpen.status,
+                CommissioningWindowStatus.BasicWindowOpen.status -> {
+                  continuation.resume(true)
+                }
+              }
+            }
+
+            override fun onError(ex: Exception) {
+              Timber.e("Failed to check window status. Cause: ${ex.localizedMessage}")
+              continuation.resumeWithException(ex)
+            }
+          }
+
+      ChipClusters.AdministratorCommissioningCluster(devicePtr, 0)
+          .readWindowStatusAttribute(callback)
     }
   }
 
