@@ -357,10 +357,11 @@ constructor(
     val connectedDevicePointer = chipClient.awaitGetConnectedDevicePointer(deviceId)
 
     try {
-      // check if there a commission window that's already open
-      val status = clustersHelper.isCommissioningWindowOpen(connectedDevicePointer)
-      Timber.d("ShareDevice: is commissioning winding open: $status")
-      if (status) {
+      // Check if there is a commission window that's already open.
+      // See [CommissioningWindowStatus] for complete details.
+      val isOpen = clustersHelper.isCommissioningWindowOpen(connectedDevicePointer)
+      Timber.d("ShareDevice: isCommissioningWindowOpen [$isOpen]")
+      if (isOpen) {
         // close commission window
         clustersHelper.closeCommissioningWindow(connectedDevicePointer)
       }

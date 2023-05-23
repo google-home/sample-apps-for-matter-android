@@ -535,7 +535,8 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
   }
 
   /**
-   * Closes a node's commissioning window.
+   * Closes a node's commissioning window. See spec section "11.18.8.3. RevokeCommissioning
+   * Command".
    *
    * @param devicePtr connected device pointer.
    */
@@ -558,7 +559,8 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
   }
 
   /**
-   * Checks if a device has an open commissioning window.
+   * Checks if a device has an open commissioning window. See spec section "11.18.7. Attributes" of
+   * the "Administrator Commissioning Cluster".
    *
    * @param devicePtr connected device pointer.
    * @return true if a window is open, false otherwise.
