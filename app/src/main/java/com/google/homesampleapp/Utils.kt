@@ -331,4 +331,26 @@ enum class DeviceIdGenerator {
   Incremental
 }
 
+/**
+ * Indicates the status of a node's commissioning window. Useful in the context of "multi-admin"
+ * when a temporary commissioning window must be open for a target commissioner. That's because
+ * sometimes multi-admin may fail with the target commissioner (especially in a testing environment)
+ * and the temporary commissioning window can then stay open for a substantial amount of time (e.g.
+ * 3 minutes) preventing a new "multi-admin" to fail until that temporary commissioning window is
+ * closed. Checking on the status of the commissioning window beforehand makes it possible to close
+ * the currently open temporary commissioning window before trying to open a new one. [status] is
+ * the enum value returned by reading the WindowStatusAttribute of the "Administrator Commissioning
+ * Cluster". (See spec section "11.18.6.1. CommissioningWindowStatus enum").
+ */
+enum class CommissioningWindowStatus(val status: Int) {
+  /** Commissioning window not open */
+  WindowNotOpen(0),
+
+  /** An Enhanced Commissioning Method window is open */
+  EnhancedWindowOpen(1),
+
+  /** A Basic Commissioning Method window is open */
+  BasicWindowOpen(2)
+}
+
 val OPEN_COMMISSIONING_WINDOW_API = OpenCommissioningWindowApi.ChipDeviceController
