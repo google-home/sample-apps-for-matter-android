@@ -322,7 +322,8 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
   }
 
   /**
-   * Writes NodeLabel attribute
+   * Writes NodeLabel attribute. See spec section "11.1.6.3. Attributes" of the "Basic Information
+   * Cluster".
    *
    * @param deviceId device identifier
    * @param nodeLabel device name/node label
@@ -353,7 +354,72 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
   }
 
   /**
-   * Reads NodeLabel attribute
+   * Reads the vendor name attribute. See spec section "11.1.6.3. Attributes" of the "Basic
+   * Information Cluster".
+   *
+   * @param deviceId the device identifier.
+   * @return the vendor name
+   */
+  suspend fun readBasicClusterVendorNameAttribute(deviceId: Long): String {
+    val connectedDevicePtr =
+        try {
+          chipClient.getConnectedDevicePointer(deviceId)
+        } catch (e: IllegalStateException) {
+          Timber.e("Can't get connectedDevicePointer.")
+          return ""
+        }
+
+    return suspendCoroutine { continuation ->
+      val callback =
+          object : ChipClusters.CharStringAttributeCallback {
+            override fun onSuccess(value: String) {
+              continuation.resume(value)
+            }
+
+            override fun onError(ex: Exception) {
+              continuation.resumeWithException(ex)
+            }
+          }
+
+      BasicInformationCluster(connectedDevicePtr, 0).readVendorNameAttribute(callback)
+    }
+  }
+
+  /**
+   * Reads node's product name attribute. See spec section "11.1.6.3. Attributes" of the "Basic
+   * Information Cluster".
+   *
+   * @param deviceId the device identifier
+   * @return the product name
+   */
+  suspend fun readBasicClusterProductNameAttribute(deviceId: Long): String {
+    val connectedDevicePtr =
+        try {
+          chipClient.getConnectedDevicePointer(deviceId)
+        } catch (e: IllegalStateException) {
+          Timber.e("Can't get connectedDevicePointer.")
+          return ""
+        }
+
+    return suspendCoroutine { continuation ->
+      val callback =
+          object : ChipClusters.CharStringAttributeCallback {
+            override fun onSuccess(value: String) {
+              continuation.resume(value)
+            }
+
+            override fun onError(ex: Exception) {
+              continuation.resumeWithException(ex)
+            }
+          }
+
+      BasicInformationCluster(connectedDevicePtr, 0).readProductNameAttribute(callback)
+    }
+  }
+
+  /**
+   * Reads NodeLabel attribute. See spec section "11.1.6.3. Attributes" of the "Basic Information
+   * Cluster".
    *
    * @param deviceId device identifier
    * @return the NodeLabel

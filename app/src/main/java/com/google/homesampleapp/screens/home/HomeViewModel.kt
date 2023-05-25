@@ -345,6 +345,21 @@ constructor(
     // Add the device to the devices repository.
     viewModelScope.launch {
       val deviceId = result.token?.toLong()!!
+      // read device's vendor name and product name
+      val vendorName =
+          try {
+            clustersHelper.readBasicClusterVendorNameAttribute(deviceId)
+          } catch (ex: Exception) {
+            Timber.e(ex, "Failed to read VendorName attribute")
+          }
+
+      val productName =
+          try {
+            clustersHelper.readBasicClusterProductNameAttribute(deviceId)
+          } catch (ex: Exception) {
+            Timber.e(ex, "Failed to read ProductName attribute")
+          }
+
       try {
         Timber.d("Commissioning: Adding device to repository")
         devicesRepository.addDevice(
