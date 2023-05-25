@@ -351,6 +351,7 @@ constructor(
             clustersHelper.readBasicClusterVendorNameAttribute(deviceId)
           } catch (ex: Exception) {
             Timber.e(ex, "Failed to read VendorName attribute")
+            ""
           }
 
       val productName =
@@ -358,6 +359,7 @@ constructor(
             clustersHelper.readBasicClusterProductNameAttribute(deviceId)
           } catch (ex: Exception) {
             Timber.e(ex, "Failed to read ProductName attribute")
+            ""
           }
 
       try {
@@ -367,8 +369,10 @@ constructor(
                 .setName(deviceName) // default name that can be overridden by user in next step
                 .setDeviceId(deviceId)
                 .setDateCommissioned(getTimestampForNow())
-                .setVendorId(result.commissionedDeviceDescriptor.vendorId.toString())
-                .setProductId(result.commissionedDeviceDescriptor.productId.toString())
+                .setVendorId(result.commissionedDeviceDescriptor.vendorId)
+                .setVendorName(vendorName)
+                .setProductId(result.commissionedDeviceDescriptor.productId)
+                .setProductName(productName)
                 // Note that deviceType is now deprecated. Need to get it by introspecting
                 // the device information. This is done below.
                 .setDeviceType(

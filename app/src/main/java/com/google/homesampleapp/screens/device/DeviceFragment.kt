@@ -382,7 +382,9 @@ class DeviceFragment : Fragment() {
               R.string.share_device_info,
               formatTimestamp(deviceUiModel.device.dateCommissioned!!, null),
               deviceUiModel.device.deviceId.toString(),
+              deviceUiModel.device.vendorName,
               deviceUiModel.device.vendorId,
+              deviceUiModel.device.productName,
               deviceUiModel.device.productId,
               deviceUiModel.device.deviceType.displayString())
     }
