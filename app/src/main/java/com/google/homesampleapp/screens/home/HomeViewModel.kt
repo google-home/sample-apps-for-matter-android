@@ -136,9 +136,11 @@ constructor(
   // The initial setup event which triggers the Home fragment to get the data
   // it needs for its screen.
   // TODO: Clarify if this is really necessary and how that works?
-  val initialSetupEventDevices = liveData { emit(devicesRepository.getAllDevices()) }
-  val initialSetupEventDevicesState = liveData { emit(devicesStateRepository.getAllDevicesState()) }
-  val initialSetupEventUserPreferences = liveData { emit(userPreferencesRepository.getData()) }
+  init {
+    liveData { emit(devicesRepository.getAllDevices()) }
+    liveData { emit(devicesStateRepository.getAllDevicesState()) }
+    liveData { emit(userPreferencesRepository.getData()) }
+  }
 
   private val devicesFlow = devicesRepository.devicesFlow
   private val devicesStateFlow = devicesStateRepository.devicesStateFlow

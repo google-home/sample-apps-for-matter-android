@@ -155,6 +155,13 @@ class DeviceFragment : Fragment() {
     viewModel.stopMonitoringStateChanges()
   }
 
+  override fun onDestroy() {
+    super.onDestroy()
+    // Destroy alert dialogs to avoid leaks
+    errorAlertDialog.dismiss()
+    backgroundWorkAlertDialog.dismiss()
+  }
+
   // -----------------------------------------------------------------------------------------------
   // Setup UI elements
 
