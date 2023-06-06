@@ -25,16 +25,10 @@ message Device {
     google.protobuf.Timestamp date_commissioned = 1;
 
     // VID
-    uint32 vendorId = 2;
-
-    // The name of the vendor for the device.
-    string vendorName = 3;
+    string vendorId = 2;
 
     // PID
-    uint32 productId = 4;
-
-    // The name of the model for the device.
-    string productName = 5;
+    string productId = 3;
 
     // Device type.
     enum DeviceType {
@@ -43,19 +37,25 @@ message Device {
         TYPE_LIGHT = 2;
         TYPE_OUTLET = 3;
     }
-    DeviceType deviceType = 6;
+    DeviceType deviceType = 4;
 
     // Device ID within the app's fabric.
-    int64 device_id = 7;
+    int64 device_id = 5;
 
     // Device name.
-    string name = 8;
+    string name = 6;
 
     // Room where device is located.
-    string room = 9;
+    string room = 7;
+
+    // The name of the model for the device.
+    string productName = 8;
+
+    // The name of the vendor for the device.
+    string vendorName = 9;
 }
 
 message Devices {
-  int64 last_device_id = 1;
-  repeated Device devices = 2;
+    int64 last_device_id = 1;
+    repeated Device devices = 2;
 }

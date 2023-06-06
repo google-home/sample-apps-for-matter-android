@@ -42,7 +42,7 @@
     <!-- Share Device -->
     <string name="share_device_status_success" translatable="false">Share device succeeded</string>
     <string name="share_device_name" translatable="false">Share %1$s</string>
-    <string name="share_device_info" translatable="false">Added on %1$s \nID: %2$s  \nVendor: %3$s (VID:%4$d) \nProduct: %5$s (PID:%6$d)  \nDevice type: %7$s</string>
+    <string name="share_device_info" translatable="false">Added on %1$s \nID: %2$s  \nVendor: %3$s (VID:%4$s) \nProduct: %5$s (PID:%6$s)  \nDevice type: %7$s</string>
 
     <!-- Inspect Device -->
     <string name="inspect_device_name" translatable="false">Inspect %1$s</string>

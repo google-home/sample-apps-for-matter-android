@@ -369,9 +369,9 @@ constructor(
                 .setName(deviceName) // default name that can be overridden by user in next step
                 .setDeviceId(deviceId)
                 .setDateCommissioned(getTimestampForNow())
-                .setVendorId(result.commissionedDeviceDescriptor.vendorId)
+                .setVendorId(result.commissionedDeviceDescriptor.vendorId.toString())
                 .setVendorName(vendorName)
-                .setProductId(result.commissionedDeviceDescriptor.productId)
+                .setProductId(result.commissionedDeviceDescriptor.productId.toString())
                 .setProductName(productName)
                 // Note that deviceType is now deprecated. Need to get it by introspecting
                 // the device information. This is done below.
