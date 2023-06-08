@@ -24,8 +24,10 @@ message Device {
     // Timestamp when the device was commissioned.
     google.protobuf.Timestamp date_commissioned = 1;
 
-    // VID / PID
+    // VID
     string vendorId = 2;
+
+    // PID
     string productId = 3;
 
     // Device type.
@@ -45,9 +47,15 @@ message Device {
 
     // Room where device is located.
     string room = 7;
+
+    // The name of the model for the device.
+    string productName = 8;
+
+    // The name of the vendor for the device.
+    string vendorName = 9;
 }
 
 message Devices {
-  int64 last_device_id = 1;
-  repeated Device devices = 2;
+    int64 last_device_id = 1;
+    repeated Device devices = 2;
 }
