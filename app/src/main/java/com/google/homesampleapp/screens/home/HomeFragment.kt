@@ -273,7 +273,12 @@ class HomeFragment : Fragment() {
 
   override fun onDestroy() {
     super.onDestroy()
+    Timber.d("onDestroy()")
     chipClient.chipDeviceController.setDeviceAttestationDelegate(0, EmptyAttestationDelegate())
+    // Destroy alert dialogs
+    errorAlertDialog.dismiss()
+    newDeviceAlertDialog.dismiss()
+    codelabInfoAlertDialog.dismiss()
   }
 
   // -----------------------------------------------------------------------------------------------
