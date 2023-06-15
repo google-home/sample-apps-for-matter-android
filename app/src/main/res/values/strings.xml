@@ -107,4 +107,10 @@ All of the information will be logged in logcat. Use this command  to only view 
         WARNING: The device attestation failed but was ignored.&lt;p>
         For details, see &lt;a href="https://github.com/google-home/sample-app-for-matter-android/wiki/Device-Attestation-Failure">Device Attestation Failure&lt;/a>.
     </string>
+
+    <!--Accessibility component name  -->
+    <string name="back_button">Back</string>
+    <string name="add_device_button">Add device</string>
+    <string name="light_off">Light Off</string>
+    <string name="go_to_home">Home</string>
 </resources>
