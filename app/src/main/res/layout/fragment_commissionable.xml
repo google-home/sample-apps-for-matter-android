@@ -36,6 +36,7 @@
                 android:layout_height="?attr/actionBarSize"
                 app:title="@string/commissionable_devices"
                 app:menu="@menu/top_app_bar"
+                app:navigationContentDescription="@string/go_to_home"
                 app:navigationIcon="@drawable/ic_baseline_home_24"/>
 
         </com.google.android.material.appbar.AppBarLayout>

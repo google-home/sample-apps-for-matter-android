@@ -37,6 +37,7 @@
                 app:title="@string/general_settings"
                 app:menu="@menu/top_app_bar_settings"
                 app:navigationIcon="@drawable/gs_arrow_back_fill1_vd_theme_24"
+                app:navigationContentDescription="@string/back_button"
                 android:elevation="0dp"/>
 
         </com.google.android.material.appbar.AppBarLayout>

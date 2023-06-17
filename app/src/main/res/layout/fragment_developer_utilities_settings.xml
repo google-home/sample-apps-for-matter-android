@@ -39,6 +39,7 @@
                 android:layout_height="?attr/actionBarSize"
                 app:title="@string/developer_utilities"
                 app:menu="@menu/top_app_bar_settings"
+                app:navigationContentDescription="@string/back_button"
                 app:navigationIcon="@drawable/gs_arrow_back_fill1_vd_theme_24"/>
 
         </com.google.android.material.appbar.AppBarLayout>
