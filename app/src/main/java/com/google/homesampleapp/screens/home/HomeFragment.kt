@@ -17,6 +17,7 @@
 package com.google.homesampleapp.screens.home
 
 import android.app.Activity
+import android.content.DialogInterface
 import android.os.Bundle
 import android.text.Html
 import android.text.Html.FROM_HTML_MODE_LEGACY
@@ -104,6 +105,7 @@ class HomeFragment : Fragment() {
   private lateinit var codelabInfoCheckboxBinding: FragmentCodelabInfoCheckboxBinding
 
   // New device information dialog
+  private lateinit var newDeviceAlertDialog: AlertDialog
   private lateinit var newDeviceAlertDialogBinding: FragmentNewDeviceBinding
 
   // Error alert dialog.
@@ -177,27 +179,28 @@ class HomeFragment : Fragment() {
   }
 
   private fun showNewDeviceAlertDialog(activityResult: ActivityResult?) {
-    val dialog =
-        MaterialAlertDialogBuilder(requireContext())
-            .setView(newDeviceAlertDialogBinding.root)
-            .setTitle("New device information")
-            .setPositiveButton(resources.getString(R.string.ok)) { _, _ ->
-              // Extract the info entered by user and process it.
-              val nameTextView: TextInputEditText = newDeviceAlertDialogBinding.nameTextView
-              val deviceName = nameTextView.text.toString()
-              viewModel.commissionDeviceSucceeded(activityResult!!, deviceName)
-            }
-            .create()
-    dialog.setCancelable(false)
-    dialog.setCanceledOnTouchOutside(false)
+    newDeviceAlertDialog.setCanceledOnTouchOutside(false)
+
+    // Set on click listener for positive button of the dialog.
+    newDeviceAlertDialog.setButton(
+        DialogInterface.BUTTON_POSITIVE, resources.getString(R.string.ok)) { _, _ ->
+          // Extract the info entered by user and process it.
+          val nameTextView: TextInputEditText = newDeviceAlertDialogBinding.nameTextView
+          val deviceName = nameTextView.text.toString()
+          viewModel.commissionDeviceSucceeded(activityResult!!, deviceName)
+        }
 
     if (deviceAttestationFailureIgnored) {
-      dialog.setMessage(
+      newDeviceAlertDialog.setMessage(
           Html.fromHtml(getString(R.string.device_attestation_warning), FROM_HTML_MODE_LEGACY))
     }
-    dialog.show()
+
+    // Clear previous device name before showing the dialog
+    newDeviceAlertDialogBinding.nameTextView.setText("")
+    newDeviceAlertDialog.show()
+
     // Make the hyperlink clickable. Must be set after show().
-    val msgTextView: TextView? = dialog.findViewById(android.R.id.message)
+    val msgTextView: TextView? = newDeviceAlertDialog.findViewById(android.R.id.message)
     msgTextView?.movementMethod = LinkMovementMethod.getInstance()
   }
 
@@ -270,7 +273,12 @@ class HomeFragment : Fragment() {
 
   override fun onDestroy() {
     super.onDestroy()
+    Timber.d("onDestroy()")
     chipClient.chipDeviceController.setDeviceAttestationDelegate(0, EmptyAttestationDelegate())
+    // Destroy alert dialogs
+    errorAlertDialog.dismiss()
+    newDeviceAlertDialog.dismiss()
+    codelabInfoAlertDialog.dismiss()
   }
 
   // -----------------------------------------------------------------------------------------------
@@ -280,6 +288,7 @@ class HomeFragment : Fragment() {
     setupMenu()
     setupAddDeviceButton()
     setupRecyclerView()
+    setupNewDeviceDialog()
     setupCodelabInfoDialog()
     setupErrorAlertDialog()
   }
@@ -311,6 +320,15 @@ class HomeFragment : Fragment() {
 
   private fun setupRecyclerView() {
     binding.devicesListRecyclerView.adapter = adapter
+  }
+
+  private fun setupNewDeviceDialog() {
+    newDeviceAlertDialog =
+        MaterialAlertDialogBuilder(requireContext())
+            .setView(newDeviceAlertDialogBinding.root)
+            .setTitle("New device information")
+            .setCancelable(false)
+            .create()
   }
 
   private fun setupCodelabInfoDialog() {
