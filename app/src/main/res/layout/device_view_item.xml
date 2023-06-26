@@ -30,7 +30,6 @@
         android:layout_height="wrap_content"
         android:layout_centerVertical="true"
         android:paddingHorizontal="16dp"
-        android:contentDescription="@string/light_off"
         android:src="@drawable/quantum_gm_ic_lights_gha_vd_theme_24" />
 
     <LinearLayout
