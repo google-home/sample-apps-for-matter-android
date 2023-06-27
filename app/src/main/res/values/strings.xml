@@ -113,4 +113,5 @@ All of the information will be logged in logcat. Use this command  to only view 
     <string name="add_device_button">Add device</string>
     <string name="light_off">Light Off</string>
     <string name="go_to_home">Home</string>
+    <string name="no_devices_image">No devices image</string>
 </resources>
