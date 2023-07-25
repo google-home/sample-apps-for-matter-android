@@ -42,7 +42,7 @@ To clone the repository, complete the following steps:
     and downloads the native libraries for you.
 
     ```console
-    $ git clone https://github.com/google-home/sample-app-for-matter-android.git
+    $ git clone https://github.com/google-home/sample-apps-for-matter-android.git
     ```
 
 ## Version
@@ -54,7 +54,7 @@ release cycle transparency and to maintain backwards compatibility.
 ## Releases
 
 Always use the latest release as shown at
-https://github.com/google-home/sample-app-for-matter-android/releases
+https://github.com/google-home/sample-apps-for-matter-android/releases
 
 ## Get started
 
@@ -85,11 +85,11 @@ https://github.com/google-home/sample-app-for-matter-android/releases
 ## Issues?
 
 If you run into problems with the sample app, please submit an issue on the 
-[Issues page](https://github.com/google-home/sample-app-for-matter-android/issues).
+[Issues page](https://github.com/google-home/sample-apps-for-matter-android/issues).
 
 It is always greatly appreciated if you can try to reproduce the issue you encountered 
 from a clean state as described in document
-["Investigating Issues with the Sample App"](https://github.com/google-home/sample-app-for-matter-android/wiki/How-to-investigate-issues-with-the-sample-app-(GHSAFM)).
+["How to investigate issues with GHSAFM‐3p‐ecosystem"](https://github.com/google-home/sample-apps-for-matter-android/wiki/How-to-investigate-issues-with-GHSAFM%E2%80%903p%E2%80%90ecosystem).
 
 ## License
 
