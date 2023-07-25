@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ Copyright 2022 Google LLC
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<PreferenceScreen
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+         <SwitchPreferenceCompat
+            app:key="codelab"
+            app:title="Codelab"
+            app:summary="Show info at startup"
+            app:icon="@drawable/ic_baseline_code_24"/>
+
+        <SwitchPreferenceCompat
+            app:key="offline_devices"
+            app:title="Offline devices"
+            app:summary="Show offline devices"
+            app:icon="@drawable/ic_baseline_signal_wifi_off_24"/>
+
+        <SwitchPreferenceCompat
+            app:key="halfsheet_notification"
+            app:title="Halfsheet Notification"
+            app:summary="Shows proactive commissionable discovery notifications for Matter devices"
+            app:icon="@drawable/baseline_notifications_24"/>
+
+    <Preference
+            app:key="developer_utilities"
+            app:title="Developer utilities"
+            app:summary="Various utility functions for developers who want to dig deeper!"
+            app:icon="@drawable/ic_baseline_developer_mode_24"
+            app:fragment="com.google.homesampleapp.screens.settings.SettingsDeveloperUtilitiesFragment"
+            >
+        </Preference>
+
+        <Preference
+            app:key="help_and_feedback"
+            app:title="Help and Feedback"
+            app:summary="Learn how to use this sample app and/or give us feedback"
+            app:icon="@drawable/ic_baseline_help_24"/>
+
+
+    <PreferenceCategory
+        app:key="about_category"
+        app:title="About">
+
+        <PreferenceScreen
+            android:key="about_app"
+            android:title="About this app">
+        </PreferenceScreen>
+
+    </PreferenceCategory>
+
+</PreferenceScreen>
