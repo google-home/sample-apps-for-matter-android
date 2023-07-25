@@ -35,6 +35,6 @@ See [3p-ecosystem sample app](3p-ecosystem/).
 ## Clone the repository
 
 ```console
-$ git clone sso://user/pierred/google-matter-sampleapps-android
+$ git clone https://github.com/google-home/sample-apps-for-matter-android.git
 ```
 
