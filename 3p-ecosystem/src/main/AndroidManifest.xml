@@ -37,7 +37,8 @@
 
     <!-- TODO: clarify what specifically requires the permission -->
     <uses-permission android:name="android.permission.BLUETOOTH" />
-    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
     <uses-permission android:name="android.permission.NFC" />
@@ -69,7 +70,8 @@
 
         <service android:name="com.google.android.gms.metadata.ModuleDependencies"
             android:enabled="false"
-            android:exported="false">
+            android:exported="false"
+            tools:ignore="MissingClass">
             <intent-filter>
                 <action android:name="com.google.android.gms.metadata.MODULE_DEPENDENCIES" />
             </intent-filter>
