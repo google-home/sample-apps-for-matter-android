@@ -1,0 +1,66 @@
+# Define variables that hold the versions of your dependencies and plugins.
+# You use these variables in the subsequent blocks (the versions and plugins blocks).
+[versions]
+androidx-junit = "1.1.5"
+appcompat = "1.6.1"
+constraintlayout = "2.1.4"
+core = "1.39.0"
+core-ktx = "1.10.1"
+databinding-runtime = "8.1.0"
+datastore = "1.0.0"
+espresso-core = "3.5.1"
+hilt-android = "2.46.1"
+hilt-android-testing = "2.44.2"
+junit = "4.13.2"
+kotlinx-coroutines-play-services = "1.6.4"
+legacy-support-v4 = "1.0.0"
+lifecycle-extensions = "2.2.0"
+lifecycle-livedata-ktx = "2.6.1"
+material = "1.9.0"
+navigation-fragment-ktx = "2.6.0"
+play-services-base = "18.2.0"
+play-services-home = "16.0.0"
+preference = "1.2.1"
+protobuf-javalite = "3.18.0"
+rules = "1.5.0"
+runner = "1.5.2"
+timber = "5.0.1"
+uiautomator = "2.2.0"
+
+# Dependencies
+[libraries]
+appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
+constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraintlayout" }
+core = { module = "com.google.ar:core", version.ref = "core" }
+core-ktx = { module = "androidx.core:core-ktx", version.ref = "core-ktx" }
+databinding-runtime = { module = "androidx.databinding:databinding-runtime", version.ref = "databinding-runtime" }
+datastore = { module = "androidx.datastore:datastore", version.ref = "datastore" }
+datastore-core = { module = "androidx.datastore:datastore-core", version.ref = "datastore" }
+espresso-contrib = { module = "androidx.test.espresso:espresso-contrib", version.ref = "espresso-core" }
+espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "espresso-core" }
+espresso-intents = { module = "androidx.test.espresso:espresso-intents", version.ref = "espresso-core" }
+ext-junit = { module = "androidx.test.ext:junit", version.ref = "androidx-junit" }
+hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt-android" }
+hilt-android-testing = { module = "com.google.dagger:hilt-android-testing", version.ref = "hilt-android-testing" }
+hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt-android" }
+junit = { module = "junit:junit", version.ref = "junit" }
+kotlinx-coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "kotlinx-coroutines-play-services" }
+legacy-support-v4 = { module = "androidx.legacy:legacy-support-v4", version.ref = "legacy-support-v4" }
+lifecycle-extensions = { module = "androidx.lifecycle:lifecycle-extensions", version.ref = "lifecycle-extensions" }
+lifecycle-livedata-ktx = { module = "androidx.lifecycle:lifecycle-livedata-ktx", version.ref = "lifecycle-livedata-ktx" }
+lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle-livedata-ktx" }
+lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycle-livedata-ktx" }
+material = { module = "com.google.android.material:material", version.ref = "material" }
+navigation-fragment-ktx = { module = "androidx.navigation:navigation-fragment-ktx", version.ref = "navigation-fragment-ktx" }
+navigation-ui-ktx = { module = "androidx.navigation:navigation-ui-ktx", version.ref = "navigation-fragment-ktx" }
+play-services-base = { module = "com.google.android.gms:play-services-base", version.ref = "play-services-base" }
+play-services-home = { module = "com.google.android.gms:play-services-home", version.ref = "play-services-home" }
+preference = { module = "androidx.preference:preference", version.ref = "preference" }
+protobuf-javalite = { module = "com.google.protobuf:protobuf-javalite", version.ref = "protobuf-javalite" }
+rules = { module = "androidx.test:rules", version.ref = "rules" }
+runner = { module = "androidx.test:runner", version.ref = "runner" }
+timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
+uiautomator = { module = "androidx.test.uiautomator:uiautomator", version.ref = "uiautomator" }
+
+# Plugins
+[plugins]
