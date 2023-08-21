@@ -12,9 +12,10 @@ plugins {
     id("com.android.library") version "8.1.0" apply false
 
     // Kotlin plugin
-    id("org.jetbrains.kotlin.android") version "1.8.22" apply false
+    //id("org.jetbrains.kotlin.android") version "1.8.22" apply false
+    id("org.jetbrains.kotlin.android") version "1.9.0" apply false
 
     id("com.google.dagger.hilt.android") version "2.46.1" apply false
-    id("androidx.navigation.safeargs") version "2.5.3" apply false
+    id("androidx.navig ation.safeargs") version "2.5.3" apply false
 }
 
