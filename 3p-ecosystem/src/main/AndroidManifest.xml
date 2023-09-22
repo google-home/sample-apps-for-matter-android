@@ -50,7 +50,9 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.GHSAFM">
+        android:theme="@style/Theme.GHSAFM"
+        android:usesCleartextTraffic="true">
+        <!-- usesCleartextTraffic needed for OTBR local unencrypted communication -->
         <activity
             android:name="com.google.homesampleapp.MainActivity"
             android:exported="true">
@@ -78,6 +80,11 @@
 
             <meta-data android:name="home:0:preferred" android:value=""/>
         </service>
+
+        <!-- GPS automatically downloads scanner module when app is installed -->
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="barcode_ui"/>
 
     </application>
 

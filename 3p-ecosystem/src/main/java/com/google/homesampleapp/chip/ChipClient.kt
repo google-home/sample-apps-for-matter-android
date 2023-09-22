@@ -98,6 +98,7 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
                   java.lang.IllegalStateException(
                       "Failed unpairing device [$nodeId] with status [$status]"))
             }
+
             override fun onSuccess(nodeId: Long) {
               Timber.d("awaitUnpairDevice.onSuccess: deviceId [$nodeId]")
               continuation.resume(Unit)
@@ -131,6 +132,7 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
               super.onConnectDeviceComplete()
               continuation.resume(Unit)
             }
+
             // Note that an error in processing is not necessarily communicated via onError().
             // onCommissioningComplete with a "code != 0" also denotes an error in processing.
             override fun onPairingComplete(code: Int) {
@@ -186,6 +188,7 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
                 continuation.resume(Unit)
               }
             }
+
             override fun onError(error: Throwable) {
               super.onError(error)
               continuation.resumeWithException(error)
@@ -213,6 +216,7 @@ class ChipClient @Inject constructor(@ApplicationContext context: Context) {
                   java.lang.IllegalStateException(
                       "Failed opening the pairing window with status [${status}]"))
             }
+
             override fun onSuccess(deviceId: Long, manualPairingCode: String?, qrCode: String?) {
               Timber.d(
                   "ShareDevice: awaitOpenPairingWindowWithPIN.onSuccess: deviceId [${deviceId}]")

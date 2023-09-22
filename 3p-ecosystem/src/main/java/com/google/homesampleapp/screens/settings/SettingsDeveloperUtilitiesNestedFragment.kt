@@ -105,6 +105,14 @@ class SettingsDeveloperUtilitiesNestedFragment : PreferenceFragmentCompat() {
       }
     }
 
+    // Thread network.
+    val threadPreference: Preference? = findPreference("thread")
+    threadPreference?.setOnPreferenceClickListener {
+      Timber.d("threadPreference onPreferenceClickListener()")
+      findNavController().navigate(R.id.action_settingsDeveloperUtilitiesFragment_to_threadFragment)
+      true
+    }
+
     // Log Repositories.
     val logReposPreference: Preference? = findPreference("logrepos")
     logReposPreference?.setOnPreferenceClickListener {
