@@ -55,9 +55,7 @@
             app:destination="@id/settingsFragment" />
         <action
             android:id="@+id/action_deviceFragment_to_homeFragment"
-            app:destination="@id/homeFragment"
-            app:popUpTo="@+id/deviceFragment"
-            app:popUpToInclusive="true" />
+            app:destination="@id/homeFragment" />
         <action
             android:id="@+id/action_deviceFragment_to_inspectFragment"
             app:destination="@id/inspectFragment" />
@@ -92,6 +90,9 @@
         <action
             android:id="@+id/action_settingsDeveloperUtilitiesFragment_to_discoveryFragment"
             app:destination="@id/commissionableFragment" />
+        <action
+            android:id="@+id/action_settingsDeveloperUtilitiesFragment_to_threadFragment"
+            app:destination="@id/threadFragment" />
     </fragment>
     <fragment
         android:id="@+id/settingsDeveloperUtilitiesNestedFragment"
@@ -116,6 +117,17 @@
             app:destination="@id/settingsFragment" />
         <action
             android:id="@+id/action_commissionableFragment_to_homeFragment"
+            app:destination="@id/homeFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/threadFragment"
+        android:name="com.google.homesampleapp.screens.thread.ThreadFragment"
+        android:label="ThreadFragment" >
+        <action
+            android:id="@+id/action_threadFragment_to_settingsFragment"
+            app:destination="@id/settingsFragment" />
+        <action
+            android:id="@+id/action_threadFragment_to_homeFragment"
             app:destination="@id/homeFragment" />
     </fragment>
 </navigation>

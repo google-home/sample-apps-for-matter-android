@@ -129,6 +129,7 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
                 override fun onSuccess(values: MutableList<Int>?) {
                   continuation.resume(values)
                 }
+
                 override fun onError(ex: Exception) {
                   continuation.resumeWithException(ex)
                 }
@@ -159,6 +160,7 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
                 ) {
                   continuation.resume(values)
                 }
+
                 override fun onError(ex: Exception) {
                   continuation.resumeWithException(ex)
                 }
@@ -204,6 +206,7 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
                 override fun onSuccess(values: MutableList<Long>) {
                   continuation.resume(values)
                 }
+
                 override fun onError(ex: Exception) {
                   continuation.resumeWithException(ex)
                 }
@@ -220,6 +223,7 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
                 override fun onSuccess(values: MutableList<Long>) {
                   continuation.resume(values)
                 }
+
                 override fun onError(ex: Exception) {
                   continuation.resumeWithException(ex)
                 }
@@ -252,6 +256,7 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
                 override fun onSuccess(value: MutableList<Long>) {
                   continuation.resume(value)
                 }
+
                 override fun onError(ex: Exception) {
                   continuation.resumeWithException(ex)
                 }
@@ -284,6 +289,7 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
                 override fun onSuccess(value: Int?) {
                   continuation.resume(value)
                 }
+
                 override fun onError(ex: Exception) {
                   continuation.resumeWithException(ex)
                 }
@@ -307,6 +313,7 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
                 override fun onSuccess(values: MutableList<Long>) {
                   continuation.resume(values)
                 }
+
                 override fun onError(ex: Exception) {
                   continuation.resumeWithException(ex)
                 }
@@ -469,6 +476,7 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
                 override fun onSuccess() {
                   continuation.resume(Unit)
                 }
+
                 override fun onError(ex: Exception) {
                   Timber.e(ex, "readOnOffAttribute command failure")
                   continuation.resumeWithException(ex)
@@ -476,6 +484,7 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
               })
     }
   }
+
   // CODELAB FEATURED END
 
   suspend fun setOnOffDeviceStateOnOffCluster(deviceId: Long, isOn: Boolean, endpoint: Int) {
@@ -498,6 +507,7 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
                     Timber.d("Success for setOnOffDeviceStateOnOffCluster")
                     continuation.resume(Unit)
                   }
+
                   override fun onError(ex: Exception) {
                     Timber.e(ex, "Failure for setOnOffDeviceStateOnOffCluster")
                     continuation.resumeWithException(ex)
@@ -514,6 +524,7 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
                     Timber.d("Success for getOnOffDeviceStateOnOffCluster")
                     continuation.resume(Unit)
                   }
+
                   override fun onError(ex: Exception) {
                     Timber.e(ex, "Failure for getOnOffDeviceStateOnOffCluster")
                     continuation.resumeWithException(ex)
@@ -540,6 +551,7 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
                   Timber.d("readOnOffAttribute success: [$value]")
                   continuation.resume(value)
                 }
+
                 override fun onError(ex: Exception) {
                   Timber.e(ex, "readOnOffAttribute command failure")
                   continuation.resumeWithException(ex)
@@ -584,6 +596,7 @@ class ClustersHelper @Inject constructor(private val chipClient: ChipClient) {
                 override fun onSuccess() {
                   continuation.resume(Unit)
                 }
+
                 override fun onError(ex: java.lang.Exception?) {
                   Timber.e(
                       ex,

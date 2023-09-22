@@ -3,12 +3,14 @@
 [versions]
 androidx-junit = "1.1.5"
 appcompat = "1.6.1"
+code-scanner = "16.0.0"
 constraintlayout = "2.1.4"
 core = "1.39.0"
 core-ktx = "1.10.1"
 databinding-runtime = "8.1.0"
 datastore = "1.0.0"
 espresso-core = "3.5.1"
+guava = "31.1-jre"
 hilt-android = "2.46.1"
 hilt-android-testing = "2.44.2"
 junit = "4.13.2"
@@ -20,16 +22,19 @@ material = "1.9.0"
 navigation-fragment-ktx = "2.6.0"
 play-services-base = "18.2.0"
 play-services-home = "16.0.0"
+play-services-threadnetwork = "16.0.0"
 preference = "1.2.1"
 protobuf-javalite = "3.18.0"
 rules = "1.5.0"
 runner = "1.5.2"
 timber = "5.0.1"
 uiautomator = "2.2.0"
+zxing = "4.1.0"
 
 # Dependencies
 [libraries]
 appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
+code-scanner = { module = "com.google.android.gms:play-services-code-scanner", version.ref = "code-scanner"}
 constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraintlayout" }
 core = { module = "com.google.ar:core", version.ref = "core" }
 core-ktx = { module = "androidx.core:core-ktx", version.ref = "core-ktx" }
@@ -40,6 +45,7 @@ espresso-contrib = { module = "androidx.test.espresso:espresso-contrib", version
 espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "espresso-core" }
 espresso-intents = { module = "androidx.test.espresso:espresso-intents", version.ref = "espresso-core" }
 ext-junit = { module = "androidx.test.ext:junit", version.ref = "androidx-junit" }
+guava = { module = "com.google.guava:guava", version.ref = "guava" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt-android" }
 hilt-android-testing = { module = "com.google.dagger:hilt-android-testing", version.ref = "hilt-android-testing" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt-android" }
@@ -55,12 +61,14 @@ navigation-fragment-ktx = { module = "androidx.navigation:navigation-fragment-kt
 navigation-ui-ktx = { module = "androidx.navigation:navigation-ui-ktx", version.ref = "navigation-fragment-ktx" }
 play-services-base = { module = "com.google.android.gms:play-services-base", version.ref = "play-services-base" }
 play-services-home = { module = "com.google.android.gms:play-services-home", version.ref = "play-services-home" }
+play-services-threadnetwork = { module = "com.google.android.gms:play-services-threadnetwork", version.ref = "play-services-threadnetwork" }
 preference = { module = "androidx.preference:preference", version.ref = "preference" }
 protobuf-javalite = { module = "com.google.protobuf:protobuf-javalite", version.ref = "protobuf-javalite" }
 rules = { module = "androidx.test:rules", version.ref = "rules" }
 runner = { module = "androidx.test:runner", version.ref = "runner" }
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 uiautomator = { module = "androidx.test.uiautomator:uiautomator", version.ref = "uiautomator" }
+zxing = { module = "com.journeyapps:zxing-android-embedded", version.ref = "zxing"}
 
 # Plugins
 [plugins]

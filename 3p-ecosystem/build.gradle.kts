@@ -165,6 +165,14 @@ dependencies {
     implementation(libs.play.services.base)
     implementation(libs.play.services.home)
 
+    // Thread Network
+    implementation(libs.play.services.threadnetwork)
+    // Thread QR Code Scanning
+    implementation(libs.code.scanner)
+    // Thread QR Code Generation
+    implementation(libs.zxing)
+
+
     // AndroidX
     implementation(libs.appcompat)
     implementation(libs.constraintlayout)
@@ -207,6 +215,8 @@ dependencies {
     // Other
     implementation(libs.material)
     implementation(libs.timber)
+    // Needed for using BaseEncoding class
+    implementation(libs.guava)
 
     // Test
     testImplementation(libs.junit)
