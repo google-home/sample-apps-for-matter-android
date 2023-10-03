@@ -11,6 +11,8 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -->
+
+
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -55,7 +57,7 @@
                     android:layout_alignParentLeft="true"
                     android:layout_below="@+id/doGPSPreferredCredsExistButton"
                     android:text="Get GPS\npreferred\ncredentials"
-                    android:backgroundTint="@android:color/holo_blue_dark"
+                    android:backgroundTint="#00639B"
                     app:icon="@drawable/ic_baseline_share_24" />
                 <Button
                     android:id="@+id/clearGPSButton"
@@ -66,7 +68,7 @@
                     android:layout_alignParentLeft="true"
                     android:layout_below="@+id/setGPSButton"
                     android:text="Clear GPS\npreferred\ncredentials"
-                    android:backgroundTint="@android:color/holo_blue_dark"
+                    android:backgroundTint="#00639B"
                     app:icon="@drawable/ic_baseline_share_24" />
                 <Button
                     android:id="@+id/setGPSButton"
@@ -77,7 +79,7 @@
                     android:layout_alignParentLeft="true"
                     android:layout_below="@+id/getGPSButton"
                     android:text="Set\ncredentials\nin GPS"
-                    android:backgroundTint="@android:color/holo_blue_dark"
+                    android:backgroundTint="#00639B"
                     app:icon="@drawable/ic_baseline_share_24" />
                 <Button
                     android:id="@+id/doGPSPreferredCredsExistButton"
@@ -87,7 +89,7 @@
                     android:layout_marginLeft="30dp"
                     android:layout_alignParentLeft="true"
                     android:text="Do pref.\ncredentials\nexist?"
-                    android:backgroundTint="@android:color/holo_blue_dark"
+                    android:backgroundTint="#00639B"
                     app:icon="@drawable/ic_baseline_share_24" />
                 <Button
                     android:id="@+id/setOTBRButton"
@@ -98,6 +100,7 @@
                     android:layout_alignParentRight="true"
                     android:text="Set RPi\nOTBR\ncredentials"
                     android:layout_below="@+id/getOTBRButton"
+                    android:backgroundTint="#3E766D"
                     app:icon="@drawable/ic_baseline_share_24" />
                 <Button
                     android:id="@+id/getOTBRButton"
@@ -107,6 +110,7 @@
                     android:layout_marginRight="35dp"
                     android:layout_alignParentRight="true"
                     android:text="Get RPi\nOTBR\ncredentials"
+                    android:backgroundTint="#3E766D"
                     app:icon="@drawable/ic_baseline_share_24" />
                 <Button
                     android:id="@+id/readQRCode"
@@ -117,7 +121,7 @@
                     android:layout_alignParentRight="true"
                     android:layout_below="@+id/setOTBRButton"
                     android:text="Read\ncredentials\nQR Code"
-                    android:backgroundTint="@android:color/holo_orange_dark"
+                    android:backgroundTint="#FF8569"
                     app:icon="@drawable/ic_baseline_share_24" />
                 <Button
                     android:id="@+id/showQRCode"
@@ -128,7 +132,7 @@
                     android:layout_alignParentRight="true"
                     android:layout_below="@+id/readQRCode"
                     android:text="Show\ncredentials\nQR Code"
-                    android:backgroundTint="@android:color/holo_orange_dark"
+                    android:backgroundTint="#FF8569"
                     app:icon="@drawable/ic_baseline_share_24" />
             </RelativeLayout>
             <TextView
