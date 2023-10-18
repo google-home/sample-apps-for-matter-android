@@ -67,10 +67,10 @@ android {
         targetSdk = 33
 
         // Defines the version number of your app.
-        versionCode = 15
+        versionCode = 16
 
         // Defines a user-friendly version name for your app.
-        versionName = "1.4.1"
+        versionName = "1.4.2"
 
         // Test Runner.
         testInstrumentationRunner = "com.google.homesampleapp.CustomTestRunner"
