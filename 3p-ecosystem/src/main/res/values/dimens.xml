@@ -23,4 +23,8 @@
     <dimen name="task_small_size">12sp</dimen>
     <dimen name="no_device_title">20sp</dimen>
     <dimen name="no_device_text">12sp</dimen>
+
+    <dimen name="margin_normal">16dp</dimen>
+    <dimen name="margin_small">8dp</dimen>
+    <dimen name="margin_extra_small">4dp</dimen>
 </resources>

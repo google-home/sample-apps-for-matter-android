@@ -31,6 +31,24 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -212,7 +230,19 @@ class HomeFragment : Fragment() {
     Timber.d("onCreateView()")
 
     // Setup the binding with the fragment.
-    binding = DataBindingUtil.inflate(inflater, R.layout.fragment_home, container, false)
+    binding =
+      DataBindingUtil.inflate<FragmentHomeBinding>(
+          inflater,
+          R.layout.fragment_home,
+          container,
+          false
+        ).apply {
+          composeView.setContent {
+            MaterialTheme {
+              HomeScreen(viewModel)
+            }
+          }
+        }
 
     // Binding to the CodelabInfoCheckbox UI, which is part of the dialog providing
     // information about the companion codelab. That checkbox is used to prevent displaying
@@ -410,15 +440,55 @@ class HomeFragment : Fragment() {
   }
 
   // -----------------------------------------------------------------------------------------------
+  // Composables
+
+  @Composable
+  private fun HomeScreen(homeViewModel: HomeViewModel) {
+    // Observes values coming from the VM's devicesUiModelLiveData
+    val devicesUiModel by homeViewModel.devicesUiModelLiveData.observeAsState()
+    Timber.d("HomeScreen [${devicesUiModel}]")
+    if (devicesUiModel == null || devicesUiModel!!.devices.isEmpty()) {
+      NoDevices()
+    }
+  }
+
+  @Composable
+  private fun NoDevices() {
+    Column {
+      Image(
+        painter = painterResource(R.drawable.emptystate_missing_content),
+        contentDescription = stringResource(R.string.no_devices_image),
+        modifier = Modifier.fillMaxWidth().height(200.dp)
+      )
+      Text(
+        text = stringResource(R.string.no_devices_yet),
+        style = MaterialTheme.typography.subtitle1,
+        modifier = Modifier.fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally)
+      )
+      Text(
+        text = stringResource(R.string.add_your_first),
+        style = MaterialTheme.typography.subtitle2,
+        modifier = Modifier.fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally)
+      )
+    }
+  }
+
+  @Preview
+  @Composable
+  private fun NoDevicesPreview() {
+    MaterialTheme {
+      NoDevices()
+    }
+  }
+
+  // -----------------------------------------------------------------------------------------------
   // UI Updates
 
   private fun updateUi(devicesUiModel: DevicesUiModel) {
     Timber.d("updateUi [${devicesUiModel}]")
     if (devicesUiModel.devices.isEmpty()) {
-      binding.noDevicesLayout.visibility = View.VISIBLE
       binding.devicesListRecyclerView.visibility = View.GONE
     } else {
-      binding.noDevicesLayout.visibility = View.GONE
       binding.devicesListRecyclerView.visibility = View.VISIBLE
     }
 

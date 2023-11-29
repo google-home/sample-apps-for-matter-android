@@ -48,7 +48,7 @@ android {
      * compile your app. This means your app can use the API features included in
      * this API level and lower.
      */
-    compileSdk = 33
+    compileSdk = 34
 
     /**
      * The defaultConfig block encapsulates default settings and entries for all
@@ -113,6 +113,10 @@ android {
     }
     buildFeatures {
         dataBinding = true
+        compose = true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.4"
     }
     sourceSets {
         getByName("main") {
@@ -172,7 +176,6 @@ dependencies {
     // Thread QR Code Generation
     implementation(libs.zxing)
 
-
     // AndroidX
     implementation(libs.appcompat)
     implementation(libs.constraintlayout)
@@ -180,6 +183,28 @@ dependencies {
     implementation(libs.databinding.runtime)
     implementation(libs.legacy.support.v4)
     implementation(libs.preference)
+
+    // Compose
+    // Bill of Materials: https://developer.android.com/jetpack/compose/bom
+    // The Compose Bill of Materials (BOM) lets you manage all of your Compose library versions by
+    // specifying only the BOM’s version. The BOM itself has links to the stable versions of the
+    // different Compose libraries, in such a way that they work well together. When using the BOM
+    // in your app, you don't need to add any version to the Compose library dependencies
+    // themselves. When you update the BOM version, all the libraries that you're using are
+    // automatically updated to their new versions.
+    val composeBom = platform("androidx.compose:compose-bom:2023.10.01")
+    implementation(composeBom)
+    androidTestImplementation(composeBom)
+    debugImplementation("androidx.compose.ui:ui-tooling")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+
+    implementation("androidx.compose.runtime:runtime")
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.foundation:foundation-layout")
+    implementation("androidx.compose.material:material")
+    implementation("androidx.compose.runtime:runtime-livedata")
+    implementation("androidx.compose.ui:ui-tooling")
 
     // Navigation
     implementation(libs.navigation.fragment.ktx)
