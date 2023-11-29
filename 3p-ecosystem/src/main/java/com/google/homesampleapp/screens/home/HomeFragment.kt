@@ -44,6 +44,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -237,9 +238,13 @@ class HomeFragment : Fragment() {
           container,
           false
         ).apply {
-          composeView.setContent {
-            MaterialTheme {
-              HomeScreen(viewModel)
+          composeView.apply {
+            // Dispose the Composition when the view's LifecycleOwner is destroyed
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+              MaterialTheme {
+                HomeScreen(viewModel)
+              }
             }
           }
         }
