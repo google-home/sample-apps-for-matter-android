@@ -11,14 +11,13 @@
  */
 
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-    id("com.google.protobuf") version "0.9.1"
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.google.protobuf)
+    alias(libs.plugins.hilt)
+    // FIXME: to be changed with KSP
     id("org.jetbrains.kotlin.kapt")
-    id("dagger.hilt.android.plugin")
-    id("androidx.navigation.safeargs")
-    id("com.google.dagger.hilt.android")
-    id("com.ncorti.ktfmt.gradle") version "0.12.0"
+    alias(libs.plugins.ktfmt.plugin)
 }
 
 /**
@@ -48,7 +47,7 @@ android {
      * compile your app. This means your app can use the API features included in
      * this API level and lower.
      */
-    compileSdk = 33
+    compileSdk = 34
 
     /**
      * The defaultConfig block encapsulates default settings and entries for all
@@ -67,10 +66,10 @@ android {
         targetSdk = 33
 
         // Defines the version number of your app.
-        versionCode = 16
+        versionCode = 17
 
         // Defines a user-friendly version name for your app.
-        versionName = "1.4.2"
+        versionName = "1.4.3"
 
         // Test Runner.
         testInstrumentationRunner = "com.google.homesampleapp.CustomTestRunner"
@@ -96,23 +95,12 @@ android {
         }
     }
 
-    // FIXME
-    /**
-     * To override source and target compatibility (if different from the
-     * toolchain JDK version), add the following. All of these
-     * default to the same value as kotlin.jvmToolchain. If you're using the
-     * same version for these values and kotlin.jvmToolchain, you can
-     * remove these blocks.
-     */
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
     buildFeatures {
         dataBinding = true
+        compose = true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.4"
     }
     sourceSets {
         getByName("main") {
@@ -172,7 +160,6 @@ dependencies {
     // Thread QR Code Generation
     implementation(libs.zxing)
 
-
     // AndroidX
     implementation(libs.appcompat)
     implementation(libs.constraintlayout)
@@ -180,6 +167,24 @@ dependencies {
     implementation(libs.databinding.runtime)
     implementation(libs.legacy.support.v4)
     implementation(libs.preference)
+
+    // Compose
+    // Bill of Materials: https://developer.android.com/jetpack/compose/bom
+    // The Compose Bill of Materials (BOM) lets you manage all of your Compose library versions by
+    // specifying only the BOM’s version. The BOM itself has links to the stable versions of the
+    // different Compose libraries, in such a way that they work well together. When using the BOM
+    // in your app, you don't need to add any version to the Compose library dependencies
+    // themselves. When you update the BOM version, all the libraries that you're using are
+    // automatically updated to their new versions.
+    implementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.compose.foundation.layout)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.runtime)
+    implementation(libs.androidx.compose.runtime.livedata)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    debugImplementation(libs.androidx.compose.ui.tooling)
 
     // Navigation
     implementation(libs.navigation.fragment.ktx)

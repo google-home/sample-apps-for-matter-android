@@ -67,36 +67,10 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent">
 
-        <ImageView
-            android:id="@+id/noDevicesImageView"
-            android:layout_width="fill_parent"
-            android:layout_height="100dp"
-            android:contentDescription="@string/no_devices_image"
-            android:scaleType="centerInside"
-            android:src="@drawable/emptystate_missing_content"
-            app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <TextView
-            android:id="@+id/noDevicesTextView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/no_devices_yet"
-            android:textColor="?attr/colorAccent"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
-            android:textSize="@dimen/no_device_title" />
-
-            <TextView
-                android:id="@+id/addYourFirstTextView"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingTop="8dp"
-                android:text="@string/add_your_first"
-                android:textColor="?attr/colorAccent"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-
-            android:textSize="@dimen/no_device_text" />
+            <androidx.compose.ui.platform.ComposeView
+                android:id="@+id/compose_view"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"/>
         </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView

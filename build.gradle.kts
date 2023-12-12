@@ -8,13 +8,12 @@ plugins {
    */
 
   // Gradle Plugin
-  id("com.android.application") version "8.1.0" apply false
-  id("com.android.library") version "8.1.0" apply false
+  alias(libs.plugins.android.application) apply false
+  alias(libs.plugins.android.library) apply false
 
   // Kotlin plugin
-  // id("org.jetbrains.kotlin.android") version "1.8.22" apply false
-  id("org.jetbrains.kotlin.android") version "1.9.0" apply false
+  alias(libs.plugins.kotlin.android) apply false
 
-  id("com.google.dagger.hilt.android") version "2.46.1" apply false
-  id("androidx.navigation.safeargs") version "2.5.3" apply false
+  // Hilt
+  alias(libs.plugins.hilt) apply false
 }

@@ -1,6 +1,8 @@
 # Define variables that hold the versions of your dependencies and plugins.
 # You use these variables in the subsequent blocks (the versions and plugins blocks).
 [versions]
+androidxComposeBom = "2023.10.01"
+androidGradlePlugin = "8.1.1"
 androidx-junit = "1.1.5"
 appcompat = "1.6.1"
 code-scanner = "16.0.0"
@@ -10,15 +12,18 @@ core-ktx = "1.10.1"
 databinding-runtime = "8.1.0"
 datastore = "1.0.0"
 espresso-core = "3.5.1"
+google-protobuf = "0.9.1"
 guava = "31.1-jre"
 hilt-android = "2.46.1"
 hilt-android-testing = "2.44.2"
 junit = "4.13.2"
+kotlin = "1.9.20"
 kotlinx-coroutines-play-services = "1.6.4"
+ktfmt = "0.12.0"
 legacy-support-v4 = "1.0.0"
 lifecycle-extensions = "2.2.0"
 lifecycle-livedata-ktx = "2.6.1"
-material = "1.9.0"
+material = "1.10.0"
 navigation-fragment-ktx = "2.6.0"
 play-services-base = "18.2.0"
 play-services-home = "16.0.0"
@@ -33,6 +38,14 @@ zxing = "4.1.0"
 
 # Dependencies
 [libraries]
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "androidxComposeBom" }
+androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
+androidx-compose-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout" }
+androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-compose-runtime = { group = "androidx.compose.runtime", name = "runtime" }
+androidx-compose-runtime-livedata = { group = "androidx.compose.runtime", name = "runtime-livedata" }
+androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
 code-scanner = { module = "com.google.android.gms:play-services-code-scanner", version.ref = "code-scanner"}
 constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraintlayout" }
@@ -72,3 +85,10 @@ zxing = { module = "com.journeyapps:zxing-android-embedded", version.ref = "zxin
 
 # Plugins
 [plugins]
+android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
+android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
+android-test = { id = "com.android.test", version.ref = "androidGradlePlugin" }
+google-protobuf = { id = "com.google.protobuf", version.ref = "google-protobuf" }
+hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt-android" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+ktfmt-plugin = { id = "com.ncorti.ktfmt.gradle", version.ref = "ktfmt" }
