@@ -35,17 +35,15 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ViewCompositionStrategy
-import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -243,7 +241,7 @@ class HomeFragment : Fragment() {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
               MaterialTheme {
-                HomeScreen(viewModel)
+                HomeRoute(viewModel)
               }
             }
           }
@@ -448,14 +446,30 @@ class HomeFragment : Fragment() {
   // Composables
 
   @Composable
-  private fun HomeScreen(homeViewModel: HomeViewModel) {
+  private fun HomeRoute(homeViewModel: HomeViewModel) {
     // Observes values coming from the VM's devicesUiModelLiveData
     val devicesUiModel by homeViewModel.devicesUiModelLiveData.observeAsState()
-    Timber.d("HomeScreen [${devicesUiModel}]")
-    if (devicesUiModel == null || devicesUiModel!!.devices.isEmpty()) {
+    Timber.d("HomeRoute [${devicesUiModel}]")
+    val noDevices = devicesUiModel == null || devicesUiModel!!.devices.isEmpty()
+    HomeScreen(noDevices)
+  }
+
+  @Composable
+  private fun HomeScreen(noDevices: Boolean) {
+    // Observes values coming from the VM's devicesUiModelLiveData
+    if (noDevices) {
       NoDevices()
     }
   }
+
+  @Preview(showSystemUi = true, showBackground = true)
+  @Composable
+  private fun HomeScreenNoDevicesPreview() {
+    MaterialTheme {
+      HomeScreen(true)
+    }
+  }
+
 
   @Composable
   private fun NoDevices() {
@@ -467,12 +481,12 @@ class HomeFragment : Fragment() {
       )
       Text(
         text = stringResource(R.string.no_devices_yet),
-        style = MaterialTheme.typography.subtitle1,
+        style = MaterialTheme.typography.bodyMedium,
         modifier = Modifier.fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally)
       )
       Text(
         text = stringResource(R.string.add_your_first),
-        style = MaterialTheme.typography.subtitle2,
+        style = MaterialTheme.typography.bodySmall,
         modifier = Modifier.fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally)
       )
     }

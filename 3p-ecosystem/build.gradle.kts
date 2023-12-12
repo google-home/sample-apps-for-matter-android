@@ -11,14 +11,13 @@
  */
 
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-    id("com.google.protobuf") version "0.9.1"
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.google.protobuf)
+    alias(libs.plugins.hilt)
+    // FIXME: to be changed with KSP
     id("org.jetbrains.kotlin.kapt")
-    id("dagger.hilt.android.plugin")
-    id("androidx.navigation.safeargs")
-    id("com.google.dagger.hilt.android")
-    id("com.ncorti.ktfmt.gradle") version "0.12.0"
+    alias(libs.plugins.ktfmt.plugin)
 }
 
 /**
@@ -192,19 +191,15 @@ dependencies {
     // in your app, you don't need to add any version to the Compose library dependencies
     // themselves. When you update the BOM version, all the libraries that you're using are
     // automatically updated to their new versions.
-    val composeBom = platform("androidx.compose:compose-bom:2023.10.01")
-    implementation(composeBom)
-    androidTestImplementation(composeBom)
-    debugImplementation("androidx.compose.ui:ui-tooling")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-
-    implementation("androidx.compose.runtime:runtime")
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.foundation:foundation")
-    implementation("androidx.compose.foundation:foundation-layout")
-    implementation("androidx.compose.material:material")
-    implementation("androidx.compose.runtime:runtime-livedata")
-    implementation("androidx.compose.ui:ui-tooling")
+    implementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.compose.foundation.layout)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.runtime)
+    implementation(libs.androidx.compose.runtime.livedata)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    debugImplementation(libs.androidx.compose.ui.tooling)
 
     // Navigation
     implementation(libs.navigation.fragment.ktx)
