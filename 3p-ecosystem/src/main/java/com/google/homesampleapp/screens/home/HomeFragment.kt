@@ -39,6 +39,7 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
@@ -449,24 +450,27 @@ class HomeFragment : Fragment() {
   private fun HomeRoute(homeViewModel: HomeViewModel) {
     // Observes values coming from the VM's devicesUiModelLiveData
     val devicesUiModel by homeViewModel.devicesUiModelLiveData.observeAsState()
-    Timber.d("HomeRoute [${devicesUiModel}]")
-    val noDevices = devicesUiModel == null || devicesUiModel!!.devices.isEmpty()
-    HomeScreen(noDevices)
+    HomeScreen(devicesUiModel)
   }
 
   @Composable
-  private fun HomeScreen(noDevices: Boolean) {
-    // Observes values coming from the VM's devicesUiModelLiveData
+  private fun HomeScreen(devicesUiModel: DevicesUiModel?) {
+    val noDevices = devicesUiModel == null || devicesUiModel.devices.isEmpty()
     if (noDevices) {
       NoDevices()
+    }
+
+    LaunchedEffect(devicesUiModel) {
+      Timber.d("HomeRoute [${devicesUiModel}]")
     }
   }
 
   @Preview(showSystemUi = true, showBackground = true)
   @Composable
   private fun HomeScreenNoDevicesPreview() {
+    val devicesUiModel = DevicesUiModel(emptyList(), showCodelabInfo = false, showOfflineDevices = false)
     MaterialTheme {
-      HomeScreen(true)
+      HomeScreen(devicesUiModel)
     }
   }
 
