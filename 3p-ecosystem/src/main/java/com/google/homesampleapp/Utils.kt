@@ -102,7 +102,11 @@ fun Device.DeviceType.displayString(): String {
 fun convertToAppDeviceType(matterDeviceType: Long): Device.DeviceType {
   return when (matterDeviceType) {
     256L -> Device.DeviceType.TYPE_LIGHT // 0x0100 On/Off Light
-    266L -> Device.DeviceType.TYPE_OUTLET // 0x010a (On/Off Plug-in Unit)
+    257L -> Device.DeviceType.TYPE_DIMMABLE_LIGHT // 0x0101 Dimmable Light
+    259L -> Device.DeviceType.TYPE_LIGHT_SWITCH // 0x0103 On/Off Light Switch
+    266L -> Device.DeviceType.TYPE_OUTLET // 0x010A (On/Off Plug-in Unit)
+    268L -> Device.DeviceType.TYPE_COLOR_TEMPERATURE_LIGHT // 0x010C Color Temperature Light
+    269L -> Device.DeviceType.TYPE_EXTENDED_COLOR_LIGHT // 0x010D Extended Color Light
     else -> Device.DeviceType.TYPE_UNKNOWN
   }
 }

@@ -114,4 +114,8 @@ All of the information will be logged in logcat. Use this command  to only view 
     <string name="light_off">Light Off</string>
     <string name="go_to_home">Home</string>
     <string name="no_devices_image">No devices image</string>
+    <string name="share_device_body">You can share this device to control it from other apps or services.</string>
+    <string name="share">Share</string>
+    <string name="technical_information">Technical Information</string>
+    <string name="remove_device">Remove device</string>
 </resources>
