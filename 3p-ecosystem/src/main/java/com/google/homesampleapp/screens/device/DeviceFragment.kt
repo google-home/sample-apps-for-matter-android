@@ -43,11 +43,14 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
@@ -57,6 +60,8 @@ import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.navigation.findNavController
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -104,6 +109,13 @@ class DeviceFragment : Fragment() {
   // Fragment binding.
   private lateinit var binding: FragmentDeviceBinding
 
+  // Tells whether user asked to show the Inspect information dialog.
+  // Note that this is required for now because the "Inspect" icon is in the top appbar
+  // which has not yet been migrated to Compose. This will probably be handled differently
+  // once that migration is done.
+  private val _showInspectInfoLiveData = MutableLiveData(false)
+  val showInspectInfoLiveData: LiveData<Boolean> = _showInspectInfoLiveData
+
   // The ViewModel for the currently selected device.
   private val selectedDeviceViewModel: SelectedDeviceViewModel by activityViewModels()
 
@@ -118,16 +130,6 @@ class DeviceFragment : Fragment() {
 
   // Error alert dialog.
   private lateinit var errorAlertDialog: AlertDialog
-
-  // The current state of the device.
-  // The DeviceUiModel is not updated whenever we observe changes in the state of the device.
-  // This is an issue for the "Inspect Device" onClick listener which relies on the device
-  // state to decide whether to show a dialog stating that the device is offline and therefore
-  // the inspect screen cannot be shown, or go show the inspect information (when device is
-  // online).
-  // This is why the state of the device is cached in local variables.
-  var isOnline = false
-  var isOn = false
 
   // -----------------------------------------------------------------------------------------------
   // Lifecycle functions
@@ -240,7 +242,13 @@ class DeviceFragment : Fragment() {
     }
 
     binding.topAppBar.setOnMenuItemClickListener {
-      processInpectDeviceInfo()
+      // Now that we've moved isOnline and isOn into the composable,
+      // the handler for clicking on the "Inspect" icon on the top appbar
+      // does not have access to isOnline anymore.
+      // We now have LiveData to keep track of when the Inspect icon is clicked
+      // on the top appbar. When we migrate the top appbar to Compose, this should
+      // then be cleaner and fully handled within the composables.
+      _showInspectInfoLiveData.value = true
       true
     }
   }
@@ -273,18 +281,6 @@ class DeviceFragment : Fragment() {
 
   private fun hideBackgroundWorkAlertDialog() {
     backgroundWorkAlertDialog.hide()
-  }
-
-  private fun processInpectDeviceInfo() {
-    if (!isOnline) {
-      MaterialAlertDialogBuilder(requireContext())
-          .setTitle("Inspect Device")
-          .setMessage("Device is offline, cannot be inspected.")
-          .setPositiveButton(resources.getString(R.string.ok)) { _, _ -> }
-          .show()
-    } else {
-      findNavController().navigate(R.id.action_deviceFragment_to_inspectFragment)
-    }
   }
 
   // -----------------------------------------------------------------------------------------------
@@ -345,10 +341,11 @@ class DeviceFragment : Fragment() {
     val selectedDevice by selectedDeviceViewModel.selectedDeviceLiveData.observeAsState()
     val lastUpdatedDeviceState by devicesStateRepository.lastUpdatedDeviceState.observeAsState()
     val shareDeviceStatus by viewModel.shareDeviceStatus.observeAsState()
+    val showInspectInfo by showInspectInfoLiveData.observeAsState()
 
     binding.topAppBar.title = selectedDevice?.device?.name
 
-    DeviceScreen(selectedDeviceId, selectedDevice, lastUpdatedDeviceState, shareDeviceStatus)
+    DeviceScreen(selectedDeviceId, selectedDevice, lastUpdatedDeviceState, shareDeviceStatus, showInspectInfo)
   }
 
   @Composable
@@ -356,96 +353,104 @@ class DeviceFragment : Fragment() {
     selectedDeviceId: Long?,
     deviceUiModel: DeviceUiModel?,
     deviceState: DeviceState?,
-    shareDeviceStatus: TaskStatus?
+    shareDeviceStatus: TaskStatus?,
+    showInspectInfo: Boolean?
   ) {
+    // The current state of the device.
     // The DeviceUiModel is not updated whenever we observe changes in the state of the device.
     // This is an issue for the "Inspect Device" onClick listener which relies on the device
     // state to decide whether to show a dialog stating that the device is offline and therefore
     // the inspect screen cannot be shown, or go show the inspect information (when device is
     // online).
     // This is why the state of the device is cached in local variables.
-    if (selectedDeviceId == null || selectedDeviceId == -1L) {
-      // Device was just removed, nothing to do. We'll move to HomeFragment.
-      isOnline = false
-      return
-    }
+    var isOnline by remember { mutableStateOf(false) }
+    var isOn by remember { mutableStateOf(false) }
 
-    // Device state
-    deviceUiModel?.let {
-      isOnline =
-        when (deviceState) {
-          null -> deviceUiModel.isOnline
+    LaunchedEffect(selectedDeviceId, deviceUiModel, deviceState) {
+      if (selectedDeviceId == null || selectedDeviceId == -1L) {
+        // Device was just removed, nothing to do. We'll move to HomeFragment.
+        isOnline = false
+        return@LaunchedEffect
+      }
+
+      // Device state
+      deviceUiModel?.let { model ->
+        isOnline = when (deviceState) {
+          null -> model.isOnline
           else -> deviceState.online
         }
-      isOn =
-        when (deviceState) {
-          null -> deviceUiModel.isOn
+        isOn = when (deviceState) {
+          null -> model.isOn
           else -> deviceState.on
         }
+      }
+    }
 
-      Timber.d("DeviceScreen [${deviceUiModel.toString()}]")
+    deviceUiModel?.let { model ->
       Column {
-        OnOffStateSection(deviceUiModel, deviceState, {
-          viewModel.updateDeviceStateOn(deviceUiModel, it)
+        OnOffStateSection(isOnline, isOn, {
+          viewModel.updateDeviceStateOn(model, it)
         })
-        ShareSection(id = deviceUiModel.device.deviceId, name = deviceUiModel.device.name, shareDeviceStatus)
+        ShareSection(
+          id = model.device.deviceId,
+          name = model.device.name,
+          shareDeviceStatus
+        )
         // TODO: Use HorizontalDivider when it becomes part of the stable Compose BOM.
         Spacer(
           modifier = Modifier,
         )
-        TechnicalInfoSection(deviceUiModel.device)
+        TechnicalInfoSection(model.device)
         RemoveDeviceSection({ removeDevice() })
       }
+    }
+
+    if (showInspectInfo!!) {
+      if (isOnline) {
+        findNavController().navigate(R.id.action_deviceFragment_to_inspectFragment)
+      } else {
+        MaterialAlertDialogBuilder(requireContext())
+          .setTitle("Inspect Device")
+          .setMessage("Device is offline, cannot be inspected.")
+          .setPositiveButton(resources.getString(R.string.ok)) { _, _ -> }
+          .show()
+      }
+      _showInspectInfoLiveData.value = false
     }
   }
 
   @Composable
   private fun OnOffStateSection(
-    deviceUiModel: DeviceUiModel?,
-    deviceState: DeviceState?,
+    isOnline: Boolean,
+    isOn: Boolean,
     onStateChange: ((Boolean) -> Unit)?
   ) {
-    // Extract online/offline and on/off information.
-    // deviceUiModel takes the value of the dynamic state when it is not null.
-    deviceUiModel?.let {
-      isOnline =
-        when (deviceState) {
-          null -> deviceUiModel.isOnline
-          else -> deviceState.online
-        }
-      isOn =
-        when (deviceState) {
-          null -> deviceUiModel.isOn
-          else -> deviceState.on
-        }
-
-      val bgColor =
-        if (isOnline && isOn) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface
-      val contentColor =
-        if (isOnline && isOn) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
-      val text = stateDisplayString(isOnline, isOn)
-      Surface(
-        modifier = Modifier.padding(dimensionResource(R.dimen.margin_normal)),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
-        contentColor = contentColor,
-        color = bgColor,
-        shape = RoundedCornerShape(dimensionResource(R.dimen.rounded_corner))
+    val bgColor =
+      if (isOnline && isOn) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface
+    val contentColor =
+      if (isOnline && isOn) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+    val text = stateDisplayString(isOnline, isOn)
+    Surface(
+      modifier = Modifier.padding(dimensionResource(R.dimen.margin_normal)),
+      border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
+      contentColor = contentColor,
+      color = bgColor,
+      shape = RoundedCornerShape(dimensionResource(R.dimen.rounded_corner))
+    ) {
+      Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+          .padding(dimensionResource(R.dimen.padding_surface_content))
       ) {
-        Row(
-          verticalAlignment = Alignment.CenterVertically,
-          modifier = Modifier
-            .padding(dimensionResource(R.dimen.padding_surface_content))
-        ) {
-          Text(
-            text = text,
-            style = MaterialTheme.typography.bodyLarge,
-          )
-          Spacer(Modifier.weight(1f))
-          Switch(
-            checked = isOn,
-            onCheckedChange = onStateChange
-          )
-        }
+        Text(
+          text = text,
+          style = MaterialTheme.typography.bodyLarge,
+        )
+        Spacer(Modifier.weight(1f))
+        Switch(
+          checked = isOn,
+          onCheckedChange = onStateChange
+        )
       }
     }
   }
@@ -563,22 +568,16 @@ class DeviceFragment : Fragment() {
   @Preview(widthDp = 300)
   @Composable
   private fun OnOffStateSection_OnlineOn() {
-    val deviceState = DeviceState_OnlineOn
-    val device = DeviceTest
-    val deviceUiModel = DeviceUiModel(device, true, true)
     MaterialTheme {
-      OnOffStateSection(deviceUiModel, deviceState, { Timber.d("OnOff state changed to $it") })
+      OnOffStateSection(true, true, { Timber.d("OnOff state changed to $it") })
     }
   }
 
   @Preview(widthDp = 300)
   @Composable
   private fun OnOffStateSection_Offline() {
-    val deviceState = DeviceState_Offline
-    val device = DeviceTest
-    val deviceUiModel = DeviceUiModel(device, false, true)
     MaterialTheme {
-      OnOffStateSection(deviceUiModel, deviceState, { Timber.d("OnOff state changed to $it") })
+      OnOffStateSection(false, true, { Timber.d("OnOff state changed to $it") })
     }
   }
 
@@ -615,7 +614,7 @@ class DeviceFragment : Fragment() {
     val device = DeviceTest
     val deviceUiModel = DeviceUiModel(device, true, true)
     MaterialTheme {
-      DeviceScreen(1L, deviceUiModel, deviceState, TaskStatus.NotStarted)
+      DeviceScreen(1L, deviceUiModel, deviceState, TaskStatus.NotStarted, false)
     }
   }
 }
