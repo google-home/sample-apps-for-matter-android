@@ -20,22 +20,33 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
+import com.google.homesampleapp.Device
 import com.google.homesampleapp.R
 import com.google.homesampleapp.chip.DeviceMatterInfo
 import com.google.homesampleapp.chip.MatterConstants
 import com.google.homesampleapp.data.DevicesStateRepository
 import com.google.homesampleapp.databinding.FragmentInspectBinding
 import com.google.homesampleapp.lifeCycleEvent
+import com.google.homesampleapp.screens.home.DeviceUiModel
 import com.google.homesampleapp.screens.shared.SelectedDeviceViewModel
+import com.google.protobuf.Timestamp
 import dagger.hilt.android.AndroidEntryPoint
-import javax.inject.Inject
 import timber.log.Timber
+import javax.inject.Inject
 
 /**
  * The Inspect Fragment shows all the "cluster" information about the device that was selected in
@@ -67,13 +78,35 @@ class InspectFragment : Fragment() {
     Timber.d(lifeCycleEvent("onCreateView()"))
 
     // Setup the binding with the fragment.
-    binding = DataBindingUtil.inflate(inflater, R.layout.fragment_inspect, container, false)
+    binding = DataBindingUtil.inflate<FragmentInspectBinding>(
+      inflater,
+      R.layout.fragment_inspect,
+      container,
+      false
+    ).apply {
+      composeView.apply {
+        // Dispose the Composition when the view's LifecycleOwner is destroyed
+        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+        setContent {
+          MaterialTheme {
+            InspectRoute()
+          }
+        }
+      }
+    }
 
     // Setup UI elements and livedata observers.
     setupUiElements()
-    setupObservers()
 
     return binding.root
+  }
+
+  override fun onResume() {
+    Timber.d("onResume")
+    super.onResume()
+    // FIXME: right place to do this?
+    // FIXME: first pass we have nothing, then we have something. Possible to make this smoother?
+    viewModel.inspectDevice(selectedDeviceViewModel.selectedDeviceLiveData.value!!.device.deviceId)
   }
 
   // -----------------------------------------------------------------------------------------------
@@ -85,108 +118,143 @@ class InspectFragment : Fragment() {
   }
 
   // -----------------------------------------------------------------------------------------------
-  // Setup Observers
+  // Composables
 
-  private fun setupObservers() {
-    // Observer on the currently selected device
-    selectedDeviceViewModel.selectedDeviceIdLiveData.observe(viewLifecycleOwner) { deviceId ->
-      Timber.d(
-          "selectedDeviceViewModel.selectedDeviceIdLiveData.observe is called with deviceId [${deviceId}]")
-      updateDeviceInfo()
-    }
+  @Composable
+  private fun InspectRoute() {
+    // Observes values needed by the InspectScreen.
+    val selectedDeviceId by selectedDeviceViewModel.selectedDeviceIdLiveData.observeAsState()
+    val selectedDevice by selectedDeviceViewModel.selectedDeviceLiveData.observeAsState()
+    val instrospectionInfo by viewModel.instrospectionInfo.observeAsState()
 
-    // Observer on introspection information
-    viewModel.instrospectionInfo.observe(viewLifecycleOwner) { updateIntrospectionInfo(it) }
+    binding.topAppBar.title = selectedDevice?.device?.name
+
+    InspectScreen(selectedDeviceId, instrospectionInfo)
   }
 
-  // -----------------------------------------------------------------------------------------------
-  // UI update functions
-
-  private fun updateDeviceInfo() {
-    Timber.d("updateDeviceIfo")
-    if (selectedDeviceViewModel.selectedDeviceIdLiveData.value == -1L) {
+  @Composable
+  private fun InspectScreen(
+    selectedDeviceId: Long?,
+    deviceMatterInfoList: List<DeviceMatterInfo>?
+  ) {
+    if (selectedDeviceId == -1L) {
       // Device was just removed, nothing to do. We'll move to HomeFragment.
       return
     }
-    val deviceUiModel = selectedDeviceViewModel.selectedDeviceLiveData.value
-    Timber.d(
-        "updateDeviceIfo with device [${deviceUiModel?.device?.deviceId}] [${deviceUiModel?.device?.name}]")
-
-    binding.topAppBar.title = deviceUiModel?.device?.name
-    // Fetch device introspection info, and then live data will be updated, which is observed
-    // by the fragment.
-    viewModel.inspectDevice(deviceUiModel?.device?.deviceId!!)
-  }
-
-  private fun updateIntrospectionInfo(deviceMatterInfoList: List<DeviceMatterInfo>) {
-    val linearLayout = binding.inspectInfoLayout
-    linearLayout.removeAllViews()
-    if (deviceMatterInfoList.isEmpty()) {
-      addTextView(
-          "Oops... We could not retrieve any information from the Descriptor Cluster. " +
+    Column {
+      if (deviceMatterInfoList.isNullOrEmpty()) {
+        Text(
+          text = "Oops... We could not retrieve any information from the Descriptor Cluster. " +
               "This is probably because the device just recently turned \"offline\".",
-          com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
-      return
-    }
-    // Add the Descriptor Cluster Title
-    addTextView(
-        "Descriptor Cluster",
-        com.google.android.material.R.style.TextAppearance_Material3_TitleLarge)
-    // For each endpoint
-    for (deviceMatterInfo in deviceMatterInfoList) {
-      // Endpoint ID
-      addTextView(
-          "Endpoint ${deviceMatterInfo.endpoint}",
-          com.google.android.material.R.style.TextAppearance_Material3_TitleMedium)
-      // Device Types
-      addTextView(
-          "Device Types", com.google.android.material.R.style.TextAppearance_Material3_TitleSmall)
-      for (deviceType in deviceMatterInfo.types) {
-        val hex = String.format("0x%04X", deviceType)
-        val typeString = MatterConstants.DeviceTypesMap.getOrDefault(deviceType, "Unknown")
-        addTextView(
-            "[${hex}] ${typeString}",
-            com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
+          style = MaterialTheme.typography.bodyMedium)
+        return
       }
-      // Server Clusters
-      addTextView(
-          "Server Clusters",
-          com.google.android.material.R.style.TextAppearance_Material3_TitleSmall)
-      if (deviceMatterInfo.serverClusters.isEmpty()) {
-        addTextView("None", com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
-      } else {
-        for (serverCluster in deviceMatterInfo.serverClusters) {
-          val hex = String.format("0x%04X", serverCluster)
-          val serverClusterString =
-              MatterConstants.ClustersMap.getOrDefault(serverCluster, "Unknown")
-          addTextView(
-              "[${hex}] ${serverClusterString}",
-              com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
+      // Add the Descriptor Cluster Title
+      Text(
+        text = "Descriptor Cluster",
+        style = MaterialTheme.typography.titleLarge)
+      // For each endpoint
+      for (deviceMatterInfo in deviceMatterInfoList) {
+        // Endpoint ID
+        Text(
+          text = "<<< Endpoint ${deviceMatterInfo.endpoint} >>>",
+          style = MaterialTheme.typography.titleMedium)
+        // Device Types
+        Text(text = "Device Types", style = MaterialTheme.typography.titleSmall)
+        for (deviceType in deviceMatterInfo.types) {
+          val hex = String.format("0x%04X", deviceType)
+          val typeString = MatterConstants.DeviceTypesMap.getOrDefault(deviceType, "Unknown")
+          Text(
+            text = "[${hex}] ${typeString}",
+            style = MaterialTheme.typography.bodySmall)
         }
-      }
-      // Client Clusters
-      addTextView(
-          "Client Clusters",
-          com.google.android.material.R.style.TextAppearance_Material3_TitleSmall)
-      if (deviceMatterInfo.clientClusters.isEmpty()) {
-        addTextView("None", com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
-      } else {
-        for (clientCluster in deviceMatterInfo.clientClusters) {
-          val hex = String.format("0x%04X", clientCluster)
-          val clientClusterString =
+        // Server Clusters
+        Text(
+          text = "Server Clusters",
+          style = MaterialTheme.typography.titleSmall)
+        if (deviceMatterInfo.serverClusters.isEmpty()) {
+          Text(text = "None", style = MaterialTheme.typography.bodySmall)
+        } else {
+          for (serverCluster in deviceMatterInfo.serverClusters) {
+            val hex = String.format("0x%04X", serverCluster)
+            val serverClusterString =
+              MatterConstants.ClustersMap.getOrDefault(serverCluster, "Unknown")
+            Text(
+              text = "[${hex}] ${serverClusterString}",
+              style = MaterialTheme.typography.bodySmall)
+          }
+        }
+        // Client Clusters
+        Text(
+          text = "Client Clusters",
+          style = MaterialTheme.typography.titleSmall)
+        if (deviceMatterInfo.clientClusters.isEmpty()) {
+          Text(text = "None", style = MaterialTheme.typography.bodySmall)
+        } else {
+          for (clientCluster in deviceMatterInfo.clientClusters) {
+            val hex = String.format("0x%04X", clientCluster)
+            val clientClusterString =
               MatterConstants.ClustersMap.getOrDefault(clientCluster, "Unknown")
-          addTextView(
-              "[${hex}] ${clientClusterString}",
-              com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
+            Text(
+              text = "[${hex}] ${clientClusterString}",
+              style = MaterialTheme.typography.bodySmall)
+          }
         }
       }
     }
   }
 
-  private fun addTextView(text: String, style: Int) {
-    val textView = TextView(requireContext())
-    textView.text = text
-    textView.setTextAppearance(style)
-    binding.inspectInfoLayout.addView(textView)
+  // -----------------------------------------------------------------------------------------------
+  // Composable Previews
+
+  @Preview(widthDp = 300)
+  @Composable
+  private fun InspectScreenOfflinePreview() {
+    val device = DeviceTest
+    val deviceUiModel = DeviceUiModel(device, true, true)
+    MaterialTheme {
+      InspectScreen(1L, emptyList())
+    }
   }
+
+  @Preview(widthDp = 300)
+  @Composable
+  private fun InspectScreenOnlineNoClustersPreview() {
+    val device = DeviceTest
+    val deviceUiModel = DeviceUiModel(device, true, true)
+    MaterialTheme {
+      InspectScreen(1L,
+        listOf(
+          DeviceMatterInfo(1, listOf(15L, 22L), emptyList(), emptyList())
+        ))
+    }
+  }
+
+  @Preview(widthDp = 300)
+  @Composable
+  private fun InspectScreenOnlineWithClustersPreview() {
+    val device = DeviceTest
+    val deviceUiModel = DeviceUiModel(device, true, true)
+    MaterialTheme {
+      InspectScreen(1L,
+        listOf(
+          DeviceMatterInfo(0, listOf(15L, 22L),
+            listOf(3L),
+            listOf(43L, 48L)),
+          DeviceMatterInfo(1, listOf(15L, 22L),
+            listOf(3L, 4L, 5L),
+            listOf(43L, 44L, 45L, 48L))
+        ))
+    }
+  }
+
+  private val DeviceTest = Device.newBuilder()
+    .setDeviceId(1L)
+    .setDeviceType(Device.DeviceType.TYPE_OUTLET)
+    .setDateCommissioned(Timestamp.getDefaultInstance())
+    .setName("MyOutlet")
+    .setProductId("8785")
+    .setVendorId("6006")
+    .setRoom("Office")
+    .build()
 }
