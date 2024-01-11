@@ -36,6 +36,10 @@ message Device {
         TYPE_UNKNOWN = 1;
         TYPE_LIGHT = 2;
         TYPE_OUTLET = 3;
+        TYPE_DIMMABLE_LIGHT = 4;
+        TYPE_COLOR_TEMPERATURE_LIGHT = 5;
+        TYPE_EXTENDED_COLOR_LIGHT = 6;
+        TYPE_LIGHT_SWITCH = 7;
     }
     DeviceType deviceType = 4;
 

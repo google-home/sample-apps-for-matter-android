@@ -2,7 +2,7 @@
 # You use these variables in the subsequent blocks (the versions and plugins blocks).
 [versions]
 androidxComposeBom = "2023.10.01"
-androidGradlePlugin = "8.1.1"
+androidGradlePlugin = "8.2.0"
 androidx-junit = "1.1.5"
 appcompat = "1.6.1"
 code-scanner = "16.0.0"

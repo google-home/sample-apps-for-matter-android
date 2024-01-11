@@ -27,4 +27,6 @@
     <dimen name="margin_normal">16dp</dimen>
     <dimen name="margin_small">8dp</dimen>
     <dimen name="margin_extra_small">4dp</dimen>
+    <dimen name="padding_surface_content">12dp</dimen>
+    <dimen name="rounded_corner">12dp</dimen>
 </resources>
