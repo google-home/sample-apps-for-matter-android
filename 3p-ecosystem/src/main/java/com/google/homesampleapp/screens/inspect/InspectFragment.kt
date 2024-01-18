@@ -33,6 +33,7 @@ import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.navigation.fragment.findNavController
 import com.google.homesampleapp.Device
 import com.google.homesampleapp.R
@@ -104,9 +105,6 @@ class InspectFragment : Fragment() {
   override fun onResume() {
     Timber.d("onResume")
     super.onResume()
-    // FIXME: right place to do this?
-    // FIXME: first pass we have nothing, then we have something. Possible to make this smoother?
-    viewModel.inspectDevice(selectedDeviceViewModel.selectedDeviceLiveData.value!!.device.deviceId)
   }
 
   // -----------------------------------------------------------------------------------------------
@@ -129,6 +127,15 @@ class InspectFragment : Fragment() {
 
     binding.topAppBar.title = selectedDevice?.device?.name
 
+    LifecycleResumeEffect {
+      Timber.d("LifecycleResumeEffect: selectedDeviceId [$selectedDeviceId]")
+      viewModel.inspectDevice(selectedDeviceViewModel.selectedDeviceLiveData.value!!.device.deviceId)
+      onPauseOrDispose {
+        // do any needed clean up here
+        Timber.d("LifecycleResumeEffect:onPauseOrDispose")
+      }
+    }
+
     InspectScreen(selectedDeviceId, instrospectionInfo)
   }
 
@@ -142,7 +149,11 @@ class InspectFragment : Fragment() {
       return
     }
     Column {
-      if (deviceMatterInfoList.isNullOrEmpty()) {
+      if (deviceMatterInfoList == null) {
+        // The viewModel.inspectDevice() call has not yet completed.
+        return;
+      }
+      if (deviceMatterInfoList.isEmpty()) {
         Text(
           text = "Oops... We could not retrieve any information from the Descriptor Cluster. " +
               "This is probably because the device just recently turned \"offline\".",
