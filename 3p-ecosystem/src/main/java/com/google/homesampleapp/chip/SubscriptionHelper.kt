@@ -100,11 +100,11 @@ class SubscriptionHelper @Inject constructor(private val chipClient: ChipClient)
     }
 
     override fun onReport(nodeState: NodeState) {
-      Timber.d("reportCallback: onReport")
+      //Timber.d("reportCallback: onReport")
       val debugString = nodeStateToDebugString(nodeState)
-      Timber.d("------- BEGIN REPORT -----")
-      Timber.d(debugString)
-      Timber.d("------- END REPORT -----")
+      //Timber.d("------- BEGIN REPORT -----")
+      //Timber.d(debugString)
+      //Timber.d("------- END REPORT -----")
     }
 
     override fun onDone() {
