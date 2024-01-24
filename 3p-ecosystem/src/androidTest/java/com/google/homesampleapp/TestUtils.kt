@@ -156,7 +156,7 @@ object CommissionableDevicesScreen {
   fun verifyAtLeastOneDeviceCommissionable() {
     // Give enough time for the commissionable devices to be scanned.
     Thread.sleep(5000)
-    onView(withId(R.id.listRecyclerView)).check(matches(hasMinimumChildCount(1)))
+    onView(withId(R.id.compose_view)).check(matches(hasMinimumChildCount(1)))
   }
 
   fun navigateToHomeScreen() {

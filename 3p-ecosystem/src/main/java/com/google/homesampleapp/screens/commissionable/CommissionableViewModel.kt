@@ -17,6 +17,7 @@
 package com.google.homesampleapp.screens.commissionable
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -47,4 +48,6 @@ constructor(producers: Set<@JvmSuppressWildcards MatterBeaconProducer>) : ViewMo
               started = WhileSubscribed(2000),
               initialValue = emptySet(),
           )
+
+  val beaconsLiveData = beaconsFlow.asLiveData()
 }
