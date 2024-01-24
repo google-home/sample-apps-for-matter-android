@@ -27,7 +27,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.platform.ViewCompositionStrategy
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
@@ -42,7 +41,6 @@ import com.google.homesampleapp.chip.MatterConstants
 import com.google.homesampleapp.data.DevicesStateRepository
 import com.google.homesampleapp.databinding.FragmentInspectBinding
 import com.google.homesampleapp.lifeCycleEvent
-import com.google.homesampleapp.screens.home.DeviceUiModel
 import com.google.homesampleapp.screens.shared.SelectedDeviceViewModel
 import com.google.protobuf.Timestamp
 import dagger.hilt.android.AndroidEntryPoint
@@ -98,6 +96,7 @@ class InspectFragment : Fragment() {
 
     // Setup UI elements and livedata observers.
     setupUiElements()
+    setupObservers()
 
     return binding.root
   }
@@ -115,6 +114,12 @@ class InspectFragment : Fragment() {
     binding.topAppBar.setOnClickListener { findNavController().popBackStack() }
   }
 
+  private fun setupObservers() {
+    selectedDeviceViewModel.selectedDeviceLiveData.observe(viewLifecycleOwner) {
+      binding.topAppBar.title = it?.device?.name
+    }
+  }
+
   // -----------------------------------------------------------------------------------------------
   // Composables
 
@@ -122,10 +127,7 @@ class InspectFragment : Fragment() {
   private fun InspectRoute() {
     // Observes values needed by the InspectScreen.
     val selectedDeviceId by selectedDeviceViewModel.selectedDeviceIdLiveData.observeAsState()
-    val selectedDevice by selectedDeviceViewModel.selectedDeviceLiveData.observeAsState()
     val instrospectionInfo by viewModel.instrospectionInfo.observeAsState()
-
-    binding.topAppBar.title = selectedDevice?.device?.name
 
     LifecycleResumeEffect {
       Timber.d("LifecycleResumeEffect: selectedDeviceId [$selectedDeviceId]")
@@ -148,10 +150,14 @@ class InspectFragment : Fragment() {
       // Device was just removed, nothing to do. We'll move to HomeFragment.
       return
     }
-    Column {
+    Column (
+    // FIXME: Triggers  java.lang.IllegalStateException: Vertically scrollable component
+    // was measured with an infinity maximum height constraints, which is disallowed.
+    // modifier = Modifier.verticalScroll(rememberScrollState())
+    ) {
       if (deviceMatterInfoList == null) {
         // The viewModel.inspectDevice() call has not yet completed.
-        return;
+        return
       }
       if (deviceMatterInfoList.isEmpty()) {
         Text(
@@ -176,7 +182,7 @@ class InspectFragment : Fragment() {
           val hex = String.format("0x%04X", deviceType)
           val typeString = MatterConstants.DeviceTypesMap.getOrDefault(deviceType, "Unknown")
           Text(
-            text = "[${hex}] ${typeString}",
+            text = "[${hex}] $typeString",
             style = MaterialTheme.typography.bodySmall)
         }
         // Server Clusters
@@ -191,7 +197,7 @@ class InspectFragment : Fragment() {
             val serverClusterString =
               MatterConstants.ClustersMap.getOrDefault(serverCluster, "Unknown")
             Text(
-              text = "[${hex}] ${serverClusterString}",
+              text = "[${hex}] $serverClusterString",
               style = MaterialTheme.typography.bodySmall)
           }
         }
@@ -207,7 +213,7 @@ class InspectFragment : Fragment() {
             val clientClusterString =
               MatterConstants.ClustersMap.getOrDefault(clientCluster, "Unknown")
             Text(
-              text = "[${hex}] ${clientClusterString}",
+              text = "[${hex}] $clientClusterString",
               style = MaterialTheme.typography.bodySmall)
           }
         }
@@ -221,8 +227,6 @@ class InspectFragment : Fragment() {
   @Preview(widthDp = 300)
   @Composable
   private fun InspectScreenOfflinePreview() {
-    val device = DeviceTest
-    val deviceUiModel = DeviceUiModel(device, true, true)
     MaterialTheme {
       InspectScreen(1L, emptyList())
     }
@@ -231,8 +235,6 @@ class InspectFragment : Fragment() {
   @Preview(widthDp = 300)
   @Composable
   private fun InspectScreenOnlineNoClustersPreview() {
-    val device = DeviceTest
-    val deviceUiModel = DeviceUiModel(device, true, true)
     MaterialTheme {
       InspectScreen(1L,
         listOf(
@@ -244,8 +246,6 @@ class InspectFragment : Fragment() {
   @Preview(widthDp = 300)
   @Composable
   private fun InspectScreenOnlineWithClustersPreview() {
-    val device = DeviceTest
-    val deviceUiModel = DeviceUiModel(device, true, true)
     MaterialTheme {
       InspectScreen(1L,
         listOf(
