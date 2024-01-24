@@ -177,6 +177,7 @@ dependencies {
     // themselves. When you update the BOM version, all the libraries that you're using are
     // automatically updated to their new versions.
     implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.lifecycle.runtime.compose)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.foundation.layout)

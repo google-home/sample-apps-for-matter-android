@@ -35,6 +35,7 @@ runner = "1.5.2"
 timber = "5.0.1"
 uiautomator = "2.2.0"
 zxing = "4.1.0"
+lifecycleRuntimeCompose = "2.7.0"
 
 # Dependencies
 [libraries]
@@ -82,6 +83,7 @@ runner = { module = "androidx.test:runner", version.ref = "runner" }
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 uiautomator = { module = "androidx.test.uiautomator:uiautomator", version.ref = "uiautomator" }
 zxing = { module = "com.journeyapps:zxing-android-embedded", version.ref = "zxing"}
+androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeCompose" }
 
 # Plugins
 [plugins]
