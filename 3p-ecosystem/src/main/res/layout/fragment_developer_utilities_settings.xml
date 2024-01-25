@@ -44,11 +44,10 @@
 
         </com.google.android.material.appbar.AppBarLayout>
 
-        <androidx.fragment.app.FragmentContainerView
-            android:id="@+id/nested_settings_fragment"
+        <androidx.compose.ui.platform.ComposeView
+            android:id="@+id/compose_view"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
-        </androidx.fragment.app.FragmentContainerView>
+            android:layout_height="match_parent"/>
 
     </LinearLayout>
 </layout>

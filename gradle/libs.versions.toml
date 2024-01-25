@@ -34,6 +34,7 @@ rules = "1.5.0"
 runner = "1.5.2"
 timber = "5.0.1"
 uiautomator = "2.2.0"
+zhanghai-compose-preference = "1.0.0"
 zxing = "4.1.0"
 lifecycleRuntimeCompose = "2.7.0"
 
@@ -83,6 +84,7 @@ runner = { module = "androidx.test:runner", version.ref = "runner" }
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 uiautomator = { module = "androidx.test.uiautomator:uiautomator", version.ref = "uiautomator" }
 zxing = { module = "com.journeyapps:zxing-android-embedded", version.ref = "zxing"}
+zhanghai-compose-preference = { module = "me.zhanghai.compose.preference:library", version.ref = "zhanghai-compose-preference"}
 androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeCompose" }
 
 # Plugins
