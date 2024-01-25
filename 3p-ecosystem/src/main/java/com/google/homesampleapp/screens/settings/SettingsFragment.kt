@@ -100,9 +100,9 @@ class SettingsFragment : Fragment() {
   @Composable
   private fun SettingsScreen(
   ) {
-    val showHelpAndFeedbackDialog = remember { mutableStateOf(false) }
-    val showAboutDialog = remember { mutableStateOf(false) }
-    val showHalfsheetDialog = remember { mutableStateOf(false) }
+    var showHelpAndFeedbackDialog by remember { mutableStateOf(false) }
+    var showAboutDialog by remember { mutableStateOf(false) }
+    var showHalfsheetDialog by remember { mutableStateOf(false) }
     // Cannot use extension function for Halfsheet Preference, onValueChange needed.
     val showHalfsheetPref =
       rememberPreferenceState("halfsheet_preference", false)
@@ -133,7 +133,7 @@ class SettingsFragment : Fragment() {
         summary = { Text(text = if (it) "Show offline devices" else "Do not show offline devices") }
       )
       item {
-        // Need to use this form as we7 must have access to onValueChange.
+        // Need to use this form as we must have access to onValueChange.
         var value by showHalfsheetPref
         SwitchPreference(
           value = value,
@@ -154,7 +154,7 @@ class SettingsFragment : Fragment() {
           },
           onValueChange = {
             value = it
-            showHalfsheetDialog.value = true
+            showHalfsheetDialog = true
           })
       }
       preference(
@@ -181,7 +181,7 @@ class SettingsFragment : Fragment() {
         },
         title = { Text(text = "Help and Feedback") },
         summary = { Text(text = "Learn how to use this sample app and/or give us feedback") },
-        onClick = { showHelpAndFeedbackDialog.value = true }
+        onClick = { showHelpAndFeedbackDialog = true }
       )
       preference(
         key = "about_preference",
@@ -193,26 +193,26 @@ class SettingsFragment : Fragment() {
         },
         title = { Text(text = "About this app") },
         summary = { Text(text = "More information about this application") },
-        onClick = { showAboutDialog.value = true }
+        onClick = { showAboutDialog = true }
       )
     }
-    if (showHelpAndFeedbackDialog.value) {
+    if (showHelpAndFeedbackDialog) {
       HtmlInfoDialog(
         "Help and Feedback",
         getString(R.string.help_and_feedback),
-        onClick = { showHelpAndFeedbackDialog.value = false })
+        onClick = { showHelpAndFeedbackDialog = false })
     }
-    if (showAboutDialog.value) {
+    if (showAboutDialog) {
       HtmlInfoDialog(
         "About this app",
         getString(R.string.about_app, VERSION_NAME),
-        onClick = { showAboutDialog.value = false })
+        onClick = { showAboutDialog = false })
     }
-    if (showHalfsheetDialog.value) {
+    if (showHalfsheetDialog) {
       HtmlInfoDialog(
         "Halfsheet Notification",
         getString(R.string.halfsheet_notification_alert),
-        onClick = { showHalfsheetDialog.value = false })
+        onClick = { showHalfsheetDialog = false })
     }
   }
 }

@@ -32,8 +32,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.painterResource
@@ -114,7 +116,7 @@ class SettingsDeveloperUtilitiesFragment : Fragment() {
   @Composable
   private fun SettingsDeveloperUtilitiesScreen(
   ) {
-    val showLogReposDialog = remember { mutableStateOf(false) }
+    var showLogReposDialog by remember { mutableStateOf(false) }
 
     LazyColumn(modifier = Modifier.fillMaxSize() /*contentPadding = contentPadding*/) {
       preference(
@@ -168,15 +170,15 @@ class SettingsDeveloperUtilitiesFragment : Fragment() {
         },
         title = { Text(text = "Log repositories content") },
         summary = { Text(text = "View in the logs the content of repositories used in the app") },
-        onClick = { showLogReposDialog.value = true }
+        onClick = { showLogReposDialog = true }
       )
     }
-    if (showLogReposDialog.value) {
+    if (showLogReposDialog) {
       viewModel.printRepositories()
       HtmlInfoDialog(
         "Repositories logged",
         getString(R.string.log_repos_info),
-        onClick = { showLogReposDialog.value = false })
+        onClick = { showLogReposDialog = false })
     }
   }
 
