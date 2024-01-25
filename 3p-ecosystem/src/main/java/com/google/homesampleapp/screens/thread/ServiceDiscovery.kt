@@ -1,4 +1,4 @@
-package com.google.homesampleapp.screens.thread.servicediscovery
+package com.google.homesampleapp.screens.thread
 
 import android.content.Context
 import android.net.nsd.NsdManager
@@ -35,24 +35,28 @@ import timber.log.Timber
  * screens/commissionable/mdns. Matter has its own specific libraries that encapsulate nsdManager
  * and Matter-specific mDNS/SD code
  */
-class ServiceDiscovery(context: Context, val viewModelScope: CoroutineScope) {
+class ServiceDiscovery(context: Context, val coroutineScope: CoroutineScope) {
   val resolvedDevices = mutableListOf<NsdServiceInfo>()
   private val threadBorderRouterServiceType = "_meshcop._udp."
   private val nsdManager = (context.getSystemService(Context.NSD_SERVICE) as NsdManager)
   private val lock = Semaphore(1)
   private val discoveryListener: NsdManager.DiscoveryListener =
       DiscoveryListener(
-          threadBorderRouterServiceType, nsdManager, resolvedDevices, viewModelScope, lock)
+          threadBorderRouterServiceType, nsdManager, resolvedDevices, coroutineScope, lock)
 
   fun start() {
-    viewModelScope.launch(Dispatchers.IO) {
+    coroutineScope.launch(Dispatchers.IO) {
       nsdManager.discoverServices(
           threadBorderRouterServiceType, NsdManager.PROTOCOL_DNS_SD, discoveryListener)
     }
   }
 
   fun stop() {
-    // resolvedDevices.clear()
+    // FIXME: how come it crashes when changing orientation?
+    // Caused by: java.lang.IllegalArgumentException: listener not registered
+    //   at android.net.nsd.NsdManager.getListenerKey(NsdManager.java:1102)
+    //   at android.net.nsd.NsdManager.stopServiceDiscovery(NsdManager.java:1346)
+    //   at com.google.homesampleapp.screens.thread.servicediscovery.ServiceDiscovery.stop(ServiceDiscovery.kt:56)
     nsdManager.stopServiceDiscovery(discoveryListener)
   }
 }
@@ -66,11 +70,11 @@ class ServiceDiscovery(context: Context, val viewModelScope: CoroutineScope) {
  * simultaneous resolving of services.
  */
 class DiscoveryListener(
-    private val serviceType: String,
-    private val nsdManager: NsdManager,
-    private val resolvedServices: MutableList<NsdServiceInfo>,
-    private val viewModelScope: CoroutineScope,
-    private val lock: Semaphore
+  private val serviceType: String,
+  private val nsdManager: NsdManager,
+  private val resolvedServices: MutableList<NsdServiceInfo>,
+  private val coroutineScope: CoroutineScope,
+  private val lock: Semaphore
 ) : NsdManager.DiscoveryListener {
   // Called as soon as service discovery begins.
   override fun onDiscoveryStarted(regType: String) {
@@ -85,7 +89,7 @@ class DiscoveryListener(
     } else {
       Timber.d("Service discovered $service")
       // Sending this coroutine to the Dispatcher.IO thread, so it doesn't block UI
-      viewModelScope.launch(Dispatchers.IO) {
+      coroutineScope.launch(Dispatchers.IO) {
         // NsdManager doesn't like simultaneous resolve calls. Thus using a lock
         lock.acquire()
         nsdManager.resolveService(service, ResolveListener(resolvedServices))

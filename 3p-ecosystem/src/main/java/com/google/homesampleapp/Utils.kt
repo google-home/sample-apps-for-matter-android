@@ -38,8 +38,9 @@ import timber.log.Timber
 // -------------------------------------------------------------------------------------------------
 // Various constants
 
-lateinit var VERSION_NAME: String
-lateinit var APP_NAME: String
+// Not using lateinit so Timber can be used with Compose previews
+var VERSION_NAME = "v?.?"
+var APP_NAME = "APP_NAME"
 
 // -------------------------------------------------------------------------------------------------
 // Display helper functions
