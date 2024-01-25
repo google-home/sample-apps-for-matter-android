@@ -75,14 +75,6 @@ class CommissionableFragment : Fragment() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     Timber.d("onCreate()")
-
-    lifecycleScope.launch {
-      lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-        viewModel.beaconsFlow.distinctUntilChanged().collect { beacons ->
-          Timber.d("In onCreate, new beacons:\n${beacons}")
-        }
-      }
-    }
   }
 
   override fun onCreateView(
@@ -152,7 +144,7 @@ class CommissionableFragment : Fragment() {
   @Composable
   private fun CommissionableRoute(commissionableViewModel: CommissionableViewModel) {
     val beacons by commissionableViewModel.beaconsLiveData.observeAsState()
-    val beaconsList = beacons!!.toList()
+    val beaconsList = beacons?.toList() ?: emptyList()
     CommissionableScreen(beaconsList)
   }
 
@@ -160,10 +152,6 @@ class CommissionableFragment : Fragment() {
   private fun CommissionableScreen(beaconsList: List<MatterBeacon>) {
     LazyColumn(
       Modifier.fillMaxSize()
-      // FIXME: How can we get autoscroll with LazyColumn?
-      // Statement below causes an error:
-      // "Vertically scrollable component was measured with an infinity maximum height constraints, which is disallowed."
-      //.verticalScroll(rememberScrollState())
     ) {
       this.items(beaconsList) {
         MatterBeaconItem(it)
