@@ -118,4 +118,6 @@ All of the information will be logged in logcat. Use this command  to only view 
     <string name="share">Share</string>
     <string name="technical_information">Technical Information</string>
     <string name="remove_device">Remove device</string>
+    <string name="transport_icon">Transport icon</string>
+
 </resources>

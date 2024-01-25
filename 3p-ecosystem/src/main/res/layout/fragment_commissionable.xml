@@ -42,18 +42,17 @@
 
         </com.google.android.material.appbar.AppBarLayout>
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/listRecyclerView"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:paddingVertical="@dimen/row_item_margin_vertical"
-            android:scrollbars="vertical"
-            app:layoutManager="LinearLayoutManager"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/topBarLayout"
-            />
+                <!-- FIXME: the LazyColumn overlaps the top app bar
+                Tried a lot of things, but none worked.
+                Once we complete the full migration to Compose, having the topAppbar in Compose
+                will probably fix this issue, but until then, would be nice to have a fix.
+                -->
+                <androidx.compose.ui.platform.ComposeView
+                    android:id="@+id/compose_view"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    app:layout_constraintStart_toEndOf="@+id/topBarLayout"/>
+        <!--  FIXME: tried this as well:  app:layout_constraintTop_toBottomOf="@+id/topBarLayout"/> -->
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>
 
