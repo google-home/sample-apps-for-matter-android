@@ -218,6 +218,9 @@ dependencies {
     // Task.await()
     implementation(libs.kotlinx.coroutines.play.services)
 
+    // Preferences/Settings for Jetpack Compose
+    implementation(libs.zhanghai.compose.preference)
+
     // Other
     implementation(libs.material)
     implementation(libs.timber)
