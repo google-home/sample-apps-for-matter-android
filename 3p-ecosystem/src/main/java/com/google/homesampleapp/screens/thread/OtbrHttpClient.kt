@@ -98,34 +98,17 @@ object OtbrHttpClient {
         Verbs.POST,
         Verbs.PUT -> {
           urlConnection.setRequestProperty("Content-Type", contentTypeMimeType)
-          urlConnection.doOutput = true
-          try {
-            val outputStream = urlConnection.outputStream
-            postPayload.let { outputStream.write(postPayload.toByteArray()) }
+          urlConnection.outputStream.use { outputStream ->
+            outputStream.write(postPayload.toByteArray())
             outputStream.flush()
-            outputStream.close()
-
-            val response = urlConnection.responseCode
-            Timber.d("$verb response: $response")
-            inputStream = BufferedInputStream(urlConnection.inputStream)
-            content = String(inputStream.readBytes(), StandardCharsets.UTF_8)
-          } catch (e: Exception) {
-            Timber.e("Error loading page $e")
-          } finally {
-            inputStream?.let { inputStream!!.close() }
           }
         }
         Verbs.GET,
         Verbs.DELETE -> {
-          try {
-            inputStream = BufferedInputStream(urlConnection.inputStream)
-            content = String(inputStream.readBytes(), StandardCharsets.UTF_8)
+          urlConnection.inputStream.use {
+            content = String(it.readBytes(), StandardCharsets.UTF_8)
             val response = urlConnection.responseCode
             Timber.d("$verb response: $response")
-          } catch (e: Exception) {
-            Timber.e("Error loading page $e")
-          } finally {
-            inputStream?.let { inputStream.close() }
           }
         }
         else -> {
