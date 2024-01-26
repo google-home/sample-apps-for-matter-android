@@ -2,6 +2,7 @@ package com.google.homesampleapp.screens.thread
 
 import android.net.nsd.NsdServiceInfo
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.Stable
 import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.CommonStatusCodes.getStatusCodeString
@@ -20,7 +21,13 @@ import timber.log.Timber
  * That UI logic is mainly associated with API calls that require Activity.
  * Actions performed by the user in the Fragment trigger calls to processAction(),
  * and the impact of theses actions are communicated back to the UI via StateFlows.
+ *
+ * Note: Adding the @Stable annotation to this class helps the compose compiler understand
+ * that it doesn't need to eagerly recompose where this class is used and it explicitly
+ * tells it we've taken care to make sure that variables that are read in composition
+ * will tell the composition when it has changed.
  */
+@Stable
 class ThreadNetworkUiState(
   private val activity: ComponentActivity,
   private val viewModel: ThreadViewModel

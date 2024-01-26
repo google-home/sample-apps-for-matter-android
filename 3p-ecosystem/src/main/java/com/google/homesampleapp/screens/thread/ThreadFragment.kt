@@ -236,16 +236,21 @@ class ThreadFragment : Fragment() {
     // to properly process the Action triggered by the user.
     //
     // Note that this makes it challenging to handle UIState functions that are suspendable.
+    // [TODO: Comment from TJ:
+    //  For this, if you did ThreadNetworkUiState(activity!!, rememberCoroutineScope(), viewModel),
+    //  would the passed in coroutine scope help in launching suspending functions
+    //  in the ThreadNetworkUiState?]
     // At the point of invocation in the composable, one would normally use rememberCoroutineScope
     // but the call must be done directly on the UIState object, which we strive to avoid.
     // For now, suspend functions are handled in the ViewModel by using viewModelScope.
     // [Not possible to have a lambda for a suspend function that needs arguments:
     // https://youtrack.jetbrains.com/issue/KT-51067/Function-for-creating-suspending-lambdas-doesnt-allow-lambda-parameters
     // https://medium.com/livefront/suspending-lambdas-in-kotlin-7319d2d7092a]
-    val onThreadNetworkAction =
+    val onThreadNetworkAction = remember(threadNetworkUiState) {
       { actionRequest: ActionRequest ->
         threadNetworkUiState.processAction(actionRequest)
       }
+    }
 
     // The processing performed in ThreadNetworkUiState/ThreadViewModel impacts the Action Dialog
     // to be shown in the UI.
