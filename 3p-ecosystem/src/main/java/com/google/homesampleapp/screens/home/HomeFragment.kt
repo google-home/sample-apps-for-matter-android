@@ -310,9 +310,10 @@ class HomeFragment : Fragment() {
     Timber.d("onDestroy()")
     chipClient.chipDeviceController.setDeviceAttestationDelegate(0, EmptyAttestationDelegate())
     // Destroy alert dialogs
-    errorAlertDialog.dismiss()
-    newDeviceAlertDialog.dismiss()
-    codelabInfoAlertDialog.dismiss()
+    // FIXME: this causes crash when changing orientation if we do not go through Home screen.
+    //    errorAlertDialog.dismiss()
+    //    newDeviceAlertDialog.dismiss()
+    //    codelabInfoAlertDialog.dismiss()
   }
 
   // -----------------------------------------------------------------------------------------------

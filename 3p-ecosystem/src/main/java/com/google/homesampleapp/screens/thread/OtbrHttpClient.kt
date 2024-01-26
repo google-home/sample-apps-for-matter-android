@@ -1,6 +1,5 @@
 package com.google.homesampleapp.screens.thread
 
-import androidx.fragment.app.FragmentActivity
 import com.google.android.gms.threadnetwork.ThreadNetworkCredentials
 import com.google.common.io.BaseEncoding
 import java.io.BufferedInputStream
@@ -70,7 +69,6 @@ object OtbrHttpClient {
    */
   suspend fun createJsonHttpRequest(
       url: URL,
-      activity: FragmentActivity,
       verb: Verbs,
       postPayload: String = "",
       contentTypeMimeType: String = "application/json",
@@ -103,7 +101,7 @@ object OtbrHttpClient {
           urlConnection.doOutput = true
           try {
             val outputStream = urlConnection.outputStream
-            postPayload?.let { outputStream.write(postPayload.toString().toByteArray()) }
+            postPayload.let { outputStream.write(postPayload.toByteArray()) }
             outputStream.flush()
             outputStream.close()
 

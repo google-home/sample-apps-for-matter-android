@@ -23,6 +23,7 @@ ktfmt = "0.12.0"
 legacy-support-v4 = "1.0.0"
 lifecycle-extensions = "2.2.0"
 lifecycle-livedata-ktx = "2.6.1"
+lifecycleRuntimeCompose = "2.7.0"
 material = "1.10.0"
 navigation-fragment-ktx = "2.6.0"
 play-services-base = "18.2.0"
@@ -36,7 +37,6 @@ timber = "5.0.1"
 uiautomator = "2.2.0"
 zhanghai-compose-preference = "1.0.0"
 zxing = "4.1.0"
-lifecycleRuntimeCompose = "2.7.0"
 
 # Dependencies
 [libraries]
@@ -48,6 +48,7 @@ androidx-compose-runtime = { group = "androidx.compose.runtime", name = "runtime
 androidx-compose-runtime-livedata = { group = "androidx.compose.runtime", name = "runtime-livedata" }
 androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeCompose" }
 appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
 code-scanner = { module = "com.google.android.gms:play-services-code-scanner", version.ref = "code-scanner"}
 constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraintlayout" }
@@ -85,7 +86,6 @@ timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 uiautomator = { module = "androidx.test.uiautomator:uiautomator", version.ref = "uiautomator" }
 zxing = { module = "com.journeyapps:zxing-android-embedded", version.ref = "zxing"}
 zhanghai-compose-preference = { module = "me.zhanghai.compose.preference:library", version.ref = "zhanghai-compose-preference"}
-androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeCompose" }
 
 # Plugins
 [plugins]
