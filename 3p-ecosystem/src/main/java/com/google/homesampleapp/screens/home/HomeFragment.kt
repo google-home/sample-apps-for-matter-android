@@ -136,21 +136,21 @@ class HomeFragment : Fragment() {
   private var deviceAttestationFailureIgnored = false
 
   // The adapter used by the RecyclerView (where we show the list of devices).
-  private val adapter =
-      DevicesAdapter(
-          { deviceUiModel ->
-            // The click listener.
-            // We update the selectedDeviceViewModel which is shared with the Device fragment.
-            Timber.d("DevicesAdapter clickListener invoked")
-            selectedDeviceViewModel.setSelectedDevice(deviceUiModel)
-            view?.findNavController()?.navigate(R.id.action_homeFragment_to_deviceFragment)
-          },
-          { view, deviceUiModel ->
-            Timber.d("onOff switch onClickListener: view [$view]")
-            val onOffSwitch = view.findViewById<SwitchMaterial>(R.id.onoff_switch)
-            Timber.d("onOff switch state: [${onOffSwitch?.isChecked}]")
-            viewModel.updateDeviceStateOn(deviceUiModel, onOffSwitch?.isChecked!!)
-          })
+//  private val adapter =
+//      DevicesAdapter(
+//          { deviceUiModel ->
+//            // The click listener.
+//            // We update the selectedDeviceViewModel which is shared with the Device fragment.
+//            Timber.d("DevicesAdapter clickListener invoked")
+//            selectedDeviceViewModel.setSelectedDevice(deviceUiModel)
+//            view?.findNavController()?.navigate(R.id.action_homeFragment_to_deviceFragment)
+//          },
+//          { view, deviceUiModel ->
+//            Timber.d("onOff switch onClickListener: view [$view]")
+//            val onOffSwitch = view.findViewById<SwitchMaterial>(R.id.onoff_switch)
+//            Timber.d("onOff switch state: [${onOffSwitch?.isChecked}]")
+//            viewModel.updateDeviceStateOn(deviceUiModel, onOffSwitch?.isChecked!!)
+//          })
 
   // CODELAB: commissionDeviceLauncher declaration
   // The ActivityResultLauncher that launches the "commissionDevice" activity in Google Play
@@ -190,7 +190,7 @@ class HomeFragment : Fragment() {
             // about that device in the app.
             showNewDeviceAlertDialog(result)
           } else {
-            viewModel.commissionDeviceFailed(resultCode)
+//            viewModel.commissionDeviceFailed(resultCode)
           }
         }
     // CODELAB SECTION END
@@ -205,7 +205,7 @@ class HomeFragment : Fragment() {
           // Extract the info entered by user and process it.
           val nameTextView: TextInputEditText = newDeviceAlertDialogBinding.nameTextView
           val deviceName = nameTextView.text.toString()
-          viewModel.commissionDeviceSucceeded(activityResult!!, deviceName)
+//          viewModel.commissionDeviceSucceeded(activityResult!!, deviceName)
         }
 
     if (deviceAttestationFailureIgnored) {
@@ -290,14 +290,14 @@ class HomeFragment : Fragment() {
       }
     } else {
       Timber.d("Invocation: Main")
-      viewModel.startMonitoringStateChanges()
+//      viewModel.startMonitoringStateChanges()
     }
   }
 
   override fun onPause() {
     super.onPause()
     Timber.d("onPause(): Stopping periodic ping on devices")
-    viewModel.stopMonitoringStateChanges()
+//    viewModel.stopMonitoringStateChanges()
   }
 
   override fun onStart() {
@@ -348,13 +348,13 @@ class HomeFragment : Fragment() {
     binding.addDeviceButton.setOnClickListener {
       Timber.d("addDeviceButton.setOnClickListener")
       deviceAttestationFailureIgnored = false
-      viewModel.stopMonitoringStateChanges()
+//      viewModel.stopMonitoringStateChanges()
       viewModel.commissionDevice(requireContext())
     }
   }
 
   private fun setupRecyclerView() {
-    binding.devicesListRecyclerView.adapter = adapter
+//    binding.devicesListRecyclerView.adapter = adapter
   }
 
   private fun setupNewDeviceDialog() {
@@ -391,7 +391,7 @@ class HomeFragment : Fragment() {
     errorAlertDialog =
         MaterialAlertDialogBuilder(requireContext())
             .setPositiveButton(resources.getString(R.string.ok)) { _, _ ->
-              viewModel.consumeErrorLiveData()
+//              viewModel.consumeErrorLiveData()
             }
             .create()
   }
@@ -401,10 +401,10 @@ class HomeFragment : Fragment() {
 
   private fun setupObservers() {
     // Observe the devicesLiveData.
-    viewModel.devicesUiModelLiveData.observe(viewLifecycleOwner) { devicesUiModel: DevicesUiModel ->
-      adapter.submitList(devicesUiModel.devices)
-      updateUi(devicesUiModel)
-    }
+//    viewModel.devicesUiModelLiveData.observe(viewLifecycleOwner) { devicesUiModel: DevicesUiModel ->
+//      adapter.submitList(devicesUiModel.devices)
+//      updateUi(devicesUiModel)
+//    }
 
     // CODELAB: commissionDeviceStatus
     // The current status of the share device action.
@@ -450,8 +450,8 @@ class HomeFragment : Fragment() {
   @Composable
   private fun HomeRoute(homeViewModel: HomeViewModel) {
     // Observes values coming from the VM's devicesUiModelLiveData
-    val devicesUiModel by homeViewModel.devicesUiModelLiveData.observeAsState()
-    HomeScreen(devicesUiModel)
+//    val devicesUiModel by homeViewModel.devicesUiModelLiveData.observeAsState()
+//    HomeScreen(devicesUiModel)
   }
 
   @Composable

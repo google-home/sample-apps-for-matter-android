@@ -93,7 +93,7 @@ data class DevicesUiModel(
 
 /** The ViewModel for the Home Fragment. See [HomeFragment] for additional information. */
 @HiltViewModel
-internal class HomeViewModel
+class HomeViewModel
 @Inject
 constructor(
     private val devicesRepository: DevicesRepository,

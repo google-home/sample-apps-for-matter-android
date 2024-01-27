@@ -17,8 +17,15 @@
 package com.google.homesampleapp
 
 import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.databinding.DataBindingUtil.setContentView
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.google.homesampleapp.databinding.ActivityMainBinding
 import com.google.homesampleapp.lifecycle.AppLifecycleObserver
 import dagger.hilt.android.AndroidEntryPoint
@@ -27,18 +34,16 @@ import timber.log.Timber
 
 /** Main Activity for the "Google Home Sample App for Matter" (GHSAFM). */
 @AndroidEntryPoint
-class MainActivity : AppCompatActivity() {
+class MainActivity : ComponentActivity() {
 
-  private lateinit var binding: ActivityMainBinding
-
+  // FIXME: needed?
   @Inject internal lateinit var lifecycleObservers: Set<@JvmSuppressWildcards AppLifecycleObserver>
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+
     initContextDependentConstants()
     Timber.d("onCreate()")
-
-    binding = setContentView(this, R.layout.activity_main)
 
     // See package "com.google.homesampleapp.lifecycle" for all the lifecycle observers
     // defined for the application.
@@ -47,7 +52,16 @@ class MainActivity : AppCompatActivity() {
 
     // Useful to see which preferences are set under the hood by Matter libraries.
     displayPreferences(this)
-  }
+
+
+    setContent {
+      // FIXME
+      MaterialTheme {
+        val navController = rememberNavController()
+        AppLayout(navController = navController)
+        }
+      }
+    }
 
   override fun onStart() {
     super.onStart()
@@ -58,7 +72,7 @@ class MainActivity : AppCompatActivity() {
    * Constants we access from Utils, but that depend on the Activity context to be set to their
    * values.
    */
-  fun initContextDependentConstants() {
+  private fun initContextDependentConstants() {
     // versionName is set in build.gradle.
     val packageInfo = packageManager.getPackageInfo(packageName, 0)
     VERSION_NAME = packageInfo.versionName
