@@ -23,6 +23,7 @@ import android.os.Looper
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.FragmentActivity
+import com.google.homesampleapp.Device.DeviceType
 import com.google.protobuf.Timestamp
 import java.io.File
 import java.lang.Long.max
@@ -82,33 +83,71 @@ fun lifeCycleEvent(event: String): String {
   return "[*** LifeCycle ***] $event"
 }
 
+// -----------------------------------------------------------------------------
+// Matter Device Type Display String
+
 /** Set the strings for DeviceType. */
-lateinit var DeviceTypeStrings: MutableMap<Device.DeviceType, String>
+lateinit var DeviceTypeStrings: MutableMap<DeviceType, String>
 
 fun setDeviceTypeStrings(unspecified: String, light: String, outlet: String, unknown: String) {
   DeviceTypeStrings =
       mutableMapOf(
-          Device.DeviceType.TYPE_UNSPECIFIED to unspecified,
-          Device.DeviceType.TYPE_LIGHT to light,
-          Device.DeviceType.TYPE_OUTLET to outlet,
-          Device.DeviceType.TYPE_UNKNOWN to unknown,
+          DeviceType.TYPE_UNSPECIFIED to unspecified,
+          DeviceType.TYPE_LIGHT to light,
+          DeviceType.TYPE_OUTLET to outlet,
+          DeviceType.TYPE_UNKNOWN to unknown,
       )
 }
 
 /** Converts the Device.DeviceType enum to a string used in the UI. */
-fun Device.DeviceType.displayString(): String {
+fun DeviceType.displayString(): String {
   return DeviceTypeStrings[this]!!
 }
 
-fun convertToAppDeviceType(matterDeviceType: Long): Device.DeviceType {
+// -----------------------------------------------------------------------------
+// Matter Device Type Display Icon
+
+
+fun getDeviceTypeIconId(deviceType: DeviceType) : Int {
+  return when (deviceType) {
+    DeviceType.TYPE_UNSPECIFIED -> R.drawable.ic_baseline_device_unknown_24
+    DeviceType.TYPE_UNKNOWN -> R.drawable.ic_baseline_device_unknown_24
+    DeviceType.TYPE_LIGHT -> R.drawable.quantum_gm_ic_lights_gha_vd_theme_24
+    DeviceType.TYPE_OUTLET -> R.drawable.ic_baseline_outlet_24
+    DeviceType.TYPE_DIMMABLE_LIGHT -> R.drawable.quantum_gm_ic_lights_gha_vd_theme_24
+    DeviceType.TYPE_COLOR_TEMPERATURE_LIGHT -> R.drawable.quantum_gm_ic_lights_gha_vd_theme_24
+    DeviceType.TYPE_EXTENDED_COLOR_LIGHT -> R.drawable.quantum_gm_ic_lights_gha_vd_theme_24
+    DeviceType.TYPE_LIGHT_SWITCH -> R.drawable.quantum_gm_ic_lights_gha_vd_theme_24
+    DeviceType.UNRECOGNIZED -> R.drawable.ic_baseline_device_unknown_24
+  }
+}
+
+fun getDeviceTypeDisplayStringId(deviceType: DeviceType) : Int {
+  return when (deviceType) {
+    DeviceType.TYPE_UNSPECIFIED -> R.string.device_type_unspecified
+    DeviceType.TYPE_UNKNOWN -> R.string.device_type_unknown
+    DeviceType.TYPE_LIGHT -> R.string.device_type_light
+    DeviceType.TYPE_OUTLET -> R.string.device_type_outlet
+    DeviceType.TYPE_DIMMABLE_LIGHT -> R.string.device_type_dimmable_light
+    DeviceType.TYPE_COLOR_TEMPERATURE_LIGHT -> R.string.device_type_color_temperature_light
+    DeviceType.TYPE_EXTENDED_COLOR_LIGHT -> R.string.device_type_extended_color_light
+    DeviceType.TYPE_LIGHT_SWITCH -> R.string.device_type_light_switch
+    DeviceType.UNRECOGNIZED -> R.string.device_type_unrecognized
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Misc
+
+fun convertToAppDeviceType(matterDeviceType: Long): DeviceType {
   return when (matterDeviceType) {
-    256L -> Device.DeviceType.TYPE_LIGHT // 0x0100 On/Off Light
-    257L -> Device.DeviceType.TYPE_DIMMABLE_LIGHT // 0x0101 Dimmable Light
-    259L -> Device.DeviceType.TYPE_LIGHT_SWITCH // 0x0103 On/Off Light Switch
-    266L -> Device.DeviceType.TYPE_OUTLET // 0x010A (On/Off Plug-in Unit)
-    268L -> Device.DeviceType.TYPE_COLOR_TEMPERATURE_LIGHT // 0x010C Color Temperature Light
-    269L -> Device.DeviceType.TYPE_EXTENDED_COLOR_LIGHT // 0x010D Extended Color Light
-    else -> Device.DeviceType.TYPE_UNKNOWN
+    256L -> DeviceType.TYPE_LIGHT // 0x0100 On/Off Light
+    257L -> DeviceType.TYPE_DIMMABLE_LIGHT // 0x0101 Dimmable Light
+    259L -> DeviceType.TYPE_LIGHT_SWITCH // 0x0103 On/Off Light Switch
+    266L -> DeviceType.TYPE_OUTLET // 0x010A (On/Off Plug-in Unit)
+    268L -> DeviceType.TYPE_COLOR_TEMPERATURE_LIGHT // 0x010C Color Temperature Light
+    269L -> DeviceType.TYPE_EXTENDED_COLOR_LIGHT // 0x010D Extended Color Light
+    else -> DeviceType.TYPE_UNKNOWN
   }
 }
 

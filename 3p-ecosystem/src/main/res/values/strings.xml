@@ -119,5 +119,10 @@ All of the information will be logged in logcat. Use this command  to only view 
     <string name="technical_information">Technical Information</string>
     <string name="remove_device">Remove device</string>
     <string name="transport_icon">Transport icon</string>
+    <string name="device_type_dimmable_light">dimmable light</string>
+    <string name="device_type_color_temperature_light">color temperature light</string>
+    <string name="device_type_extended_color_light">extended color light</string>
+    <string name="device_type_light_switch">light switch</string>
+    <string name="device_type_unrecognized">unrecognized</string>
 
 </resources>

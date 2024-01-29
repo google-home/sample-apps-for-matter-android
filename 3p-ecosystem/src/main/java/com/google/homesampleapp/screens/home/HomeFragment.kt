@@ -31,20 +31,39 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.structuralEqualityPolicy
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -60,6 +79,9 @@ import chip.devicecontroller.DeviceAttestationDelegate
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.android.material.textfield.TextInputEditText
+import com.google.homesampleapp.Device
+import com.google.homesampleapp.Device.DeviceType
+import com.google.homesampleapp.MainActivity
 import com.google.homesampleapp.R
 import com.google.homesampleapp.TaskStatus
 import com.google.homesampleapp.chip.ChipClient
@@ -69,11 +91,16 @@ import com.google.homesampleapp.data.UserPreferencesRepository
 import com.google.homesampleapp.databinding.FragmentCodelabInfoCheckboxBinding
 import com.google.homesampleapp.databinding.FragmentHomeBinding
 import com.google.homesampleapp.databinding.FragmentNewDeviceBinding
+import com.google.homesampleapp.getDeviceTypeIconId
 import com.google.homesampleapp.intentSenderToString
 import com.google.homesampleapp.isMultiAdminCommissioning
+import com.google.homesampleapp.screens.commissionable.MatterBeacon
+import com.google.homesampleapp.screens.commissionable.Transport
 import com.google.homesampleapp.screens.shared.SelectedDeviceViewModel
 import com.google.homesampleapp.screens.shared.UserPreferencesViewModel
 import com.google.homesampleapp.showAlertDialog
+import com.google.homesampleapp.stateDisplayString
+import com.google.protobuf.Timestamp
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.launch
@@ -136,21 +163,21 @@ class HomeFragment : Fragment() {
   private var deviceAttestationFailureIgnored = false
 
   // The adapter used by the RecyclerView (where we show the list of devices).
-  private val adapter =
-      DevicesAdapter(
-          { deviceUiModel ->
-            // The click listener.
-            // We update the selectedDeviceViewModel which is shared with the Device fragment.
-            Timber.d("DevicesAdapter clickListener invoked")
-            selectedDeviceViewModel.setSelectedDevice(deviceUiModel)
-            view?.findNavController()?.navigate(R.id.action_homeFragment_to_deviceFragment)
-          },
-          { view, deviceUiModel ->
-            Timber.d("onOff switch onClickListener: view [$view]")
-            val onOffSwitch = view.findViewById<SwitchMaterial>(R.id.onoff_switch)
-            Timber.d("onOff switch state: [${onOffSwitch?.isChecked}]")
-            viewModel.updateDeviceStateOn(deviceUiModel, onOffSwitch?.isChecked!!)
-          })
+//  private val adapter =
+//      DevicesAdapter(
+//          { deviceUiModel ->
+//            // The click listener.
+//            // We update the selectedDeviceViewModel which is shared with the Device fragment.
+//            Timber.d("DevicesAdapter clickListener invoked")
+//            selectedDeviceViewModel.setSelectedDevice(deviceUiModel)
+//            view?.findNavController()?.navigate(R.id.action_homeFragment_to_deviceFragment)
+//          },
+//          { view, deviceUiModel ->
+//            Timber.d("onOff switch onClickListener: view [$view]")
+//            val onOffSwitch = view.findViewById<SwitchMaterial>(R.id.onoff_switch)
+//            Timber.d("onOff switch state: [${onOffSwitch?.isChecked}]")
+//            viewModel.updateDeviceStateOn(deviceUiModel, onOffSwitch?.isChecked!!)
+//          })
 
   // CODELAB: commissionDeviceLauncher declaration
   // The ActivityResultLauncher that launches the "commissionDevice" activity in Google Play
@@ -322,7 +349,7 @@ class HomeFragment : Fragment() {
   private fun setupUiElements() {
     setupMenu()
     setupAddDeviceButton()
-    setupRecyclerView()
+//    setupRecyclerView()
     setupNewDeviceDialog()
     setupCodelabInfoDialog()
     setupErrorAlertDialog()
@@ -345,17 +372,17 @@ class HomeFragment : Fragment() {
 
   private fun setupAddDeviceButton() {
     // Add device button click listener. This triggers the commissioning of a Matter device.
-    binding.addDeviceButton.setOnClickListener {
-      Timber.d("addDeviceButton.setOnClickListener")
-      deviceAttestationFailureIgnored = false
-      viewModel.stopMonitoringStateChanges()
-      viewModel.commissionDevice(requireContext())
-    }
+//    binding.addDeviceButton.setOnClickListener {
+//      Timber.d("addDeviceButton.setOnClickListener")
+//      deviceAttestationFailureIgnored = false
+//      viewModel.stopMonitoringStateChanges()
+//      viewModel.commissionDevice(requireContext())
+//    }
   }
 
-  private fun setupRecyclerView() {
-    binding.devicesListRecyclerView.adapter = adapter
-  }
+//  private fun setupRecyclerView() {
+//    binding.devicesListRecyclerView.adapter = adapter
+//  }
 
   private fun setupNewDeviceDialog() {
     newDeviceAlertDialog =
@@ -401,10 +428,10 @@ class HomeFragment : Fragment() {
 
   private fun setupObservers() {
     // Observe the devicesLiveData.
-    viewModel.devicesUiModelLiveData.observe(viewLifecycleOwner) { devicesUiModel: DevicesUiModel ->
-      adapter.submitList(devicesUiModel.devices)
-      updateUi(devicesUiModel)
-    }
+//    viewModel.devicesUiModelLiveData.observe(viewLifecycleOwner) { devicesUiModel: DevicesUiModel ->
+//      adapter.submitList(devicesUiModel.devices)
+//      updateUi(devicesUiModel)
+//    }
 
     // CODELAB: commissionDeviceStatus
     // The current status of the share device action.
@@ -451,30 +478,126 @@ class HomeFragment : Fragment() {
   private fun HomeRoute(homeViewModel: HomeViewModel) {
     // Observes values coming from the VM's devicesUiModelLiveData
     val devicesUiModel by homeViewModel.devicesUiModelLiveData.observeAsState()
-    HomeScreen(devicesUiModel)
+    val devices = devicesUiModel?.devices
+    val devicesList = devices ?: emptyList()
+    val addDeviceOnClick = {
+      deviceAttestationFailureIgnored = false
+      viewModel.stopMonitoringStateChanges()
+      viewModel.commissionDevice(requireContext())
+    }
+    HomeScreen(devicesList, addDeviceOnClick)
   }
 
   @Composable
-  private fun HomeScreen(devicesUiModel: DevicesUiModel?) {
-    val noDevices = devicesUiModel == null || devicesUiModel.devices.isEmpty()
-    if (noDevices) {
+  private fun HomeScreen(devicesList: List<DeviceUiModel>, addDevicesOnClick: () -> Unit) {
+    if (devicesList.isEmpty()) {
       NoDevices()
-    }
+    } else {
+      Box (
+        Modifier.fillMaxSize()
+      ){
+        FloatingActionButton(
+          onClick = addDevicesOnClick,
+          modifier = Modifier
+            .align(Alignment.BottomEnd).padding(16.dp)
+        ) {
+          Icon(Icons.Filled.Add, contentDescription = "Add")
+        }
+        LazyColumn(
+          //verticalArrangement = Arrangement.spacedBy(1.dp),
+          modifier = Modifier.fillMaxWidth()
+        ) {
+          this.items(devicesList) { device ->
+            DeviceItem(
+              device.device.deviceType,
+              device.device.name,
+              device.isOnline,
+              device.isOn,
+              {})
+          }
+        }
+      }
 
-    LaunchedEffect(devicesUiModel) {
-      Timber.d("HomeRoute [${devicesUiModel}]")
+      LaunchedEffect(devicesList) {
+        Timber.d("HomeRoute [$devicesList]")
+      }
+    }
+  }
+
+  // FIXME: ICI -- finish the implementation of this
+  @Composable
+  private fun DeviceItem(
+    deviceType: DeviceType,
+    name: String,
+    isOnline: Boolean,
+    isOn: Boolean,
+    onStateChange: ((Boolean) -> Unit)?
+  ) {
+    val bgColor =
+      if (isOnline && isOn) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface
+    val contentColor =
+      if (isOnline && isOn) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+    val text = stateDisplayString(isOnline, isOn)
+    val iconId = getDeviceTypeIconId(deviceType)
+
+    Surface(
+      modifier = Modifier
+        .padding(top=12.dp)
+        .padding(PaddingValues(horizontal = 12.dp, )),
+      border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
+      contentColor = contentColor,
+      color = bgColor,
+      shape = RoundedCornerShape(dimensionResource(R.dimen.rounded_corner))
+    ) {
+      Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier
+          .padding(dimensionResource(R.dimen.padding_surface_content))
+      ) {
+        Icon(
+          painter = painterResource(id = iconId),
+          contentDescription = null // decorative element
+        )
+        Column {
+          Text(
+            text = name,
+            style = MaterialTheme.typography.bodyLarge,
+          )
+          Text(
+            text = text,
+            style = MaterialTheme.typography.bodyLarge,
+          )
+        }
+        Spacer(Modifier.weight(1f))
+        Switch(
+          checked = isOn,
+          onCheckedChange = onStateChange
+        )
+      }
     }
   }
 
   @Preview(showSystemUi = true, showBackground = true)
   @Composable
   private fun HomeScreenNoDevicesPreview() {
-    val devicesUiModel = DevicesUiModel(emptyList(), showCodelabInfo = false, showOfflineDevices = false)
     MaterialTheme {
-      HomeScreen(devicesUiModel)
+      HomeScreen(emptyList(), {})
     }
   }
 
+  @Preview
+  @Composable
+  private fun HomeScreenWithDevicesPreview() {
+    val devicesList = listOf(
+      DeviceUiModel(createDevice(), true, true),
+      DeviceUiModel(createDevice(name="Smart Outlet"),true, false),
+      DeviceUiModel(createDevice(name="My living room lamp"),false, true),
+    )
+    MaterialTheme {
+      HomeScreen(devicesList, {})
+    }
+  }
 
   @Composable
   private fun NoDevices() {
@@ -508,20 +631,20 @@ class HomeFragment : Fragment() {
   // -----------------------------------------------------------------------------------------------
   // UI Updates
 
-  private fun updateUi(devicesUiModel: DevicesUiModel) {
-    Timber.d("updateUi [${devicesUiModel}]")
-    if (devicesUiModel.devices.isEmpty()) {
-      binding.devicesListRecyclerView.visibility = View.GONE
-    } else {
-      binding.devicesListRecyclerView.visibility = View.VISIBLE
-    }
-
-    // Codelab Info alert dialog
-    if (devicesUiModel.showCodelabInfo && !viewModel.codelabDialogHasBeenShown) {
-      viewModel.codelabDialogHasBeenShown = true
-      showCodelabAlertDialog()
-    }
-  }
+//  private fun updateUi(devicesUiModel: DevicesUiModel) {
+//    Timber.d("updateUi [${devicesUiModel}]")
+//    if (devicesUiModel.devices.isEmpty()) {
+//      binding.devicesListRecyclerView.visibility = View.GONE
+//    } else {
+//      binding.devicesListRecyclerView.visibility = View.VISIBLE
+//    }
+//
+//    // Codelab Info alert dialog
+//    if (devicesUiModel.showCodelabInfo && !viewModel.codelabDialogHasBeenShown) {
+//      viewModel.codelabDialogHasBeenShown = true
+//      showCodelabAlertDialog()
+//    }
+//  }
 
   // Show the Codelab AlertDialog.
   private fun showCodelabAlertDialog() {
@@ -570,6 +693,25 @@ class HomeFragment : Fragment() {
             }
           }
         }
+  }
+
+  private fun createDevice(
+    deviceId: Long = 1L,
+    deviceType: Device.DeviceType = Device.DeviceType.TYPE_OUTLET,
+    dateCommissioned: Timestamp = Timestamp.getDefaultInstance(),
+    name: String = "My Matter Device",
+    productId: String = "8785",
+    vendorId: String = "6006",
+    room: String = "Living Room") : Device {
+    return Device.newBuilder()
+      .setDeviceId(deviceId)
+      .setDeviceType(deviceType)
+      .setDateCommissioned(dateCommissioned)
+      .setName(name)
+      .setProductId(productId)
+      .setVendorId(vendorId)
+      .setRoom(room)
+      .build()
   }
 
   // ---------------------------------------------------------------------------

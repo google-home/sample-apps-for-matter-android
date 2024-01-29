@@ -16,8 +16,11 @@
 
 package com.google.homesampleapp
 
+import android.content.Context
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat.getString
+import androidx.core.content.res.TypedArrayUtils.getResourceId
 import androidx.databinding.DataBindingUtil.setContentView
 import com.google.homesampleapp.databinding.ActivityMainBinding
 import com.google.homesampleapp.lifecycle.AppLifecycleObserver
@@ -31,7 +34,8 @@ class MainActivity : AppCompatActivity() {
 
   private lateinit var binding: ActivityMainBinding
 
-  @Inject internal lateinit var lifecycleObservers: Set<@JvmSuppressWildcards AppLifecycleObserver>
+  @Inject
+  internal lateinit var lifecycleObservers: Set<@JvmSuppressWildcards AppLifecycleObserver>
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -65,16 +69,10 @@ class MainActivity : AppCompatActivity() {
     APP_NAME = getString(R.string.app_name)
     packageInfo.packageName
     Timber.i(
-        "====================================\n" +
-            "Version ${VERSION_NAME}\n" +
-            "App     ${APP_NAME}\n" +
-            "====================================")
-
-    // Strings associated with DeviceTypes
-    setDeviceTypeStrings(
-        unspecified = getString(R.string.device_type_unspecified),
-        light = getString(R.string.device_type_light),
-        outlet = getString(R.string.device_type_outlet),
-        unknown = getString(R.string.device_type_unknown))
+      "====================================\n" +
+          "Version ${VERSION_NAME}\n" +
+          "App     ${APP_NAME}\n" +
+          "===================================="
+    )
   }
 }
