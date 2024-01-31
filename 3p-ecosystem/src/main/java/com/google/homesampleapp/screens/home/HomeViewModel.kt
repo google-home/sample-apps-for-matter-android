@@ -117,6 +117,10 @@ constructor(
   private var _showNewDeviceNameAlertDialog = MutableStateFlow<Boolean>(false)
   val showNewDeviceNameAlertDialog: StateFlow<Boolean> = _showNewDeviceNameAlertDialog.asStateFlow()
 
+  /** The current status of multiadmin commissioning. */
+  private val _multiadminCommissionDeviceTaskStatus = MutableStateFlow<TaskStatus>(TaskStatus.NotStarted)
+  val multiadminCommissionDeviceTaskStatus: StateFlow<TaskStatus> = _multiadminCommissionDeviceTaskStatus.asStateFlow()
+
   // Controls whether a periodic ping to the devices is enabled or not.
   private var devicesPeriodicPingEnabled: Boolean = true
 
@@ -403,7 +407,11 @@ constructor(
   // Called in Step 5 of the Device Commissioning flow when the GPS activity for
   // commissioning the device has failed.
   fun commissionDeviceFailed(resultCode: Int) {
-    val msg = "CommissionDevice: Failed [${resultCode}"
+    if (resultCode == 0) {
+      // User simply wilfully exited from GPS commissioning.
+      return
+    }
+    val msg = "CommissionDevice: Failed [${resultCode}]"
     Timber.e(msg)
     _msgDialogInfo.value = DialogInfo("Ooops...", msg)
   }
@@ -560,9 +568,17 @@ constructor(
   // -----------------------------------------------------------------------------------------------
   // UI State update
 
+  fun showMsgDialog(title: String, msg: String) {
+    _msgDialogInfo.value = DialogInfo(title, msg)
+  }
+
   // Called after user dismisss the Info dialog. If we don't consume, a config change redisplays the
   // alert dialog.
   fun consumeMsgDialog() {
     _msgDialogInfo.value = null
+  }
+
+  fun setMultiadminCommissioningTaskStatus(taskStatus: TaskStatus) {
+    _multiadminCommissionDeviceTaskStatus.value = taskStatus
   }
 }

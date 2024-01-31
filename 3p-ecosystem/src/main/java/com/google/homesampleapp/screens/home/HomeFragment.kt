@@ -19,6 +19,8 @@ package com.google.homesampleapp.screens.home
 import android.app.Activity
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
+import android.os.SystemClock
 import android.text.method.LinkMovementMethod
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -37,8 +39,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -48,7 +48,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -67,7 +66,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
@@ -83,17 +81,24 @@ import chip.devicecontroller.AttestationInfo
 import chip.devicecontroller.DeviceAttestationDelegate
 import com.google.android.gms.home.matter.Matter
 import com.google.android.gms.home.matter.commissioning.CommissioningRequest
+import com.google.android.gms.home.matter.commissioning.DeviceInfo
+import com.google.android.gms.home.matter.commissioning.SharedDeviceData
+import com.google.android.gms.home.matter.commissioning.SharedDeviceData.EXTRA_COMMISSIONING_WINDOW_EXPIRATION
+import com.google.android.gms.home.matter.commissioning.SharedDeviceData.EXTRA_DEVICE_NAME
+import com.google.android.gms.home.matter.commissioning.SharedDeviceData.EXTRA_DEVICE_TYPE
+import com.google.android.gms.home.matter.commissioning.SharedDeviceData.EXTRA_MANUAL_PAIRING_CODE
+import com.google.android.gms.home.matter.commissioning.SharedDeviceData.EXTRA_PRODUCT_ID
+import com.google.android.gms.home.matter.commissioning.SharedDeviceData.EXTRA_VENDOR_ID
 import com.google.android.material.textview.MaterialTextView
 import com.google.homesampleapp.Device
 import com.google.homesampleapp.DialogInfo
+import com.google.homesampleapp.MIN_COMMISSIONING_WINDOW_EXPIRATION_SECONDS
 import com.google.homesampleapp.R
+import com.google.homesampleapp.TaskStatus
 import com.google.homesampleapp.commissioning.AppCommissioningService
 import com.google.homesampleapp.getDeviceTypeIconId
-import com.google.homesampleapp.screens.thread.ActionDialogInfo
-import com.google.homesampleapp.screens.thread.ActionRequest
-import com.google.homesampleapp.screens.thread.ActionState
-import com.google.homesampleapp.screens.thread.ActionTask
-import com.google.homesampleapp.screens.thread.ActionType
+import com.google.homesampleapp.isMultiAdminCommissioning
+import com.google.homesampleapp.screens.shared.UserPreferencesViewModel
 import com.google.homesampleapp.screens.thread.getActivity
 import com.google.homesampleapp.stateDisplayString
 import com.google.protobuf.Timestamp
@@ -101,51 +106,64 @@ import timber.log.Timber
 
 /*
 FIXME: TODO
-
-- codelabInfo dialog
-- settings for showing codelab info
+- wire in the settings screen and double check proper behavior for
     - codelab info
     - hide offline devices
-- multiadmin commissioning
+- test multiadmin commissioning
+- what to do with --> attestation delegate
 - cleanup
  */
 
 @Composable
-fun HomeRoute(navController: NavController, innerPadding: PaddingValues) {
+internal fun HomeRoute(
+  navController: NavController,
+  innerPadding: PaddingValues,
+  userPreferencesViewModel: UserPreferencesViewModel = hiltViewModel(),
+  homeViewModel: HomeViewModel = hiltViewModel()
+  )
+{
   // Lauching GPS commissioning requires Activity.
   val activity = LocalContext.current.getActivity()
 
-  // FIXME: Or should this be instantiated in Navigation?
-  // The ViewModel.
-  val viewModel: HomeViewModel = hiltViewModel()
+  // UI Model for all the devices shown on the screen.
+  val devicesUiModel by homeViewModel.devicesUiModelLiveData.observeAsState()
+  val devices = devicesUiModel?.devices
+  val devicesList = devices ?: emptyList()
+
+  // Controls whether the codelab alert dialog should be shown.
+  val showCodelabAlertDialog by userPreferencesViewModel.showCodelabAlertDialog.collectAsState()
+  // FIXME: the dialog will be hidden as soon as checkbox is clicked.
+  val onCodelabCheckboxChange: (checked: Boolean) -> Unit = {
+    userPreferencesViewModel.updateHideCodelabInfo(it)
+  }
 
   // Controls when the "New Device" alert dialog is shown.
   // When that alert dialog completes, control needs to go back to the ViewModel to complete
   // the commissioning flow.
-  val showNewDeviceAlertDialog by viewModel.showNewDeviceNameAlertDialog.collectAsState()
+  val showNewDeviceAlertDialog by homeViewModel.showNewDeviceNameAlertDialog.collectAsState()
   val onCommissionedDeviceNameCaptured: (name: String) -> Unit = {
-    viewModel.onCommissionedDeviceNameCaptured(it)
+    homeViewModel.onCommissionedDeviceNameCaptured(it)
   }
 
   // Controls the Msg AlertDialog.
   // When the user dismisses the Msg AlertDialog, we "consume" the dialog.
-  val msgDialogInfo by viewModel.msgDialogInfo.collectAsState()
+  val msgDialogInfo by homeViewModel.msgDialogInfo.collectAsState()
   val onDismissMsgDialog: () -> Unit = {
-    viewModel.consumeMsgDialog()
+    homeViewModel.consumeMsgDialog()
   }
 
-  // UI Model for all the devices shown on the screen.
-  val devicesUiModel by viewModel.devicesUiModelLiveData.observeAsState()
-  val devices = devicesUiModel?.devices
-  val devicesList = devices ?: emptyList()
+  // Status of multiadmin commissioning.
+  val multiadminCommissionDeviceTaskStatus by homeViewModel.multiadminCommissionDeviceTaskStatus.collectAsState()
 
   // Functions invoked when UI controls are clicked on a specific device in the list.
   val onDeviceClick: (deviceUiModel: DeviceUiModel) -> Unit = {
     navController.navigate("device/${it.device.deviceId}")
   }
   val onOnOffClick: (deviceId: Long, value: Boolean) -> Unit = { deviceId, value ->
-    viewModel.updateDeviceStateOn(deviceId, value)
+    homeViewModel.updateDeviceStateOn(deviceId, value)
   }
+
+  // userPreferencesViewModel.updateHideCodelabInfo(checked)
 
 
   // The device commissioning flow involves multiple steps as it is based on an Activity
@@ -169,9 +187,9 @@ fun HomeRoute(navController: NavController, innerPadding: PaddingValues) {
         // We let the ViewModel know that GPS commissioning has completed successfully.
         // The ViewModel knows that we still need to capture the device name and will\
         // update UI state to trigger the NewDeviceAlertDialog.
-        viewModel.gpsCommissioningDeviceSucceeded(result)
+        homeViewModel.gpsCommissioningDeviceSucceeded(result)
       } else {
-        viewModel.commissionDeviceFailed(resultCode)
+        homeViewModel.commissionDeviceFailed(resultCode)
       }
     }
 
@@ -179,23 +197,39 @@ fun HomeRoute(navController: NavController, innerPadding: PaddingValues) {
   val onCommissionDevice = {
     Timber.d("onAddDeviceClick")
     // fixme deviceAttestationFailureIgnored = false
-    viewModel.stopMonitoringStateChanges()
+    homeViewModel.stopMonitoringStateChanges()
     commissionDevice(activity!!.applicationContext, commissionDeviceLauncher)
   }
 
   LifecycleResumeEffect {
-    Timber.d("LifecycleResumeEffect: startMonitoringStateChanges()")
-    viewModel.startMonitoringStateChanges()
+    Timber.d("HomeScreen: LifecycleResumeEffect")
+    val intent = activity!!.intent
+    Timber.d("intent [${intent}]")
+    if (isMultiAdminCommissioning(intent)) {
+      Timber.d("Invocation: MultiAdminCommissioning")
+      if (multiadminCommissionDeviceTaskStatus == TaskStatus.NotStarted) {
+        Timber.d("TaskStatus.NotStarted so starting multiadmin commissioning")
+        homeViewModel.setMultiadminCommissioningTaskStatus(TaskStatus.InProgress)
+        multiAdminCommissionDevice(activity!!.applicationContext, intent, homeViewModel, commissionDeviceLauncher)
+      } else {
+        Timber.d("TaskStatus is *not* NotStarted: $multiadminCommissionDeviceTaskStatus")
+      }
+    } else {
+      Timber.d("Invocation: Main")
+      homeViewModel.startMonitoringStateChanges()
+    }
     onPauseOrDispose {
       // do any needed clean up here
       Timber.d("LifecycleResumeEffect:onPauseOrDispose stopMonitoringStateChanges()")
-      viewModel.stopMonitoringStateChanges()
+      homeViewModel.stopMonitoringStateChanges()
     }
   }
 
   HomeScreen(
     innerPadding,
     devicesList,
+    showCodelabAlertDialog,
+    onCodelabCheckboxChange,
     msgDialogInfo,
     onDismissMsgDialog,
     showNewDeviceAlertDialog,
@@ -210,6 +244,8 @@ fun HomeRoute(navController: NavController, innerPadding: PaddingValues) {
 private fun HomeScreen(
   innerPadding: PaddingValues,
   devicesList: List<DeviceUiModel>,
+  showCodelabUserPrefs: Boolean,
+  onCodelabCheckboxChange: (Boolean) -> Unit,
   msgDialogInfo: DialogInfo?,
   onConsumeMsgDialog: () -> Unit,
   showNewDeviceAlertDialog: Boolean,
@@ -218,6 +254,8 @@ private fun HomeScreen(
   onDeviceClick: (deviceUiModel: DeviceUiModel) -> Unit,
   onOnOffClick: (deviceId: Long, value: Boolean) -> Unit,
 ) {
+  // Alert Dialog taling about the Codelab when the app is first launched.
+  CodelabAlertDialog(showCodelabUserPrefs, onCodelabCheckboxChange)
 
   // Alert Dialog for messages to be shown to the user.
   MsgAlertDialog(msgDialogInfo, onConsumeMsgDialog)
@@ -353,8 +391,17 @@ private fun NewDeviceAlertDialog(
 }
 
 @Composable
-private fun CodelabAlertDialog(showCodelabAlertDialog: Boolean, onDismissCodelabAlertDialog: () -> Unit) {
+private fun CodelabAlertDialog(
+  showCodelabAlertDialog: Boolean,
+  onCodelabCheckboxChange: (Boolean) -> Unit)
+{
+  // The user preference dictates whether this dialog should show or not.
   if (!showCodelabAlertDialog) return
+
+  // Internal state, since the user may click on OK without checking to hide the
+  // dialog. Dialog won't be shown anymore until the next app launch.
+  var showDialog by remember { mutableStateOf(true) }
+  if (!showDialog) return
 
   val htmlText = HtmlCompat.fromHtml(stringResource(R.string.showCodelabMessage), HtmlCompat.FROM_HTML_MODE_LEGACY)
   var isChecked by remember { mutableStateOf(false) }
@@ -382,8 +429,10 @@ private fun CodelabAlertDialog(showCodelabAlertDialog: Boolean, onDismissCodelab
         ) {
           Checkbox(
             checked = isChecked,
-            onCheckedChange = { isChecked = !isChecked },
-            // FIXME --> onChecked
+            onCheckedChange = {
+              isChecked = !isChecked
+              onCodelabCheckboxChange(isChecked)
+            }
           )
           Text(stringResource(id = R.string.do_not_show_again))
         }
@@ -391,7 +440,10 @@ private fun CodelabAlertDialog(showCodelabAlertDialog: Boolean, onDismissCodelab
     },
     confirmButton = {
       TextButton(
-        onClick = onDismissCodelabAlertDialog
+        onClick = {
+          Timber.d("confirmButton: onClick")
+          showDialog = false
+        }
       ) {
         Text("OK")
       }
@@ -466,7 +518,7 @@ private fun NoDevices() {
 @Composable
 private fun HomeScreenNoDevicesPreview() {
   val bogus: (a: Long, b: Boolean) -> Unit = { _, _ -> }
-  MaterialTheme { HomeScreen(PaddingValues(8.dp), emptyList(), null, {},false, {}, {}, {}, bogus) }
+  MaterialTheme { HomeScreen(PaddingValues(8.dp), emptyList(), false, {}, null, {},false, {}, {}, {}, bogus) }
 }
 
 @Preview
@@ -479,7 +531,7 @@ private fun HomeScreenWithDevicesPreview() {
       DeviceUiModel(createDevice(name = "Smart Outlet"), true, false),
       DeviceUiModel(createDevice(name = "My living room lamp"), false, true),
     )
-  MaterialTheme { HomeScreen(PaddingValues(8.dp), devicesList, null, {},false, {}, {}, {}, bogus) }
+  MaterialTheme { HomeScreen(PaddingValues(8.dp), devicesList, false, {}, null, {},false, {}, {}, {}, bogus) }
 }
 
 @Preview
@@ -552,6 +604,88 @@ fun commissionDevice(
       Timber.e(error)
       //      _commissionDeviceStatus.postValue(
       //        TaskStatus.Failed("Setting up the IntentSender failed", error))
+    }
+}
+
+fun multiAdminCommissionDevice(
+  context: Context,
+  intent: Intent,
+  homeViewModel: HomeViewModel,
+  commissionDeviceLauncher: ManagedActivityResultLauncher<IntentSenderRequest, ActivityResult>,
+  ) {
+  Timber.d("CommissionDevice: starting")
+  // fixme _commissionDeviceStatus.postValue(TaskStatus.InProgress)
+
+  val sharedDeviceData = SharedDeviceData.fromIntent(intent)
+  Timber.d("multiadminCommissioning: sharedDeviceData [${sharedDeviceData}]")
+  Timber.d("multiadminCommissioning: manualPairingCode [${sharedDeviceData.manualPairingCode}]")
+
+  val commissionRequestBuilder =
+    CommissioningRequest.builder()
+      .setCommissioningService(ComponentName(context, AppCommissioningService::class.java))
+
+  // Fill in the commissioning request...
+
+  // EXTRA_COMMISSIONING_WINDOW_EXPIRATION is a hint of how much time is remaining in the
+  // commissioning window for multi-admin. It is based on the current system uptime.
+  // If the user takes too long to select the target commissioning app, then there's not
+  // enougj time to complete the multi-admin commissioning and we message it to the user.
+  val commissioningWindowExpirationMillis =
+    intent.getLongExtra(EXTRA_COMMISSIONING_WINDOW_EXPIRATION, -1L)
+  val currentUptimeMillis = SystemClock.elapsedRealtime()
+  val timeLeftSeconds = (commissioningWindowExpirationMillis - currentUptimeMillis) / 1000
+  Timber.d(
+    "commissionDevice: TargetCommissioner for MultiAdmin. " +
+        "uptime [${currentUptimeMillis}] " +
+        "commissioningWindowExpiration [${commissioningWindowExpirationMillis}] " +
+        "-> expires in ${timeLeftSeconds} seconds")
+
+  if (commissioningWindowExpirationMillis == -1L) {
+    Timber.e(
+      "EXTRA_COMMISSIONING_WINDOW_EXPIRATION not specified in multi-admin call. " +
+          "Still going ahead with the multi-admin though.")
+  } else if (timeLeftSeconds < MIN_COMMISSIONING_WINDOW_EXPIRATION_SECONDS) {
+    homeViewModel.showMsgDialog(
+        title = "Commissioning Window Expiration",
+        msg =
+        "The commissioning window will " +
+            "expire in ${timeLeftSeconds} seconds, not long enough to complete the commissioning.\n\n" +
+            "In the future, please select the target commissioning application faster to avoid this situation.")
+    return
+  }
+
+  val deviceName = intent.getStringExtra(EXTRA_DEVICE_NAME)
+  commissionRequestBuilder.setDeviceNameHint(deviceName)
+
+  val vendorId = intent.getIntExtra(EXTRA_VENDOR_ID, -1)
+  val productId = intent.getIntExtra(EXTRA_PRODUCT_ID, -1)
+  val deviceType = intent.getIntExtra(EXTRA_DEVICE_TYPE, -1)
+  val deviceInfo = DeviceInfo.builder().setProductId(productId).setVendorId(vendorId).build()
+  commissionRequestBuilder.setDeviceInfo(deviceInfo)
+
+  val manualPairingCode = intent.getStringExtra(EXTRA_MANUAL_PAIRING_CODE)
+  commissionRequestBuilder.setOnboardingPayload(manualPairingCode)
+
+  val commissioningRequest = commissionRequestBuilder.build()
+
+  Timber.d(
+    "multiadmin: commissioningRequest " +
+        "onboardingPayload [${commissioningRequest.onboardingPayload}] " +
+        "vendorId [${commissioningRequest.deviceInfo!!.vendorId}] " +
+        "productId [${commissioningRequest.deviceInfo!!.productId}]")
+
+  Matter.getCommissioningClient(context)
+    .commissionDevice(commissioningRequest)
+    .addOnSuccessListener { result ->
+      Timber.d("Success getting the IntentSender: result [${result}]")
+      commissionDeviceLauncher.launch(IntentSenderRequest.Builder(result).build())
+    }
+    .addOnFailureListener { error ->
+      Timber.e(error)
+      homeViewModel.showMsgDialog(
+        title = "Failed to to get the IntentSender",
+        msg = error.toString()
+      )
     }
 }
 
