@@ -53,6 +53,9 @@ import java.time.LocalDateTime
 import javax.inject.Inject
 import kotlin.random.Random
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
@@ -62,15 +65,19 @@ class DeviceViewModel
 @Inject
 constructor(
     private val devicesRepository: DevicesRepository,
-    private val devicesStateRepository: DevicesStateRepository,
+    val devicesStateRepository: DevicesStateRepository,
     private val chipClient: ChipClient,
     private val clustersHelper: ClustersHelper,
     private val subscriptionHelper: SubscriptionHelper
 ) : ViewModel() {
 
+
+  private var _deviceUiModel = MutableStateFlow<DeviceUiModel?>(null)
+  val deviceUiModel: StateFlow<DeviceUiModel?> = _deviceUiModel.asStateFlow()
+
   // The deviceId being shown by the Fragment.
   // Initialized in Fragment onResume().
-  lateinit var deviceUiModel: DeviceUiModel
+//  lateinit var deviceUiModel: DeviceUiModel
 
   // Controls whether a periodic ping to the device is enabled or not.
   private var devicePeriodicPingEnabled: Boolean = true
@@ -125,7 +132,7 @@ constructor(
    * See [consumeShareDeviceIntentSender()] for proper management of the IntentSender in the face of
    * configuration changes that repost LiveData.
    */
-  fun shareDevice(activity: FragmentActivity, deviceId: Long) {
+  fun shareDevice(deviceId: Long) {
     Timber.d("ShareDevice: starting")
     stopDevicePeriodicPing()
     _shareDeviceStatus.postValue(TaskStatus.InProgress)
@@ -174,20 +181,21 @@ constructor(
 
       // The call to shareDevice() creates the IntentSender that will eventually be launched
       // in the fragment to trigger the multi-admin activity in GPS (step 3).
-      Matter.getCommissioningClient(activity)
-          .shareDevice(shareDeviceRequest)
-          .addOnSuccessListener { result ->
-            Timber.d("ShareDevice: Success getting the IntentSender: result [${result}]")
-            // Communication with fragment is via livedata
-            _backgroundWorkAlertDialogAction.postValue(BackgroundWorkAlertDialogAction.Hide)
-            _shareDeviceIntentSender.postValue(result)
-          }
-          .addOnFailureListener { error ->
-            Timber.e(error)
-            _backgroundWorkAlertDialogAction.postValue(BackgroundWorkAlertDialogAction.Hide)
-            _shareDeviceStatus.postValue(
-                TaskStatus.Failed("Setting up the IntentSender failed", error))
-          }
+      // FIXME
+//      Matter.getCommissioningClient(activity)
+//          .shareDevice(shareDeviceRequest)
+//          .addOnSuccessListener { result ->
+//            Timber.d("ShareDevice: Success getting the IntentSender: result [${result}]")
+//            // Communication with fragment is via livedata
+//            _backgroundWorkAlertDialogAction.postValue(BackgroundWorkAlertDialogAction.Hide)
+//            _shareDeviceIntentSender.postValue(result)
+//          }
+//          .addOnFailureListener { error ->
+//            Timber.e(error)
+//            _backgroundWorkAlertDialogAction.postValue(BackgroundWorkAlertDialogAction.Hide)
+//            _shareDeviceStatus.postValue(
+//                TaskStatus.Failed("Setting up the IntentSender failed", error))
+//          }
       // CODELAB SECTION END
     }
   }
@@ -226,6 +234,28 @@ constructor(
 
   // -----------------------------------------------------------------------------------------------
   // Operations on device
+
+  // Load the device information.
+  fun loadDevice(deviceId: Long) {
+    if (deviceId == deviceUiModel.value?.device?.deviceId) {
+      // FIXME: but state may have changed...
+      Timber.d("loadDevice: [${deviceId}] was already loaded")
+      return
+    } else {
+      Timber.d("loadDevice: loading [${deviceId}]")
+      viewModelScope.launch {
+        val device = devicesRepository.getDevice(deviceId)
+        val deviceState = devicesStateRepository.loadDeviceState(deviceId)
+        var isOnline = false
+        var isOn = false
+        if (deviceState != null) {
+          isOnline = deviceState.online
+          isOn = deviceState.on
+        }
+        _deviceUiModel.value = DeviceUiModel(device, isOnline, isOn)
+      }
+    }
+  }
 
   // Removes the device. First we remove the fabric from the device, and then we remove the
   // device from the app's devices repository.
@@ -275,6 +305,7 @@ constructor(
   }
 
   fun updateDeviceStateOn(deviceUiModel: DeviceUiModel, isOn: Boolean) {
+    // FIXME: I should update the state of the DeviceUiModel...
     Timber.d("updateDeviceStateOn: isOn [${isOn}]")
     val deviceId = deviceUiModel.device.deviceId
     viewModelScope.launch {
@@ -458,7 +489,7 @@ constructor(
   private fun subscribeToPeriodicUpdates() {
     Timber.d("subscribeToPeriodicUpdates()")
     val reportCallback =
-        object : SubscriptionHelper.ReportCallbackForDevice(deviceUiModel.device.deviceId) {
+        object : SubscriptionHelper.ReportCallbackForDevice(deviceUiModel.value!!.device.deviceId) {
           override fun onReport(nodeState: NodeState) {
             super.onReport(nodeState)
             val onOffState =
@@ -470,23 +501,23 @@ constructor(
             }
             viewModelScope.launch {
               devicesStateRepository.updateDeviceState(
-                  deviceUiModel.device.deviceId, isOnline = true, isOn = onOffState)
+                  deviceUiModel.value!!.device.deviceId, isOnline = true, isOn = onOffState)
             }
           }
         }
     viewModelScope.launch {
       try {
         val connectedDevicePointer =
-            chipClient.getConnectedDevicePointer(deviceUiModel.device.deviceId)
+            chipClient.getConnectedDevicePointer(deviceUiModel.value!!.device.deviceId)
         subscriptionHelper.awaitSubscribeToPeriodicUpdates(
             connectedDevicePointer,
             SubscriptionHelper.SubscriptionEstablishedCallbackForDevice(
-                deviceUiModel.device.deviceId),
+                deviceUiModel.value!!.device.deviceId),
             SubscriptionHelper.ResubscriptionAttemptCallbackForDevice(
-                deviceUiModel.device.deviceId),
+                deviceUiModel.value!!.device.deviceId),
             reportCallback)
       } catch (e: IllegalStateException) {
-        Timber.e("Can't get connectedDevicePointer for ${deviceUiModel.device.deviceId}.")
+        Timber.e("Can't get connectedDevicePointer for ${deviceUiModel.value!!.device.deviceId}.")
         return@launch
       }
     }
@@ -496,10 +527,10 @@ constructor(
     Timber.d("unsubscribeToPeriodicUpdates()")
     viewModelScope.launch {
       try {
-        val connectedDevicePtr = chipClient.getConnectedDevicePointer(deviceUiModel.device.deviceId)
+        val connectedDevicePtr = chipClient.getConnectedDevicePointer(deviceUiModel.value!!.device.deviceId)
         subscriptionHelper.awaitUnsubscribeToPeriodicUpdates(connectedDevicePtr)
       } catch (e: IllegalStateException) {
-        Timber.e("Can't get connectedDevicePointer for ${deviceUiModel.device.deviceId}.")
+        Timber.e("Can't get connectedDevicePointer for ${deviceUiModel.value!!.device.deviceId}.")
         return@launch
       }
     }
@@ -514,7 +545,7 @@ constructor(
     Timber.d(
         "${LocalDateTime.now()} startDevicePeriodicPing every $PERIODIC_READ_INTERVAL_DEVICE_SCREEN_SECONDS seconds")
     devicePeriodicPingEnabled = true
-    runDevicePeriodicUpdate(deviceUiModel)
+    runDevicePeriodicUpdate(deviceUiModel.value!!)
   }
 
   private fun runDevicePeriodicUpdate(deviceUiModel: DeviceUiModel) {

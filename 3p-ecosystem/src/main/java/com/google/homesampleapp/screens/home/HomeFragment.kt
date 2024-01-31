@@ -17,568 +17,571 @@
 package com.google.homesampleapp.screens.home
 
 import android.app.Activity
-import android.content.DialogInterface
-import android.os.Bundle
-import android.text.Html
-import android.text.Html.FROM_HTML_MODE_LEGACY
+import android.content.ComponentName
+import android.content.Context
 import android.text.method.LinkMovementMethod
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.widget.TextView
+import androidx.activity.compose.ManagedActivityResultLauncher
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResult
-import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.databinding.DataBindingUtil
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
-import androidx.fragment.app.viewModels
-import androidx.lifecycle.lifecycleScope
-import androidx.navigation.findNavController
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.text.HtmlCompat
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.navigation.NavController
 import chip.devicecontroller.AttestationInfo
 import chip.devicecontroller.DeviceAttestationDelegate
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.switchmaterial.SwitchMaterial
-import com.google.android.material.textfield.TextInputEditText
+import com.google.android.gms.home.matter.Matter
+import com.google.android.gms.home.matter.commissioning.CommissioningRequest
+import com.google.android.material.textview.MaterialTextView
+import com.google.homesampleapp.Device
+import com.google.homesampleapp.DialogInfo
 import com.google.homesampleapp.R
-import com.google.homesampleapp.TaskStatus
-import com.google.homesampleapp.chip.ChipClient
-import com.google.homesampleapp.data.DevicesRepository
-import com.google.homesampleapp.data.DevicesStateRepository
-import com.google.homesampleapp.data.UserPreferencesRepository
-import com.google.homesampleapp.databinding.FragmentCodelabInfoCheckboxBinding
-import com.google.homesampleapp.databinding.FragmentHomeBinding
-import com.google.homesampleapp.databinding.FragmentNewDeviceBinding
-import com.google.homesampleapp.intentSenderToString
-import com.google.homesampleapp.isMultiAdminCommissioning
-import com.google.homesampleapp.screens.shared.SelectedDeviceViewModel
-import com.google.homesampleapp.screens.shared.UserPreferencesViewModel
-import com.google.homesampleapp.showAlertDialog
-import dagger.hilt.android.AndroidEntryPoint
-import javax.inject.Inject
-import kotlinx.coroutines.launch
+import com.google.homesampleapp.commissioning.AppCommissioningService
+import com.google.homesampleapp.getDeviceTypeIconId
+import com.google.homesampleapp.screens.thread.ActionDialogInfo
+import com.google.homesampleapp.screens.thread.ActionRequest
+import com.google.homesampleapp.screens.thread.ActionState
+import com.google.homesampleapp.screens.thread.ActionTask
+import com.google.homesampleapp.screens.thread.ActionType
+import com.google.homesampleapp.screens.thread.getActivity
+import com.google.homesampleapp.stateDisplayString
+import com.google.protobuf.Timestamp
 import timber.log.Timber
 
-/**
- * Home screen for the application.
- *
- * The fragment features four sections:
- * 1. The list of devices currently commissioned into the app's fabric. When the user clicks on a
- *    device, control moves to the Device fragment where one can get additional details on the
- *    device and perform actions on it. Implemented via a RecyclerView. Devices are persisted in the
- *    DevicesRepository, a Proto Datastore. It's possible to hide the devices that are currently
- *    offline via a setting in the Settings screen.
- * 2. Top App Bar. Settings icon to navigate to the Settings screen.
- * 3. "Add Device" button. Triggers the commissioning of a new device.
- * 4. Codelab information. When the fragment view is created, a Dialog is shown to provide
- *    information about the app's companion codelab. This can be dismissed via a checkbox and the
- *    setting is persisted in the UserPreferences proto datastore.
- *
- * Note:
- * - The app currently only supports Matter devices with server attribute "ON/OFF". An icon
- *   representing the on/off device only exists for device type light. Any other device type is
- *   shown with a generic matter device icon.
+/*
+FIXME: TODO
+
+- codelabInfo dialog
+- settings for showing codelab info
+    - codelab info
+    - hide offline devices
+- multiadmin commissioning
+- cleanup
  */
-@AndroidEntryPoint
-class HomeFragment : Fragment() {
 
-  @Inject internal lateinit var devicesRepository: DevicesRepository
-  @Inject internal lateinit var devicesStateRepository: DevicesStateRepository
-  @Inject internal lateinit var userPreferencesRepository: UserPreferencesRepository
-  @Inject internal lateinit var chipClient: ChipClient
+@Composable
+fun HomeRoute(navController: NavController, innerPadding: PaddingValues) {
+  // Lauching GPS commissioning requires Activity.
+  val activity = LocalContext.current.getActivity()
 
-  // Fragment binding.
-  private lateinit var binding: FragmentHomeBinding
+  // FIXME: Or should this be instantiated in Navigation?
+  // The ViewModel.
+  val viewModel: HomeViewModel = hiltViewModel()
 
-  private val selectedDeviceViewModel: SelectedDeviceViewModel by activityViewModels()
-
-  // The shared ViewModel for the UserPreferences.
-  private val userPreferencesViewModel: UserPreferencesViewModel by activityViewModels()
-
-  // The fragment's ViewModel.
-  private val viewModel: HomeViewModel by viewModels()
-
-  // Codelab information dialog.
-  private lateinit var codelabInfoAlertDialog: AlertDialog
-  private lateinit var codelabInfoCheckboxBinding: FragmentCodelabInfoCheckboxBinding
-
-  // New device information dialog
-  private lateinit var newDeviceAlertDialog: AlertDialog
-  private lateinit var newDeviceAlertDialogBinding: FragmentNewDeviceBinding
-
-  // Error alert dialog.
-  private lateinit var errorAlertDialog: AlertDialog
-
-  // Tells whether a device attestation failure was ignored.
-  // This is used in the "Device information" screen to warn the user about that fact.
-  // We're doing it this way as we cannot ask permission to the user while the
-  // decision has to be made because UI is fully controlled by GPS at that point.
-  private var deviceAttestationFailureIgnored = false
-
-  // The adapter used by the RecyclerView (where we show the list of devices).
-//  private val adapter =
-//      DevicesAdapter(
-//          { deviceUiModel ->
-//            // The click listener.
-//            // We update the selectedDeviceViewModel which is shared with the Device fragment.
-//            Timber.d("DevicesAdapter clickListener invoked")
-//            selectedDeviceViewModel.setSelectedDevice(deviceUiModel)
-//            view?.findNavController()?.navigate(R.id.action_homeFragment_to_deviceFragment)
-//          },
-//          { view, deviceUiModel ->
-//            Timber.d("onOff switch onClickListener: view [$view]")
-//            val onOffSwitch = view.findViewById<SwitchMaterial>(R.id.onoff_switch)
-//            Timber.d("onOff switch state: [${onOffSwitch?.isChecked}]")
-//            viewModel.updateDeviceStateOn(deviceUiModel, onOffSwitch?.isChecked!!)
-//          })
-
-  // CODELAB: commissionDeviceLauncher declaration
-  // The ActivityResultLauncher that launches the "commissionDevice" activity in Google Play
-  // Services.
-  private lateinit var commissionDeviceLauncher: ActivityResultLauncher<IntentSenderRequest>
-  // CODELAB SECTION END
-
-  // -----------------------------------------------------------------------------------------------
-  // Lifecycle functions
-
-  override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-    Timber.d("onCreate bundle is: ${savedInstanceState.toString()}")
-
-    // We need our own device attestation delegate as we currently only support attestation
-    // of test Matter devices. This DeviceAttestationDelegate makes it possible to ignore device
-    // attestation failures, which happen if commissioning production devices.
-    // TODO: Look into supporting different Root CAs.
-    setDeviceAttestationDelegate()
-
-    // Commission Device Step 1, where An activity launcher is registered.
-    // At step 2 of the "Commission Device" flow, the user triggers the "Commission Device"
-    // action and the ViewModel calls the Google Play Services (GPS) API
-    // (commissioningClient.commissionDevice()).
-    // This returns an  IntentSender that is then used in step 3 to call
-    // commissionDevicelauncher.launch().
-    // CODELAB: commissionDeviceLauncher definition
-    commissionDeviceLauncher =
-        registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
-          // Commission Device Step 5.
-          // The Commission Device activity in GPS (step 4) has completed.
-          val resultCode = result.resultCode
-          if (resultCode == Activity.RESULT_OK) {
-            Timber.d("CommissionDevice: Success")
-            // We now need to capture the device information for the app's fabric.
-            // Once this completes, a call is made to the viewModel to persist the information
-            // about that device in the app.
-            showNewDeviceAlertDialog(result)
-          } else {
-//            viewModel.commissionDeviceFailed(resultCode)
-          }
-        }
-    // CODELAB SECTION END
+  // Controls when the "New Device" alert dialog is shown.
+  // When that alert dialog completes, control needs to go back to the ViewModel to complete
+  // the commissioning flow.
+  val showNewDeviceAlertDialog by viewModel.showNewDeviceNameAlertDialog.collectAsState()
+  val onCommissionedDeviceNameCaptured: (name: String) -> Unit = {
+    viewModel.onCommissionedDeviceNameCaptured(it)
   }
 
-  private fun showNewDeviceAlertDialog(activityResult: ActivityResult?) {
-    newDeviceAlertDialog.setCanceledOnTouchOutside(false)
-
-    // Set on click listener for positive button of the dialog.
-    newDeviceAlertDialog.setButton(
-        DialogInterface.BUTTON_POSITIVE, resources.getString(R.string.ok)) { _, _ ->
-          // Extract the info entered by user and process it.
-          val nameTextView: TextInputEditText = newDeviceAlertDialogBinding.nameTextView
-          val deviceName = nameTextView.text.toString()
-//          viewModel.commissionDeviceSucceeded(activityResult!!, deviceName)
-        }
-
-    if (deviceAttestationFailureIgnored) {
-      newDeviceAlertDialog.setMessage(
-          Html.fromHtml(getString(R.string.device_attestation_warning), FROM_HTML_MODE_LEGACY))
-    }
-
-    // Clear previous device name before showing the dialog
-    newDeviceAlertDialogBinding.nameTextView.setText("")
-    newDeviceAlertDialog.show()
-
-    // Make the hyperlink clickable. Must be set after show().
-    val msgTextView: TextView? = newDeviceAlertDialog.findViewById(android.R.id.message)
-    msgTextView?.movementMethod = LinkMovementMethod.getInstance()
+  // Controls the Msg AlertDialog.
+  // When the user dismisses the Msg AlertDialog, we "consume" the dialog.
+  val msgDialogInfo by viewModel.msgDialogInfo.collectAsState()
+  val onDismissMsgDialog: () -> Unit = {
+    viewModel.consumeMsgDialog()
   }
 
-  override fun onCreateView(
-      inflater: LayoutInflater,
-      container: ViewGroup?,
-      savedInstanceState: Bundle?
-  ): View {
-    Timber.d("onCreateView()")
+  // UI Model for all the devices shown on the screen.
+  val devicesUiModel by viewModel.devicesUiModelLiveData.observeAsState()
+  val devices = devicesUiModel?.devices
+  val devicesList = devices ?: emptyList()
 
-    // Setup the binding with the fragment.
-    binding =
-      DataBindingUtil.inflate<FragmentHomeBinding>(
-          inflater,
-          R.layout.fragment_home,
-          container,
-          false
-        ).apply {
-          composeView.apply {
-            // Dispose the Composition when the view's LifecycleOwner is destroyed
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-            setContent {
-              MaterialTheme {
-                HomeRoute(viewModel)
-              }
-            }
-          }
-        }
-
-    // Binding to the CodelabInfoCheckbox UI, which is part of the dialog providing
-    // information about the companion codelab. That checkbox is used to prevent displaying
-    // that dialog on subsequent app launches.
-    codelabInfoCheckboxBinding =
-        DataBindingUtil.inflate(inflater, R.layout.fragment_codelab_info_checkbox, container, false)
-
-    // Binding to the NewDevice UI, which is part of the dialog where we
-    // capture new device information.
-    newDeviceAlertDialogBinding =
-        DataBindingUtil.inflate(inflater, R.layout.fragment_new_device, container, false)
-
-    // Setup the UI elements and livedata observers.
-    setupUiElements()
-    setupObservers()
-
-    return binding.root
+  // Functions invoked when UI controls are clicked on a specific device in the list.
+  val onDeviceClick: (deviceUiModel: DeviceUiModel) -> Unit = {
+    navController.navigate("device/${it.device.deviceId}")
+  }
+  val onOnOffClick: (deviceId: Long, value: Boolean) -> Unit = { deviceId, value ->
+    viewModel.updateDeviceStateOn(deviceId, value)
   }
 
-  override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-    super.onViewCreated(view, savedInstanceState)
-    Timber.d("onViewCreated()")
-    Timber.d("[${arguments}]")
-    // TODO: enable this if we want to show the snackbar. To discuss with UX.
-    //    val snackbarMsg = arguments?.get("snackbarMsg").toString()
-    //    Timber.d("snackbarMsg: $snackbarMsg")
-    //    Snackbar.make(view, snackbarMsg, Snackbar.LENGTH_LONG).show()
-  }
 
-  override fun onResume() {
-    super.onResume()
-    val intent = requireActivity().intent
-    Timber.d("onResume(): intent [${intent}]")
-    if (isMultiAdminCommissioning(intent)) {
-      Timber.d("Invocation: MultiAdminCommissioning")
-      if (viewModel.commissionDeviceStatus.value == TaskStatus.NotStarted) {
-        Timber.d("TaskStatus.NotStarted so starting commissioning")
-        viewModel.multiadminCommissioning(intent, requireContext())
+  // The device commissioning flow involves multiple steps as it is based on an Activity
+  // that is launched on the Google Play Services (GPS).
+  // Step 1 (here) is where An activity launcher is registered.
+  // At step 2, the user triggers the "Commission Device" action by clicking on the
+  // "Add device" button on this screen. This creates the proper IntentSender that is then
+  // used in step 3 to call commissionDevicelauncher.launch().
+  // Step 4 is when GPS takes over the commissioning flow.
+  // Step 5 is when the GPS activity completes and the result is handled here.
+  // CODELAB: commissionDeviceLauncher definition FIXME
+  val commissionDeviceLauncher =
+    rememberLauncherForActivityResult(
+      contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+      // Commission Device Step 5.
+      // The Commission Device activity in GPS (step 4) has completed.
+      val resultCode = result.resultCode
+      if (resultCode == Activity.RESULT_OK) {
+        Timber.d("CommissionDevice: Success")
+        // We let the ViewModel know that GPS commissioning has completed successfully.
+        // The ViewModel knows that we still need to capture the device name and will\
+        // update UI state to trigger the NewDeviceAlertDialog.
+        viewModel.gpsCommissioningDeviceSucceeded(result)
       } else {
-        Timber.d("TaskStatus is *not* NotStarted: $viewModel.commissionDeviceStatus.value")
-      }
-    } else {
-      Timber.d("Invocation: Main")
-//      viewModel.startMonitoringStateChanges()
-    }
-  }
-
-  override fun onPause() {
-    super.onPause()
-    Timber.d("onPause(): Stopping periodic ping on devices")
-//    viewModel.stopMonitoringStateChanges()
-  }
-
-  override fun onStart() {
-    super.onStart()
-    Timber.d("onStart()")
-  }
-
-  override fun onDestroy() {
-    super.onDestroy()
-    Timber.d("onDestroy()")
-    chipClient.chipDeviceController.setDeviceAttestationDelegate(0, EmptyAttestationDelegate())
-    // Destroy alert dialogs
-    // FIXME: this causes crash when changing orientation if we do not go through Home screen.
-    //    errorAlertDialog.dismiss()
-    //    newDeviceAlertDialog.dismiss()
-    //    codelabInfoAlertDialog.dismiss()
-  }
-
-  // -----------------------------------------------------------------------------------------------
-  // Setup UI elements of the fragment
-
-  private fun setupUiElements() {
-    setupMenu()
-    setupAddDeviceButton()
-    setupRecyclerView()
-    setupNewDeviceDialog()
-    setupCodelabInfoDialog()
-    setupErrorAlertDialog()
-  }
-
-  private fun setupMenu() {
-    binding.topAppBar.setOnMenuItemClickListener {
-      when (it.itemId) {
-        R.id.settings -> {
-          // Navigate to settings screen
-          view?.findNavController()?.navigate(R.id.action_homeFragment_to_settingsFragment)
-          true
-        }
-        else -> {
-          false
-        }
+        viewModel.commissionDeviceFailed(resultCode)
       }
     }
+
+  // FIXME: will that work?
+  val onCommissionDevice = {
+    Timber.d("onAddDeviceClick")
+    // fixme deviceAttestationFailureIgnored = false
+    viewModel.stopMonitoringStateChanges()
+    commissionDevice(activity!!.applicationContext, commissionDeviceLauncher)
   }
 
-  private fun setupAddDeviceButton() {
-    // Add device button click listener. This triggers the commissioning of a Matter device.
-    binding.addDeviceButton.setOnClickListener {
-      Timber.d("addDeviceButton.setOnClickListener")
-      deviceAttestationFailureIgnored = false
-//      viewModel.stopMonitoringStateChanges()
-      viewModel.commissionDevice(requireContext())
+  LifecycleResumeEffect {
+    Timber.d("LifecycleResumeEffect: startMonitoringStateChanges()")
+    viewModel.startMonitoringStateChanges()
+    onPauseOrDispose {
+      // do any needed clean up here
+      Timber.d("LifecycleResumeEffect:onPauseOrDispose stopMonitoringStateChanges()")
+      viewModel.stopMonitoringStateChanges()
     }
   }
 
-  private fun setupRecyclerView() {
-//    binding.devicesListRecyclerView.adapter = adapter
-  }
+  HomeScreen(
+    innerPadding,
+    devicesList,
+    msgDialogInfo,
+    onDismissMsgDialog,
+    showNewDeviceAlertDialog,
+    onCommissionedDeviceNameCaptured,
+    onCommissionDevice,
+    onDeviceClick,
+    onOnOffClick,
+  )
+}
 
-  private fun setupNewDeviceDialog() {
-    newDeviceAlertDialog =
-        MaterialAlertDialogBuilder(requireContext())
-            .setView(newDeviceAlertDialogBinding.root)
-            .setTitle("New device information")
-            .setCancelable(false)
-            .create()
-  }
+@Composable
+private fun HomeScreen(
+  innerPadding: PaddingValues,
+  devicesList: List<DeviceUiModel>,
+  msgDialogInfo: DialogInfo?,
+  onConsumeMsgDialog: () -> Unit,
+  showNewDeviceAlertDialog: Boolean,
+  onCommissionedDeviceNameCaptured: (name: String) -> Unit,
+  onCommissionDevice: () -> Unit,
+  onDeviceClick: (deviceUiModel: DeviceUiModel) -> Unit,
+  onOnOffClick: (deviceId: Long, value: Boolean) -> Unit,
+) {
 
-  private fun setupCodelabInfoDialog() {
-    codelabInfoAlertDialog =
-        MaterialAlertDialogBuilder(requireContext())
-            .setView(codelabInfoCheckboxBinding.root)
-            .setTitle(resources.getString(R.string.codelab))
-            .setMessage(
-                Html.fromHtml(
-                    resources.getString(R.string.showCodelabMessage), FROM_HTML_MODE_LEGACY))
-            .setPositiveButton(resources.getString(R.string.ok)) { _, _ ->
-              // Nothing to do.
-            }
-            .create()
+  // Alert Dialog for messages to be shown to the user.
+  MsgAlertDialog(msgDialogInfo, onConsumeMsgDialog)
 
-    // Setup the listener when the checkbox is clicked to hide the dialog.
-    codelabInfoCheckboxBinding.doNotShowMsgCheckbox.setOnCheckedChangeListener { _, checked ->
-      // Checkbox is shown only when the checkbox is false (not checked), so the only possible
-      // value is to have it checked by the user in the dialog.
-      userPreferencesViewModel.updateHideCodelabInfo(checked)
-    }
-  }
+  // Alert Dialog shown when the name of the device must be captured in the commissioning flow.
+  NewDeviceAlertDialog(showNewDeviceAlertDialog, onCommissionedDeviceNameCaptured)
 
-  private fun setupErrorAlertDialog() {
-    errorAlertDialog =
-        MaterialAlertDialogBuilder(requireContext())
-            .setPositiveButton(resources.getString(R.string.ok)) { _, _ ->
-//              viewModel.consumeErrorLiveData()
-            }
-            .create()
-  }
-
-  // -----------------------------------------------------------------------------------------------
-  // Setup observers on the ViewModel
-
-  private fun setupObservers() {
-    // Observe the devicesLiveData.
-//    viewModel.devicesUiModelLiveData.observe(viewLifecycleOwner) { devicesUiModel: DevicesUiModel ->
-//      adapter.submitList(devicesUiModel.devices)
-//      updateUi(devicesUiModel)
-//    }
-
-    // CODELAB: commissionDeviceStatus
-    // The current status of the share device action.
-    viewModel.commissionDeviceStatus.observe(viewLifecycleOwner) { status ->
-      Timber.d("commissionDeviceStatus.observe: status [${status}]")
-      // TODO: disable the "add device button", update the result text view, etc.
-    }
-    // CODELAB SECTION END
-
-    // In the CommissionDevice flow step 2, the ViewModel calls the GPS commissionDevice() API to
-    // get the
-    // IntentSender to be used with the Android Activity Result API. Once the ViewModel has
-    // the IntentSender, it posts it via LiveData so the Fragment can use that value to launch the
-    // activity (step 3).
-    // Note that when the IntentSender has been processed, it must be consumed to avoid a
-    // configuration change that resends the observed values and re-triggers the commissioning.
-    // CODELAB: commissionDeviceIntentSender
-    viewModel.commissionDeviceIntentSender.observe(viewLifecycleOwner) { sender ->
-      Timber.d(
-          "commissionDeviceIntentSender.observe is called with [${intentSenderToString(sender)}]")
-      if (sender != null) {
-        // Commission Device Step 4: Launch the activity described in the IntentSender that
-        // was returned in Step 3 (where the viewModel calls the GPS API to commission
-        // the device).
-        Timber.d("CommissionDevice: Launch GPS activity to commission device")
-        commissionDeviceLauncher.launch(IntentSenderRequest.Builder(sender).build())
-        viewModel.consumeCommissionDeviceIntentSender()
-      }
-    }
-    // CODELAB SECTION END
-
-    viewModel.errorLiveData.observe(viewLifecycleOwner) { errorInfo ->
-      Timber.d("errorLiveData.observe is called with [${errorInfo}]")
-      if (errorInfo != null) {
-        showAlertDialog(errorAlertDialog, errorInfo.title, errorInfo.message)
-      }
-    }
-  }
-
-  // -----------------------------------------------------------------------------------------------
-  // Composables
-
-  @Composable
-  private fun HomeRoute(homeViewModel: HomeViewModel) {
-    // Observes values coming from the VM's devicesUiModelLiveData
-//    val devicesUiModel by homeViewModel.devicesUiModelLiveData.observeAsState()
-//    HomeScreen(devicesUiModel)
-  }
-
-  @Composable
-  private fun HomeScreen(devicesUiModel: DevicesUiModel?) {
-    val noDevices = devicesUiModel == null || devicesUiModel.devices.isEmpty()
-    if (noDevices) {
+  // Content for the screen.
+  Box {
+    if (devicesList.isEmpty()) {
       NoDevices()
-    }
-
-    LaunchedEffect(devicesUiModel) {
-      Timber.d("HomeRoute [${devicesUiModel}]")
-    }
-  }
-
-  @Preview(showSystemUi = true, showBackground = true)
-  @Composable
-  private fun HomeScreenNoDevicesPreview() {
-    val devicesUiModel = DevicesUiModel(emptyList(), showCodelabInfo = false, showOfflineDevices = false)
-    MaterialTheme {
-      HomeScreen(devicesUiModel)
-    }
-  }
-
-
-  @Composable
-  private fun NoDevices() {
-    Column {
-      Image(
-        painter = painterResource(R.drawable.emptystate_missing_content),
-        contentDescription = stringResource(R.string.no_devices_image),
-        modifier = Modifier.fillMaxWidth().height(200.dp)
-      )
-      Text(
-        text = stringResource(R.string.no_devices_yet),
-        style = MaterialTheme.typography.bodyMedium,
-        modifier = Modifier.fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally)
-      )
-      Text(
-        text = stringResource(R.string.add_your_first),
-        style = MaterialTheme.typography.bodySmall,
-        modifier = Modifier.fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally)
-      )
-    }
-  }
-
-  @Preview
-  @Composable
-  private fun NoDevicesPreview() {
-    MaterialTheme {
-      NoDevices()
-    }
-  }
-
-  // -----------------------------------------------------------------------------------------------
-  // UI Updates
-
-  private fun updateUi(devicesUiModel: DevicesUiModel) {
-    Timber.d("updateUi [${devicesUiModel}]")
-    if (devicesUiModel.devices.isEmpty()) {
-      binding.devicesListRecyclerView.visibility = View.GONE
     } else {
-      binding.devicesListRecyclerView.visibility = View.VISIBLE
-    }
-
-    // Codelab Info alert dialog
-    if (devicesUiModel.showCodelabInfo && !viewModel.codelabDialogHasBeenShown) {
-      viewModel.codelabDialogHasBeenShown = true
-      showCodelabAlertDialog()
-    }
-  }
-
-  // Show the Codelab AlertDialog.
-  private fun showCodelabAlertDialog() {
-    codelabInfoAlertDialog.show()
-    // Make the hyperlink clickable. Must be set after show().
-    val msgTextView: TextView? = codelabInfoAlertDialog.findViewById(android.R.id.message)
-    msgTextView?.movementMethod = LinkMovementMethod.getInstance()
-  }
-
-  // ---------------------------------------------------------------------------
-  // Device Attestation Delegate
-
-  private class EmptyAttestationDelegate : DeviceAttestationDelegate {
-    override fun onDeviceAttestationCompleted(
-        devicePtr: Long,
-        attestationInfo: AttestationInfo,
-        errorCode: Int
-    ) {}
-  }
-
-  private fun setDeviceAttestationDelegate() {
-    chipClient.chipDeviceController.setDeviceAttestationDelegate(
-        DEVICE_ATTESTATION_FAILED_TIMEOUT_SECONDS) { devicePtr, attestationInfo, errorCode ->
-          Timber.d(
-              "Device attestation errorCode: $errorCode, " +
-                  "Look at 'src/credentials/attestation_verifier/DeviceAttestationVerifier.h' " +
-                  "AttestationVerificationResult enum to understand the errors")
-
-          if (errorCode == STATUS_PAIRING_SUCCESS) {
-            Timber.d("DeviceAttestationDelegate: Success on device attestation.")
-            lifecycleScope.launch {
-              chipClient.chipDeviceController.continueCommissioning(devicePtr, true)
-            }
-          } else {
-            Timber.d("DeviceAttestationDelegate: Error on device attestation [$errorCode].")
-            // Ideally, we'd want to show a Dialog and ask the user whether the attestation
-            // failure should be ignored or not.
-            // Unfortunately, the GPS commissioning API is in control at this point, and the
-            // Dialog will only show up after GPS gives us back control.
-            // So, we simply ignore the attestation failure for now.
-            // TODO: Add a new setting to control that behavior.
-            deviceAttestationFailureIgnored = true
-            Timber.w("Ignoring attestation failure.")
-            lifecycleScope.launch {
-              chipClient.chipDeviceController.continueCommissioning(devicePtr, true)
-            }
+      Box(Modifier.fillMaxSize()) {
+        LazyColumn(
+          // verticalArrangement = Arrangement.spacedBy(1.dp),
+          modifier = Modifier
+            .fillMaxWidth()
+            .padding(innerPadding)
+        ) {
+          this.items(devicesList) { device ->
+            val onDeviceItemClick: () -> Unit = { onDeviceClick(device) }
+            DeviceItem(
+              device.device.deviceId,
+              device.device.deviceType,
+              device.device.name,
+              device.isOnline,
+              device.isOn,
+              onOnOffClick,
+              onDeviceItemClick,
+            )
           }
         }
+      }
+    }
+    FloatingActionButton(
+      onClick = onCommissionDevice,
+      modifier = Modifier
+        .align(Alignment.BottomEnd)
+        .padding(16.dp),
+    ) {
+      Icon(Icons.Filled.Add, contentDescription = "Add")
+    }
   }
 
-  // ---------------------------------------------------------------------------
-  // Companion object
+  LaunchedEffect(devicesList) { Timber.d("HomeRoute [$devicesList]") }
+}
 
-  companion object {
-    private const val STATUS_PAIRING_SUCCESS = 0
+@Composable
+private fun DeviceItem(
+  deviceId: Long,
+  deviceType: Device.DeviceType,
+  name: String,
+  isOnline: Boolean,
+  isOn: Boolean,
+  onOnOffClick: (deviceId: Long, value: Boolean) -> Unit,
+  onDeviceClick: (() -> Unit),
+) {
+  val bgColor =
+    if (isOnline && isOn) MaterialTheme.colorScheme.surfaceVariant
+    else MaterialTheme.colorScheme.surface
+  val contentColor =
+    if (isOnline && isOn) MaterialTheme.colorScheme.onSurfaceVariant
+    else MaterialTheme.colorScheme.onSurface
+  val text = stateDisplayString(isOnline, isOn)
+  val iconId = getDeviceTypeIconId(deviceType)
+  val onCheckedChange: (value: Boolean) -> Unit = { onOnOffClick(deviceId, it) }
 
-    /** Set for the fail-safe timer before onDeviceAttestationFailed is invoked. */
-    private const val DEVICE_ATTESTATION_FAILED_TIMEOUT_SECONDS = 60
+  Surface(
+    modifier = Modifier
+      .padding(top = 12.dp)
+      .padding(PaddingValues(horizontal = 12.dp)),
+    border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
+    contentColor = contentColor,
+    color = bgColor,
+    shape = RoundedCornerShape(dimensionResource(R.dimen.rounded_corner)),
+    onClick = onDeviceClick,
+  ) {
+    Row(
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.spacedBy(12.dp),
+      modifier = Modifier.padding(dimensionResource(R.dimen.padding_surface_content)),
+    ) {
+      Icon(
+        painter = painterResource(id = iconId),
+        contentDescription = null, // decorative element
+      )
+      Column {
+        Text(text = name, style = MaterialTheme.typography.bodyLarge)
+        Text(text = text, style = MaterialTheme.typography.bodyLarge)
+      }
+      Spacer(Modifier.weight(1f))
+      Switch(checked = isOn, onCheckedChange = onCheckedChange)
+    }
   }
 }
+
+// FIXME: what's the proper way then to avoid StateFlowValueCalledInComposition?
+@Composable
+private fun NewDeviceAlertDialog(
+  showNewDeviceAlertDialog: Boolean,
+  onCommissionedDeviceNameCaptured: (name: String) -> Unit,
+) {
+  if (!showNewDeviceAlertDialog) {
+    return
+  }
+
+  var inputText by remember { mutableStateOf("") }
+
+  AlertDialog(
+    title = { Text(text = "Specify device name") },
+    text = {
+      TextField(
+        value = inputText,
+        onValueChange = { inputText = it },
+        label = { Text("Device name") },
+        modifier = Modifier.fillMaxWidth(),
+      )
+    },
+    confirmButton = {
+      Button(
+        onClick = {
+          // Process inputText
+          onCommissionedDeviceNameCaptured(inputText)
+        },
+        enabled = inputText.isNotEmpty(),
+      ) {
+        Text("OK")
+      }
+    },
+    onDismissRequest = {},
+    dismissButton = {},
+  )
+}
+
+@Composable
+private fun CodelabAlertDialog(showCodelabAlertDialog: Boolean, onDismissCodelabAlertDialog: () -> Unit) {
+  if (!showCodelabAlertDialog) return
+
+  val htmlText = HtmlCompat.fromHtml(stringResource(R.string.showCodelabMessage), HtmlCompat.FROM_HTML_MODE_LEGACY)
+  var isChecked by remember { mutableStateOf(false) }
+
+  AlertDialog(
+    title = {
+        Text(stringResource(id = R.string.codelab))
+    },
+    text = {
+      // See https://developer.android.com/codelabs/jetpack-compose-migration
+      Column {
+        AndroidView(
+          update = { it.text = htmlText },
+          factory = {
+            MaterialTextView(it).apply {
+              movementMethod = LinkMovementMethod.getInstance()
+            }
+          },
+        )
+        Row(
+          modifier = Modifier
+            .fillMaxWidth()
+            .padding(4.dp),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          Checkbox(
+            checked = isChecked,
+            onCheckedChange = { isChecked = !isChecked },
+            // FIXME --> onChecked
+          )
+          Text(stringResource(id = R.string.do_not_show_again))
+        }
+      }
+    },
+    confirmButton = {
+      TextButton(
+        onClick = onDismissCodelabAlertDialog
+      ) {
+        Text("OK")
+      }
+    },
+    onDismissRequest = {},
+    dismissButton = {}
+  )
+}
+
+@Composable
+private fun MsgAlertDialog(dialogInfo: DialogInfo?, onDismissMsgAlertDialog: () -> Unit) {
+  if (dialogInfo == null) return
+
+  AlertDialog(
+    title = {
+      if (!dialogInfo.title.isNullOrEmpty()) {
+        Text(dialogInfo.title)
+      }
+    },
+    text = {
+      if (!dialogInfo.message.isNullOrEmpty()) {
+        Text(dialogInfo.message)
+      }
+    },
+    confirmButton = {
+        TextButton(
+          onClick = onDismissMsgAlertDialog
+        ) {
+          Text("OK")
+        }
+      },
+    onDismissRequest = {},
+    dismissButton = {}
+  )
+}
+
+@Composable
+private fun NoDevices() {
+  Column(
+    modifier = Modifier.fillMaxSize(), // Make the Column occupy the whole screen
+    verticalArrangement = Arrangement.Center,
+    horizontalAlignment = Alignment.CenterHorizontally,
+  ) {
+    Image(
+      painter = painterResource(R.drawable.emptystate_missing_content),
+      contentDescription = stringResource(R.string.no_devices_image),
+      modifier = Modifier
+        .fillMaxWidth()
+        .height(200.dp),
+    )
+    Text(
+      text = stringResource(R.string.no_devices_yet),
+      style = MaterialTheme.typography.bodyMedium,
+      modifier = Modifier
+        .fillMaxWidth()
+        .wrapContentWidth(Alignment.CenterHorizontally),
+    )
+    Text(
+      text = stringResource(R.string.add_your_first),
+      style = MaterialTheme.typography.bodySmall,
+      modifier = Modifier
+        .fillMaxWidth()
+        .wrapContentWidth(Alignment.CenterHorizontally),
+    )
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Composable previews
+
+@Preview(showSystemUi = true, showBackground = true)
+@Composable
+private fun HomeScreenNoDevicesPreview() {
+  val bogus: (a: Long, b: Boolean) -> Unit = { _, _ -> }
+  MaterialTheme { HomeScreen(PaddingValues(8.dp), emptyList(), null, {},false, {}, {}, {}, bogus) }
+}
+
+@Preview
+@Composable
+private fun HomeScreenWithDevicesPreview() {
+  val bogus: (a: Long, b: Boolean) -> Unit = { _, _ -> } // FIXME
+  val devicesList =
+    listOf(
+      DeviceUiModel(createDevice(), true, true),
+      DeviceUiModel(createDevice(name = "Smart Outlet"), true, false),
+      DeviceUiModel(createDevice(name = "My living room lamp"), false, true),
+    )
+  MaterialTheme { HomeScreen(PaddingValues(8.dp), devicesList, null, {},false, {}, {}, {}, bogus) }
+}
+
+@Preview
+@Composable
+private fun NoDevicesPreview() {
+  MaterialTheme { NoDevices() }
+}
+
+@Preview
+@Composable
+private fun CodelabAlertDialogPreview() {
+  MaterialTheme { CodelabAlertDialog(true, {}) }
+}
+
+private fun createDevice(
+  deviceId: Long = 1L,
+  deviceType: Device.DeviceType = Device.DeviceType.TYPE_OUTLET,
+  dateCommissioned: Timestamp = Timestamp.getDefaultInstance(),
+  name: String = "My Matter Device",
+  productId: String = "8785",
+  vendorId: String = "6006",
+  room: String = "Living Room",
+): Device {
+  return Device.newBuilder()
+    .setDeviceId(deviceId)
+    .setDeviceType(deviceType)
+    .setDateCommissioned(dateCommissioned)
+    .setName(name)
+    .setProductId(productId)
+    .setVendorId(vendorId)
+    .setRoom(room)
+    .build()
+}
+
+// ---------------------------------------------------------------------------
+// Device Attestation Delegate
+
+private class EmptyAttestationDelegate : DeviceAttestationDelegate {
+  override fun onDeviceAttestationCompleted(
+    devicePtr: Long,
+    attestationInfo: AttestationInfo,
+    errorCode: Int,
+  ) {}
+}
+
+// ---------------------------------------------------------------------------
+// Launch GPS Activity
+
+fun commissionDevice(
+  context: Context,
+  commissionDeviceLauncher: ManagedActivityResultLauncher<IntentSenderRequest, ActivityResult>,
+) {
+  Timber.d("CommissionDevice: starting")
+  // fixme _commissionDeviceStatus.postValue(TaskStatus.InProgress)
+
+  val commissionDeviceRequest =
+    CommissioningRequest.builder()
+      .setCommissioningService(ComponentName(context, AppCommissioningService::class.java))
+      .build()
+
+  // The call to commissionDevice() creates the IntentSender that will eventually be launched
+  // in the fragment to trigger the commissioning activity in GPS.
+  Matter.getCommissioningClient(context)
+    .commissionDevice(commissionDeviceRequest)
+    .addOnSuccessListener { result ->
+      Timber.d("ShareDevice: Success getting the IntentSender: result [${result}]")
+      commissionDeviceLauncher.launch(IntentSenderRequest.Builder(result).build())
+    }
+    .addOnFailureListener { error ->
+      Timber.e(error)
+      //      _commissionDeviceStatus.postValue(
+      //        TaskStatus.Failed("Setting up the IntentSender failed", error))
+    }
+}
+
+// FIXME!!!
+// private fun setDeviceAttestationDelegate() {
+//    chipClient.chipDeviceController.setDeviceAttestationDelegate(
+//        DEVICE_ATTESTATION_FAILED_TIMEOUT_SECONDS) { devicePtr, attestationInfo, errorCode ->
+//          Timber.d(
+//              "Device attestation errorCode: $errorCode, " +
+//                  "Look at 'src/credentials/attestation_verifier/DeviceAttestationVerifier.h' " +
+//                  "AttestationVerificationResult enum to understand the errors")
+//
+//          if (errorCode == STATUS_PAIRING_SUCCESS) {
+//            Timber.d("DeviceAttestationDelegate: Success on device attestation.")
+//            lifecycleScope.launch {
+//              chipClient.chipDeviceController.continueCommissioning(devicePtr, true)
+//            }
+//          } else {
+//            Timber.d("DeviceAttestationDelegate: Error on device attestation [$errorCode].")
+//            // Ideally, we'd want to show a Dialog and ask the user whether the attestation
+//            // failure should be ignored or not.
+//            // Unfortunately, the GPS commissioning API is in control at this point, and the
+//            // Dialog will only show up after GPS gives us back control.
+//            // So, we simply ignore the attestation failure for now.
+//            // TODO: Add a new setting to control that behavior.
+//            deviceAttestationFailureIgnored = true
+//            Timber.w("Ignoring attestation failure.")
+//            lifecycleScope.launch {
+//              chipClient.chipDeviceController.continueCommissioning(devicePtr, true)
+//            }
+//          }
+//        }
+//  }

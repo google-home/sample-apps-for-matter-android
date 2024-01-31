@@ -22,6 +22,11 @@
     <string name="device_type_light" translatable="false">light</string>
     <string name="device_type_outlet" translatable="false">outlet</string>
     <string name="device_type_unknown" translatable="false">unknown</string>
+    <string name="device_type_dimmable_light">dimmable light</string>
+    <string name="device_type_color_temperature_light">color temperature light</string>
+    <string name="device_type_extended_color_light">extended color light</string>
+    <string name="device_type_light_switch">light switch</string>
+    <string name="device_type_unrecognized">unrecognized</string>
 
     <!-- Generic status messages -->
     <string name="status_not_started" translatable="false">Not started</string>

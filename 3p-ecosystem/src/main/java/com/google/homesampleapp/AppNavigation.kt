@@ -2,20 +2,25 @@ package com.google.homesampleapp
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.google.homesampleapp.screens.home.HomeScreen
-import com.google.homesampleapp.screens.home.HomeViewModel
-import dagger.hilt.android.AndroidEntryPoint
+import androidx.navigation.navArgument
+import com.google.homesampleapp.screens.device.DeviceRoute
+import com.google.homesampleapp.screens.home.HomeRoute
 
 @Composable
 fun AppNavigation(navController: NavHostController, innerPadding: PaddingValues) {
   NavHost(navController = navController, startDestination = "home") {
     composable("home") {
-      val viewModel = hiltViewModel<HomeViewModel>()
-      HomeScreen(navController, viewModel) } // Pass navController down
-    // ... other composables ...
+      HomeRoute(navController, innerPadding)
+    }
+    composable(
+      "device/{deviceId}",
+        arguments = listOf(navArgument("deviceId") { type = NavType.LongType }))
+    {
+      DeviceRoute(navController, innerPadding, it.arguments?.getLong("deviceId")!!)
+    }
   }
 }

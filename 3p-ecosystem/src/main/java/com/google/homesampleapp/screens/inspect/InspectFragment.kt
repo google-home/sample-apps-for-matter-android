@@ -41,7 +41,6 @@ import com.google.homesampleapp.chip.MatterConstants
 import com.google.homesampleapp.data.DevicesStateRepository
 import com.google.homesampleapp.databinding.FragmentInspectBinding
 import com.google.homesampleapp.lifeCycleEvent
-import com.google.homesampleapp.screens.shared.SelectedDeviceViewModel
 import com.google.protobuf.Timestamp
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
@@ -58,9 +57,6 @@ class InspectFragment : Fragment() {
 
   // Fragment binding.
   private lateinit var binding: FragmentInspectBinding
-
-  // The ViewModel for the currently selected device.
-  private val selectedDeviceViewModel: SelectedDeviceViewModel by activityViewModels()
 
   // The fragment's ViewModel.
   private val viewModel: InspectViewModel by viewModels()
@@ -95,8 +91,6 @@ class InspectFragment : Fragment() {
     }
 
     // Setup UI elements and livedata observers.
-    setupUiElements()
-    setupObservers()
 
     return binding.root
   }
@@ -114,31 +108,25 @@ class InspectFragment : Fragment() {
     binding.topAppBar.setOnClickListener { findNavController().popBackStack() }
   }
 
-  private fun setupObservers() {
-    selectedDeviceViewModel.selectedDeviceLiveData.observe(viewLifecycleOwner) {
-      binding.topAppBar.title = it?.device?.name
-    }
-  }
-
   // -----------------------------------------------------------------------------------------------
   // Composables
 
   @Composable
   private fun InspectRoute() {
     // Observes values needed by the InspectScreen.
-    val selectedDeviceId by selectedDeviceViewModel.selectedDeviceIdLiveData.observeAsState()
+//    val selectedDeviceId by selectedDeviceViewModel.selectedDeviceIdLiveData.observeAsState()
     val instrospectionInfo by viewModel.instrospectionInfo.observeAsState()
 
     LifecycleResumeEffect {
-      Timber.d("LifecycleResumeEffect: selectedDeviceId [$selectedDeviceId]")
-      viewModel.inspectDevice(selectedDeviceViewModel.selectedDeviceLiveData.value!!.device.deviceId)
+//      Timber.d("LifecycleResumeEffect: selectedDeviceId [$selectedDeviceId]")
+//      viewModel.inspectDevice(selectedDeviceViewModel.selectedDeviceLiveData.value!!.device.deviceId)
       onPauseOrDispose {
         // do any needed clean up here
         Timber.d("LifecycleResumeEffect:onPauseOrDispose")
       }
     }
 
-    InspectScreen(selectedDeviceId, instrospectionInfo)
+//    InspectScreen(selectedDeviceId, instrospectionInfo)
   }
 
   @Composable

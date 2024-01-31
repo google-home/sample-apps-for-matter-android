@@ -19,10 +19,13 @@ package com.google.homesampleapp
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.databinding.DataBindingUtil.setContentView
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -53,9 +56,32 @@ class MainActivity : ComponentActivity() {
     // Useful to see which preferences are set under the hood by Matter libraries.
     displayPreferences(this)
 
+    // Activity Launchers supported by the app.
+//    val contactPickerLauncher = registerForActivityResult(ActivityResultContracts.PickContact()) { uri ->
+//      viewModel.selectedContact.value = processContactUri(uri) // Update ViewModel
+//    }
+//    val viewModel = viewModel<DeviceViewModel>()
+//    val shareDeviceLauncher =
+//      registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
+//        // Share Device Step 5.
+//        // The Share Device activity in GPS (step 4) has completed.
+//        val resultCode = result.resultCode
+//        if (resultCode == RESULT_OK) {
+//          Timber.d("ShareDevice: Success")
+//          viewModel.shareDeviceSucceeded()
+//        } else {
+//          viewModel.shareDeviceFailed(
+//            selectedDeviceViewModel.selectedDeviceLiveData.value!!, resultCode
+//          )
+//        }
+//      }
+
+
+//    val selectedDeviceViewModel = viewModel<SelectedDeviceViewModel>()
 
     setContent {
       // FIXME
+
       MaterialTheme {
         val navController = rememberNavController()
         AppLayout(navController = navController)
@@ -83,12 +109,5 @@ class MainActivity : ComponentActivity() {
             "Version ${VERSION_NAME}\n" +
             "App     ${APP_NAME}\n" +
             "====================================")
-
-    // Strings associated with DeviceTypes
-    setDeviceTypeStrings(
-        unspecified = getString(R.string.device_type_unspecified),
-        light = getString(R.string.device_type_light),
-        outlet = getString(R.string.device_type_outlet),
-        unknown = getString(R.string.device_type_unknown))
   }
 }
