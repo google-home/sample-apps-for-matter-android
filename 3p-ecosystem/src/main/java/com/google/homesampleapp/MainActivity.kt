@@ -32,6 +32,7 @@ import androidx.navigation.compose.rememberNavController
 import com.google.homesampleapp.databinding.ActivityMainBinding
 import com.google.homesampleapp.lifecycle.AppLifecycleObserver
 import dagger.hilt.android.AndroidEntryPoint
+import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import javax.inject.Inject
 import timber.log.Timber
 
@@ -83,9 +84,11 @@ class MainActivity : ComponentActivity() {
       // FIXME
 
       MaterialTheme {
-        val navController = rememberNavController()
-        AppLayout(navController = navController)
+        ProvidePreferenceLocals {
+          val navController = rememberNavController()
+          AppLayout(navController = navController)
         }
+      }
       }
     }
 

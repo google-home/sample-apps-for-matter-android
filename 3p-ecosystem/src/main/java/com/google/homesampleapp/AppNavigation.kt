@@ -9,6 +9,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.google.homesampleapp.screens.device.DeviceRoute
 import com.google.homesampleapp.screens.home.HomeRoute
+import com.google.homesampleapp.screens.inspect.InspectRoute
+import com.google.homesampleapp.screens.settings.SettingsRoute
 
 @Composable
 fun AppNavigation(navController: NavHostController, innerPadding: PaddingValues) {
@@ -22,5 +24,15 @@ fun AppNavigation(navController: NavHostController, innerPadding: PaddingValues)
     {
       DeviceRoute(navController, innerPadding, it.arguments?.getLong("deviceId")!!)
     }
+    composable(
+      "inspect/{deviceId}",
+      arguments = listOf(navArgument("deviceId") { type = NavType.LongType }))
+    {
+      InspectRoute(navController, innerPadding, it.arguments?.getLong("deviceId")!!)
+    }
+    composable("settings") {
+      SettingsRoute(navController, innerPadding)
+    }
+
   }
 }

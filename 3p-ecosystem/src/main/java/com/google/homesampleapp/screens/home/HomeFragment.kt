@@ -110,7 +110,6 @@ FIXME: TODO
 - wire in the settings screen and double check proper behavior for
     - codelab info
     - hide offline devices
-- what to do with --> attestation delegate
 - cleanup
  */
 
@@ -131,6 +130,9 @@ FIXME: TODO
  *
  * Note:
  * - The app currently only supports Matter devices with server attribute "ON/OFF".
+ *
+ * TODO:
+ * - Finding out that a device is offline is not working very well. Much work needed there.
  */
 @Composable
 internal fun HomeRoute(
@@ -146,6 +148,12 @@ internal fun HomeRoute(
   val devicesUiModel by homeViewModel.devicesUiModelLiveData.observeAsState()
   val devices = devicesUiModel?.devices
   val devicesList = devices ?: emptyList()
+
+  // Tells whether a device attestation failure was ignored.
+  // This is used in the "Device information" screen to warn the user about that fact.
+  // We're doing it this way as we cannot ask permission to the user while the
+  // decision has to be made because UI is fully controlled by GPS at that point.
+  val deviceAttestationFailureIgnored by homeViewModel.deviceAttestationFailureIgnored.collectAsState()
 
   // Controls whether the codelab alert dialog should be shown.
   val showCodelabAlertDialog by userPreferencesViewModel.showCodelabAlertDialog.collectAsState()
@@ -235,10 +243,20 @@ internal fun HomeRoute(
       Timber.d("Invocation: Main")
       homeViewModel.startMonitoringStateChanges()
     }
+    // FIXME: Should be done onCreate() possible with Composable?
+    // We need our own device attestation delegate as we currently only support attestation
+    // of test Matter devices. This DeviceAttestationDelegate makes it possible to ignore device
+    // attestation failures, which happen if commissioning production devices.
+    // TODO: Look into supporting different Root CAs.
+    homeViewModel.setDeviceAttestationDelegate()
     onPauseOrDispose {
       // do any needed clean up here
       Timber.d("LifecycleResumeEffect:onPauseOrDispose stopMonitoringStateChanges()")
       homeViewModel.stopMonitoringStateChanges()
+      // FIXME: should be done onDestroy()
+      homeViewModel.resetDeviceAttestationDelegate()
+
+
     }
   }
 
@@ -250,6 +268,7 @@ internal fun HomeRoute(
     msgDialogInfo,
     onDismissMsgDialog,
     showNewDeviceAlertDialog,
+    deviceAttestationFailureIgnored,
     onCommissionedDeviceNameCaptured,
     onCommissionDevice,
     onDeviceClick,
@@ -266,6 +285,7 @@ private fun HomeScreen(
   msgDialogInfo: DialogInfo?,
   onConsumeMsgDialog: () -> Unit,
   showNewDeviceAlertDialog: Boolean,
+  deviceAttestationFailureIgnored: Boolean,
   onCommissionedDeviceNameCaptured: (name: String) -> Unit,
   onCommissionDevice: () -> Unit,
   onDeviceClick: (deviceUiModel: DeviceUiModel) -> Unit,
@@ -278,7 +298,7 @@ private fun HomeScreen(
   MsgAlertDialog(msgDialogInfo, onConsumeMsgDialog)
 
   // Alert Dialog shown when the name of the device must be captured in the commissioning flow.
-  NewDeviceAlertDialog(showNewDeviceAlertDialog, onCommissionedDeviceNameCaptured)
+  NewDeviceAlertDialog(showNewDeviceAlertDialog, onCommissionedDeviceNameCaptured, deviceAttestationFailureIgnored)
 
   // Content for the screen.
   Box {
@@ -288,7 +308,9 @@ private fun HomeScreen(
       Box(Modifier.fillMaxSize()) {
         LazyColumn(
           // verticalArrangement = Arrangement.spacedBy(1.dp),
-          modifier = Modifier.fillMaxWidth().padding(innerPadding)
+          modifier = Modifier
+            .fillMaxWidth()
+            .padding(innerPadding)
         ) {
           this.items(devicesList) { device ->
             val onDeviceItemClick: () -> Unit = { onDeviceClick(device) }
@@ -307,7 +329,9 @@ private fun HomeScreen(
     }
     FloatingActionButton(
       onClick = onCommissionDevice,
-      modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+      modifier = Modifier
+        .align(Alignment.BottomEnd)
+        .padding(16.dp),
     ) {
       Icon(Icons.Filled.Add, contentDescription = "Add")
     }
@@ -337,7 +361,9 @@ private fun DeviceItem(
   val onCheckedChange: (value: Boolean) -> Unit = { onOnOffClick(deviceId, it) }
 
   Surface(
-    modifier = Modifier.padding(top = 12.dp).padding(PaddingValues(horizontal = 12.dp)),
+    modifier = Modifier
+      .padding(top = 12.dp)
+      .padding(PaddingValues(horizontal = 12.dp)),
     border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
     contentColor = contentColor,
     color = bgColor,
@@ -367,6 +393,7 @@ private fun DeviceItem(
 private fun NewDeviceAlertDialog(
   showNewDeviceAlertDialog: Boolean,
   onCommissionedDeviceNameCaptured: (name: String) -> Unit,
+  deviceAttestationFailureIgnored: Boolean
 ) {
   if (!showNewDeviceAlertDialog) {
     return
@@ -377,12 +404,30 @@ private fun NewDeviceAlertDialog(
   AlertDialog(
     title = { Text(text = "Specify device name") },
     text = {
-      TextField(
-        value = inputText,
-        onValueChange = { inputText = it },
-        label = { Text("Device name") },
-        modifier = Modifier.fillMaxWidth(),
-      )
+      Column {
+        TextField(
+          value = inputText,
+          onValueChange = { inputText = it },
+          label = { Text("Device name") },
+          modifier = Modifier.fillMaxWidth(),
+        )
+        if (deviceAttestationFailureIgnored) {
+          val htmlText =
+            HtmlCompat.fromHtml(
+              stringResource(R.string.device_attestation_warning),
+              HtmlCompat.FROM_HTML_MODE_LEGACY,
+            ).toString()
+          AndroidView(
+            modifier = Modifier.padding(top = 20.dp),
+            update = { it.text = htmlText },
+            factory = {
+              MaterialTextView(it).apply {
+                movementMethod = LinkMovementMethod.getInstance()
+              }
+            },
+          )
+        }
+      }
     },
     confirmButton = {
       Button(
@@ -432,7 +477,9 @@ private fun CodelabAlertDialog(
           },
         )
         Row(
-          modifier = Modifier.fillMaxWidth().padding(4.dp),
+          modifier = Modifier
+            .fillMaxWidth()
+            .padding(4.dp),
           verticalAlignment = Alignment.CenterVertically,
         ) {
           Checkbox(
@@ -471,78 +518,25 @@ private fun NoDevices() {
     Image(
       painter = painterResource(R.drawable.emptystate_missing_content),
       contentDescription = stringResource(R.string.no_devices_image),
-      modifier = Modifier.fillMaxWidth().height(200.dp),
+      modifier = Modifier
+        .fillMaxWidth()
+        .height(200.dp),
     )
     Text(
       text = stringResource(R.string.no_devices_yet),
       style = MaterialTheme.typography.bodyMedium,
-      modifier = Modifier.fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally),
+      modifier = Modifier
+        .fillMaxWidth()
+        .wrapContentWidth(Alignment.CenterHorizontally),
     )
     Text(
       text = stringResource(R.string.add_your_first),
       style = MaterialTheme.typography.bodySmall,
-      modifier = Modifier.fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally),
+      modifier = Modifier
+        .fillMaxWidth()
+        .wrapContentWidth(Alignment.CenterHorizontally),
     )
   }
-}
-
-// -----------------------------------------------------------------------------
-// Composable previews
-
-@Preview(showSystemUi = true, showBackground = true)
-@Composable
-private fun HomeScreenNoDevicesPreview() {
-  val bogus: (a: Long, b: Boolean) -> Unit = { _, _ -> }
-  MaterialTheme {
-    HomeScreen(PaddingValues(8.dp), emptyList(), false, {}, null, {}, false, {}, {}, {}, bogus)
-  }
-}
-
-@Preview
-@Composable
-private fun HomeScreenWithDevicesPreview() {
-  val bogus: (a: Long, b: Boolean) -> Unit = { _, _ -> } // FIXME
-  val devicesList =
-    listOf(
-      DeviceUiModel(createDevice(), true, true),
-      DeviceUiModel(createDevice(name = "Smart Outlet"), true, false),
-      DeviceUiModel(createDevice(name = "My living room lamp"), false, true),
-    )
-  MaterialTheme {
-    HomeScreen(PaddingValues(8.dp), devicesList, false, {}, null, {}, false, {}, {}, {}, bogus)
-  }
-}
-
-@Preview
-@Composable
-private fun NoDevicesPreview() {
-  MaterialTheme { NoDevices() }
-}
-
-@Preview
-@Composable
-private fun CodelabAlertDialogPreview() {
-  MaterialTheme { CodelabAlertDialog(true, {}) }
-}
-
-private fun createDevice(
-  deviceId: Long = 1L,
-  deviceType: Device.DeviceType = Device.DeviceType.TYPE_OUTLET,
-  dateCommissioned: Timestamp = Timestamp.getDefaultInstance(),
-  name: String = "My Matter Device",
-  productId: String = "8785",
-  vendorId: String = "6006",
-  room: String = "Living Room",
-): Device {
-  return Device.newBuilder()
-    .setDeviceId(deviceId)
-    .setDeviceType(deviceType)
-    .setDateCommissioned(dateCommissioned)
-    .setName(name)
-    .setProductId(productId)
-    .setVendorId(vendorId)
-    .setRoom(room)
-    .build()
 }
 
 // ---------------------------------------------------------------------------
@@ -670,33 +664,77 @@ fun multiAdminCommissionDevice(
     }
 }
 
-// FIXME!!!
-// private fun setDeviceAttestationDelegate() {
-//    chipClient.chipDeviceController.setDeviceAttestationDelegate(
-//        DEVICE_ATTESTATION_FAILED_TIMEOUT_SECONDS) { devicePtr, attestationInfo, errorCode ->
-//          Timber.d(
-//              "Device attestation errorCode: $errorCode, " +
-//                  "Look at 'src/credentials/attestation_verifier/DeviceAttestationVerifier.h' " +
-//                  "AttestationVerificationResult enum to understand the errors")
-//
-//          if (errorCode == STATUS_PAIRING_SUCCESS) {
-//            Timber.d("DeviceAttestationDelegate: Success on device attestation.")
-//            lifecycleScope.launch {
-//              chipClient.chipDeviceController.continueCommissioning(devicePtr, true)
-//            }
-//          } else {
-//            Timber.d("DeviceAttestationDelegate: Error on device attestation [$errorCode].")
-//            // Ideally, we'd want to show a Dialog and ask the user whether the attestation
-//            // failure should be ignored or not.
-//            // Unfortunately, the GPS commissioning API is in control at this point, and the
-//            // Dialog will only show up after GPS gives us back control.
-//            // So, we simply ignore the attestation failure for now.
-//            // TODO: Add a new setting to control that behavior.
-//            deviceAttestationFailureIgnored = true
-//            Timber.w("Ignoring attestation failure.")
-//            lifecycleScope.launch {
-//              chipClient.chipDeviceController.continueCommissioning(devicePtr, true)
-//            }
-//          }
-//        }
-//  }
+// -----------------------------------------------------------------------------
+// Composable previews
+
+@Preview(showSystemUi = true, showBackground = true)
+@Composable
+private fun HomeScreenNoDevicesPreview() {
+  val bogus: (a: Long, b: Boolean) -> Unit = { _, _ -> }
+  MaterialTheme {
+    HomeScreen(PaddingValues(8.dp), emptyList(), false, {}, null, {}, false, false, {}, {}, {}, bogus)
+  }
+}
+
+@Preview
+@Composable
+private fun HomeScreenWithDevicesPreview() {
+  val bogus: (a: Long, b: Boolean) -> Unit = { _, _ -> } // FIXME
+  val devicesList =
+    listOf(
+      DeviceUiModel(createDevice(), true, true),
+      DeviceUiModel(createDevice(name = "Smart Outlet"), true, false),
+      DeviceUiModel(createDevice(name = "My living room lamp"), false, true),
+    )
+  MaterialTheme {
+    HomeScreen(PaddingValues(8.dp), devicesList, false, {}, null, {}, false, false, {}, {}, {}, bogus)
+  }
+}
+
+@Preview
+@Composable
+private fun NoDevicesPreview() {
+  MaterialTheme { NoDevices() }
+}
+
+@Preview
+@Composable
+private fun CodelabAlertDialogPreview() {
+  MaterialTheme { CodelabAlertDialog(true, {}) }
+}
+
+@Preview
+@Composable
+private fun NewDeviceAlertDialogPreview() {
+  MaterialTheme {
+    NewDeviceAlertDialog(true, {}, false)
+  }
+}
+
+@Preview
+@Composable
+private fun NewDeviceAlertDialogAttestationFailureIgnoredPreview() {
+  MaterialTheme {
+    NewDeviceAlertDialog(true, {}, true)
+  }
+}
+private fun createDevice(
+  deviceId: Long = 1L,
+  deviceType: Device.DeviceType = Device.DeviceType.TYPE_OUTLET,
+  dateCommissioned: Timestamp = Timestamp.getDefaultInstance(),
+  name: String = "My Matter Device",
+  productId: String = "8785",
+  vendorId: String = "6006",
+  room: String = "Living Room",
+): Device {
+  return Device.newBuilder()
+    .setDeviceId(deviceId)
+    .setDeviceType(deviceType)
+    .setDateCommissioned(dateCommissioned)
+    .setName(name)
+    .setProductId(productId)
+    .setVendorId(vendorId)
+    .setRoom(room)
+    .build()
+}
+

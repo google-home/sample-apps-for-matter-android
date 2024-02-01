@@ -19,7 +19,11 @@ package com.google.homesampleapp.screens.inspect
 import androidx.lifecycle.*
 import com.google.homesampleapp.chip.ClustersHelper
 import com.google.homesampleapp.chip.DeviceMatterInfo
+import com.google.homesampleapp.screens.common.DialogInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -29,10 +33,18 @@ import timber.log.Timber
 class InspectViewModel @Inject constructor(private val clustersHelper: ClustersHelper) :
     ViewModel() {
 
-  /** Introspection device info from the clusters. */
-  private val _instrospectionInfo = MutableLiveData<List<DeviceMatterInfo>>()
-  val instrospectionInfo: LiveData<List<DeviceMatterInfo>>
-    get() = _instrospectionInfo
+  // The introspection info fetched from the device.
+  private var _deviceMatterInfoList = MutableStateFlow<List<DeviceMatterInfo>?>(null)
+  val deviceMatterInfoList: StateFlow<List<DeviceMatterInfo>?> = _deviceMatterInfoList.asStateFlow()
+
+  // Controls whether the "Message" AlertDialog should be shown in the UI.
+  private var _msgDialogInfo = MutableStateFlow<DialogInfo?>(null)
+  val msgDialogInfo: StateFlow<DialogInfo?> = _msgDialogInfo.asStateFlow()
+
+//  /** Introspection device info from the clusters. */
+//  private val _instrospectionInfo = MutableLiveData<List<DeviceMatterInfo>>()
+//  val instrospectionInfo: LiveData<List<DeviceMatterInfo>>
+//    get() = _instrospectionInfo
 
   // -----------------------------------------------------------------------------------------------
   // Inspect device
@@ -43,19 +55,12 @@ class InspectViewModel @Inject constructor(private val clustersHelper: ClustersH
     viewModelScope.launch {
       try {
         // Introspect the device.
-        val deviceMatterInfoList = clustersHelper.fetchDeviceMatterInfo(deviceId)
-        _instrospectionInfo.postValue(deviceMatterInfoList)
-        if (deviceMatterInfoList.isEmpty()) {
-          Timber.d("deviceMatterInfoList is empty")
-        } else {
-          for (deviceMatterInfo in deviceMatterInfoList) {
-            Timber.d("[${deviceMatterInfo}]")
-          }
-        }
+        _deviceMatterInfoList.value = clustersHelper.fetchDeviceMatterInfo(deviceId)
+        Timber.d("after fetch...")
       } catch (e: Exception) {
-        Timber.d("*** EXCEPTION GETTING DEVICE MATTER INFO *****")
-        Timber.e(e)
-        _instrospectionInfo.postValue(emptyList())
+        Timber.e("*** EXCEPTION GETTING DEVICE MATTER INFO *****", e)
+        _deviceMatterInfoList.value = emptyList<DeviceMatterInfo>()
+        showMsgDialog("Error introspecting the device", e.toString())
       }
     }
   }
@@ -79,5 +84,20 @@ class InspectViewModel @Inject constructor(private val clustersHelper: ClustersH
       val attributeList = clustersHelper.readBasicClusterAttributeList(deviceId, 0)
       Timber.d("attributeList [${attributeList}]")
     }
+  }
+
+  // -----------------------------------------------------------------------------------------------
+  // UI State update
+
+  fun showMsgDialog(title: String?, msg: String?, showConfirmButton: Boolean = true) {
+    Timber.d("showMsgDialog [$title]")
+    _msgDialogInfo.value = DialogInfo(title, msg, showConfirmButton)
+  }
+
+  // Called after user dismisss the Info dialog. If we don't consume, a config change redisplays the
+  // alert dialog.
+  fun dismissMsgDialog() {
+    Timber.d("dismissMsgDialog()")
+    _msgDialogInfo.value = null
   }
 }

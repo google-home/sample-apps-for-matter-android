@@ -86,10 +86,6 @@ import timber.log.Timber
 
 /*
 FIXME: TODO
-- inspect
-    - now in the inspect section
-    - wire it in
-
 - cleanup
  */
 
@@ -169,6 +165,19 @@ internal fun DeviceRoute(
       deviceViewModel.updateDeviceStateOn(deviceUiModel, value)
     }
 
+  // Inspect button click handler.
+  // isOnline must be provided in InspectScreen because it is updated there.
+  val onInspect: (isOnline: Boolean) -> Unit = { isOnline ->
+    if (isOnline) {
+      navController.navigate("inspect/${deviceUiModel!!.device.deviceId}")
+    } else {
+      deviceViewModel.showMsgDialog(
+        "Inspect Device",
+        "Device is offline, so it cannot be inspected."
+      )
+    }
+  }
+
   // The device sharing flow involves multiple steps as it is based on an Activity
   // that is launched on the Google Play Services (GPS).
   // Step 1 (here) is where an activity launcher is registered.
@@ -225,6 +234,7 @@ internal fun DeviceRoute(
     onOnOffClick,
     onRemoveDeviceClick,
     onShareDevice,
+    onInspect,
     msgDialogInfo,
     onDismissMsgDialog,
     showRemoveDeviceAlertDialog,
@@ -243,6 +253,7 @@ private fun DeviceScreen(
   onOnOffClick: (deviceUiModel: DeviceUiModel, value: Boolean) -> Unit,
   onRemoveDeviceClick: () -> Unit,
   onShareDevice: () -> Unit,
+  onInspect: (isOnline: Boolean) -> Unit,
   msgDialogInfo: DialogInfo?,
   onDismissMsgDialog: () -> Unit,
   showRemoveDeviceAlertDialog: Boolean,
@@ -274,7 +285,7 @@ private fun DeviceScreen(
     }
 
     // Device state
-    deviceUiModel?.let { model ->
+    deviceUiModel.let { model ->
       isOnline =
         when (deviceState) {
           null -> model.isOnline
@@ -286,8 +297,10 @@ private fun DeviceScreen(
           else -> deviceState.on
         }
     }
+    Timber.d("deviceState: isOnline [$isOnline] isOn[$isOn]")
   }
 
+  // The various AlertDialog's that may pop up to inform the user of important information.
   MsgAlertDialog(msgDialogInfo, onDismissMsgDialog)
   RemoveDeviceAlertDialog(showRemoveDeviceAlertDialog, onRemoveDeviceOutcome)
   ConfirmDeviceRemovalAlertDialog(
@@ -307,24 +320,10 @@ private fun DeviceScreen(
       )
       // TODO: Use HorizontalDivider when it becomes part of the stable Compose BOM.
       Spacer(modifier = Modifier)
-      TechnicalInfoSection(model.device)
+      TechnicalInfoSection(model.device, onInspect, isOnline)
       RemoveDeviceSection(onRemoveDeviceClick)
     }
   }
-
-  // FIXME
-  //    if (showInspectInfo!!) {
-  //      if (isOnline) {
-  ////        findNavController().navigate(R.id.action_deviceFragment_to_inspectFragment)
-  //      } else {
-  //        MaterialAlertDialogBuilder(requireContext())
-  //          .setTitle("Inspect Device")
-  //          .setMessage("Device is offline, cannot be inspected.")
-  //          .setPositiveButton(resources.getString(R.string.ok)) { _, _ -> }
-  //          .show()
-  //      }
-  ////      _showInspectInfoLiveData.value = false
-  //    }
 }
 
 @Composable
@@ -386,7 +385,7 @@ private fun ShareSection(
 }
 
 @Composable
-private fun TechnicalInfoSection(device: Device) {
+private fun TechnicalInfoSection(device: Device, onInspect: (isOnline: Boolean) -> Unit, isOnline:Boolean) {
   Surface(
     modifier = Modifier.padding(dimensionResource(R.dimen.margin_normal)),
     border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
@@ -414,7 +413,11 @@ private fun TechnicalInfoSection(device: Device) {
         style = MaterialTheme.typography.bodySmall,
       )
       Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-        TextButton(onClick = { /*fixme*/ }) { Text(stringResource(R.string.inspect)) }
+        TextButton(
+          onClick = { onInspect(isOnline) }
+        ) {
+          Text(stringResource(R.string.inspect))
+        }
       }
     }
   }
@@ -565,13 +568,15 @@ private fun OnOffStateSection_Offline() {
 @Preview(widthDp = 300)
 @Composable
 private fun ShareSectionPreview() {
-  MaterialTheme { ShareSection(1L, "Lightbulb", {}) }
+  MaterialTheme {
+    ShareSection(1L, "Lightbulb", {})
+  }
 }
 
 @Preview(widthDp = 300)
 @Composable
 private fun TechnicalInfoSectionPreview() {
-  MaterialTheme { TechnicalInfoSection(DeviceTest) }
+  MaterialTheme { TechnicalInfoSection(DeviceTest, {}, true) }
 }
 
 @Preview()
@@ -598,8 +603,9 @@ private fun DeviceScreenOnlineOnPreview() {
       onOnOffClick,
       {},
       {},
-      null,
       {},
+      null,
+      { } ,
       false,
       false,
       {},

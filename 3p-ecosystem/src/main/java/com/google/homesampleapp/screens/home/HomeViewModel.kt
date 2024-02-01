@@ -25,6 +25,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.liveData
 import androidx.lifecycle.viewModelScope
+import chip.devicecontroller.AttestationInfo
+import chip.devicecontroller.DeviceAttestationDelegate
 import chip.devicecontroller.model.NodeState
 import com.google.android.gms.home.matter.commissioning.CommissioningRequest
 import com.google.android.gms.home.matter.commissioning.CommissioningResult
@@ -120,6 +122,10 @@ constructor(
   /** The current status of multiadmin commissioning. */
   private val _multiadminCommissionDeviceTaskStatus = MutableStateFlow<TaskStatus>(TaskStatus.NotStarted)
   val multiadminCommissionDeviceTaskStatus: StateFlow<TaskStatus> = _multiadminCommissionDeviceTaskStatus.asStateFlow()
+
+  // Controls whether a Device Attestation failure is ignored or not.
+  private var _deviceAttestationFailureIgnored = MutableStateFlow<Boolean>(false)
+  val deviceAttestationFailureIgnored: StateFlow<Boolean> = _deviceAttestationFailureIgnored.asStateFlow()
 
   // Controls whether a periodic ping to the devices is enabled or not.
   private var devicesPeriodicPingEnabled: Boolean = true
@@ -566,6 +572,54 @@ constructor(
   }
 
   // -----------------------------------------------------------------------------------------------
+  // Device Attestation
+
+  fun setDeviceAttestationDelegate(failureTimeoutSeconds: Int = DEVICE_ATTESTATION_FAILED_TIMEOUT_SECONDS) {
+    Timber.d("setDeviceAttestationDelegate")
+    chipClient.chipDeviceController.setDeviceAttestationDelegate(
+      failureTimeoutSeconds
+    ) { devicePtr, attestationInfo, errorCode ->
+          Timber.d(
+              "Device attestation errorCode: $errorCode, " +
+                  "Look at 'src/credentials/attestation_verifier/DeviceAttestationVerifier.h' " +
+                  "AttestationVerificationResult enum to understand the errors")
+
+          if (errorCode == STATUS_PAIRING_SUCCESS) {
+            Timber.d("DeviceAttestationDelegate: Success on device attestation.")
+            viewModelScope.launch {
+              chipClient.chipDeviceController.continueCommissioning(devicePtr, true)
+            }
+          } else {
+            Timber.d("DeviceAttestationDelegate: Error on device attestation [$errorCode].")
+            // Ideally, we'd want to show a Dialog and ask the user whether the attestation
+            // failure should be ignored or not.
+            // Unfortunately, the GPS commissioning API is in control at this point, and the
+            // Dialog will only show up after GPS gives us back control.
+            // So, we simply ignore the attestation failure for now.
+            // TODO: Add a new setting to control that behavior.
+            _deviceAttestationFailureIgnored.value = true
+            Timber.w("Ignoring attestation failure.")
+            viewModelScope.launch {
+              chipClient.chipDeviceController.continueCommissioning(devicePtr, true)
+            }
+          }
+        }
+  }
+
+  fun resetDeviceAttestationDelegate() {
+    Timber.d("resetDeviceAttestationDelegate")
+    chipClient.chipDeviceController.setDeviceAttestationDelegate(0, EmptyAttestationDelegate())
+  }
+
+  private class EmptyAttestationDelegate : DeviceAttestationDelegate {
+    override fun onDeviceAttestationCompleted(
+      devicePtr: Long,
+      attestationInfo: AttestationInfo,
+      errorCode: Int
+    ) {}
+  }
+
+  // -----------------------------------------------------------------------------------------------
   // UI State update
 
   fun showMsgDialog(title: String, msg: String) {
@@ -580,5 +634,15 @@ constructor(
 
   fun setMultiadminCommissioningTaskStatus(taskStatus: TaskStatus) {
     _multiadminCommissionDeviceTaskStatus.value = taskStatus
+  }
+
+  // ---------------------------------------------------------------------------
+  // Companion object
+
+  companion object {
+    private const val STATUS_PAIRING_SUCCESS = 0
+
+    /** Set for the fail-safe timer before onDeviceAttestationFailed is invoked. */
+    private const val DEVICE_ATTESTATION_FAILED_TIMEOUT_SECONDS = 60
   }
 }
