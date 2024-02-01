@@ -86,9 +86,11 @@ import timber.log.Timber
 
 /*
 FIXME: TODO
+- inspect
+    - now in the inspect section
+    - wire it in
+
 - cleanup
-- inspect (in top app bar or in screen
-    - I think in screen would be better for visibility...
  */
 
 /**
@@ -123,7 +125,6 @@ internal fun DeviceRoute(
   // When the device has been removed by the ViewModel, navigate back to the Home screen
   val deviceRemovalCompleted by deviceViewModel.deviceRemovalCompleted.collectAsState()
   if (deviceRemovalCompleted) {
-    // FIXME: Does order matter here?
     navController.navigate("home")
     deviceViewModel.resetDeviceRemovalCompleted()
   }
@@ -194,7 +195,6 @@ internal fun DeviceRoute(
   val pairingWindowOpenForDeviceSharing by
     deviceViewModel.pairingWindowOpenForDeviceSharing.collectAsState()
   if (pairingWindowOpenForDeviceSharing) {
-    // FIXME: Does order matter here?
     deviceViewModel.resetPairingWindowOpenForDeviceSharing()
     shareDevice(activity!!.applicationContext, shareDeviceLauncher, deviceViewModel)
   }
@@ -204,7 +204,6 @@ internal fun DeviceRoute(
     deviceViewModel.openPairingWindow(deviceUiModel!!.device.deviceId)
   }
 
-  // FIXME: Understand when I come from the constructor and when I come from here.
   // When app is sent to the background, and pulled back, this kicks in.
   LifecycleResumeEffect {
     Timber.d("LifecycleResumeEffect: deviceUiModel [${deviceUiModel?.device?.deviceId}]")

@@ -110,7 +110,6 @@ FIXME: TODO
 - wire in the settings screen and double check proper behavior for
     - codelab info
     - hide offline devices
-- test multiadmin commissioning
 - what to do with --> attestation delegate
 - cleanup
  */
@@ -150,7 +149,6 @@ internal fun HomeRoute(
 
   // Controls whether the codelab alert dialog should be shown.
   val showCodelabAlertDialog by userPreferencesViewModel.showCodelabAlertDialog.collectAsState()
-  // FIXME: the dialog will be hidden as soon as checkbox is clicked.
   val onCodelabCheckboxChange: (checked: Boolean) -> Unit = {
     userPreferencesViewModel.updateHideCodelabInfo(it)
   }
@@ -190,7 +188,6 @@ internal fun HomeRoute(
   // used in step 3 to call commissionDevicelauncher.launch().
   // Step 4 is when GPS takes over the commissioning flow.
   // Step 5 is when the GPS activity completes and the result is handled here.
-  // CODELAB: commissionDeviceLauncher definition FIXME
   val commissionDeviceLauncher =
     rememberLauncherForActivityResult(
       contract = ActivityResultContracts.StartIntentSenderForResult()
@@ -209,7 +206,6 @@ internal fun HomeRoute(
       }
     }
 
-  // FIXME: will that work?
   val onCommissionDevice = {
     Timber.d("onAddDeviceClick")
     // fixme deviceAttestationFailureIgnored = false
@@ -367,7 +363,6 @@ private fun DeviceItem(
   }
 }
 
-// FIXME: what's the proper way then to avoid StateFlowValueCalledInComposition?
 @Composable
 private fun NewDeviceAlertDialog(
   showNewDeviceAlertDialog: Boolean,
@@ -569,7 +564,6 @@ fun commissionDevice(
   commissionDeviceLauncher: ManagedActivityResultLauncher<IntentSenderRequest, ActivityResult>,
 ) {
   Timber.d("CommissionDevice: starting")
-  // fixme _commissionDeviceStatus.postValue(TaskStatus.InProgress)
 
   val commissionDeviceRequest =
     CommissioningRequest.builder()
@@ -598,7 +592,6 @@ fun multiAdminCommissionDevice(
   commissionDeviceLauncher: ManagedActivityResultLauncher<IntentSenderRequest, ActivityResult>,
 ) {
   Timber.d("CommissionDevice: starting")
-  // fixme _commissionDeviceStatus.postValue(TaskStatus.InProgress)
 
   val sharedDeviceData = SharedDeviceData.fromIntent(intent)
   Timber.d("multiadminCommissioning: sharedDeviceData [${sharedDeviceData}]")
