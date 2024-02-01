@@ -115,15 +115,32 @@ FIXME: TODO
 - cleanup
  */
 
+/**
+ * Home screen for the application.
+ *
+ * The Home screen features four sections:
+ * 1. The list of devices currently commissioned into the app's fabric. When the user clicks on a
+ *    device, app flow moves to the Device screen where one can get additional details on the device
+ *    and perform actions on it. Devices are persisted in the DevicesRepository, a Proto Datastore.
+ *    It's possible to hide the devices that are currently offline via a setting in the Settings
+ *    screen.
+ * 2. Top App Bar. Settings icon to navigate to the Settings screen.
+ * 3. "Add Device" button. Triggers the commissioning of a new device.
+ * 4. Codelab information. When the app is first launched, a Dialog is shown to provide information
+ *    about the app's companion codelab. This can be dismissed via a checkbox and the setting is
+ *    persisted in the UserPreferences proto datastore.
+ *
+ * Note:
+ * - The app currently only supports Matter devices with server attribute "ON/OFF".
+ */
 @Composable
 internal fun HomeRoute(
   navController: NavController,
   innerPadding: PaddingValues,
   userPreferencesViewModel: UserPreferencesViewModel = hiltViewModel(),
-  homeViewModel: HomeViewModel = hiltViewModel()
-  )
-{
-  // Lauching GPS commissioning requires Activity.
+  homeViewModel: HomeViewModel = hiltViewModel(),
+) {
+  // Launching GPS commissioning requires Activity.
   val activity = LocalContext.current.getActivity()
 
   // UI Model for all the devices shown on the screen.
@@ -149,12 +166,11 @@ internal fun HomeRoute(
   // Controls the Msg AlertDialog.
   // When the user dismisses the Msg AlertDialog, we "consume" the dialog.
   val msgDialogInfo by homeViewModel.msgDialogInfo.collectAsState()
-  val onDismissMsgDialog: () -> Unit = {
-    homeViewModel.consumeMsgDialog()
-  }
+  val onDismissMsgDialog: () -> Unit = { homeViewModel.consumeMsgDialog() }
 
   // Status of multiadmin commissioning.
-  val multiadminCommissionDeviceTaskStatus by homeViewModel.multiadminCommissionDeviceTaskStatus.collectAsState()
+  val multiadminCommissionDeviceTaskStatus by
+    homeViewModel.multiadminCommissionDeviceTaskStatus.collectAsState()
 
   // Functions invoked when UI controls are clicked on a specific device in the list.
   val onDeviceClick: (deviceUiModel: DeviceUiModel) -> Unit = {
@@ -165,7 +181,6 @@ internal fun HomeRoute(
   }
 
   // userPreferencesViewModel.updateHideCodelabInfo(checked)
-
 
   // The device commissioning flow involves multiple steps as it is based on an Activity
   // that is launched on the Google Play Services (GPS).
@@ -211,7 +226,12 @@ internal fun HomeRoute(
       if (multiadminCommissionDeviceTaskStatus == TaskStatus.NotStarted) {
         Timber.d("TaskStatus.NotStarted so starting multiadmin commissioning")
         homeViewModel.setMultiadminCommissioningTaskStatus(TaskStatus.InProgress)
-        multiAdminCommissionDevice(activity!!.applicationContext, intent, homeViewModel, commissionDeviceLauncher)
+        multiAdminCommissionDevice(
+          activity!!.applicationContext,
+          intent,
+          homeViewModel,
+          commissionDeviceLauncher,
+        )
       } else {
         Timber.d("TaskStatus is *not* NotStarted: $multiadminCommissionDeviceTaskStatus")
       }
@@ -272,9 +292,7 @@ private fun HomeScreen(
       Box(Modifier.fillMaxSize()) {
         LazyColumn(
           // verticalArrangement = Arrangement.spacedBy(1.dp),
-          modifier = Modifier
-            .fillMaxWidth()
-            .padding(innerPadding)
+          modifier = Modifier.fillMaxWidth().padding(innerPadding)
         ) {
           this.items(devicesList) { device ->
             val onDeviceItemClick: () -> Unit = { onDeviceClick(device) }
@@ -293,9 +311,7 @@ private fun HomeScreen(
     }
     FloatingActionButton(
       onClick = onCommissionDevice,
-      modifier = Modifier
-        .align(Alignment.BottomEnd)
-        .padding(16.dp),
+      modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
     ) {
       Icon(Icons.Filled.Add, contentDescription = "Add")
     }
@@ -325,9 +341,7 @@ private fun DeviceItem(
   val onCheckedChange: (value: Boolean) -> Unit = { onOnOffClick(deviceId, it) }
 
   Surface(
-    modifier = Modifier
-      .padding(top = 12.dp)
-      .padding(PaddingValues(horizontal = 12.dp)),
+    modifier = Modifier.padding(top = 12.dp).padding(PaddingValues(horizontal = 12.dp)),
     border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
     contentColor = contentColor,
     color = bgColor,
@@ -394,8 +408,8 @@ private fun NewDeviceAlertDialog(
 @Composable
 private fun CodelabAlertDialog(
   showCodelabAlertDialog: Boolean,
-  onCodelabCheckboxChange: (Boolean) -> Unit)
-{
+  onCodelabCheckboxChange: (Boolean) -> Unit,
+) {
   // The user preference dictates whether this dialog should show or not.
   if (!showCodelabAlertDialog) return
 
@@ -404,36 +418,34 @@ private fun CodelabAlertDialog(
   var showDialog by remember { mutableStateOf(true) }
   if (!showDialog) return
 
-  val htmlText = HtmlCompat.fromHtml(stringResource(R.string.showCodelabMessage), HtmlCompat.FROM_HTML_MODE_LEGACY)
+  val htmlText =
+    HtmlCompat.fromHtml(
+      stringResource(R.string.showCodelabMessage),
+      HtmlCompat.FROM_HTML_MODE_LEGACY,
+    )
   var isChecked by remember { mutableStateOf(false) }
 
   AlertDialog(
-    title = {
-        Text(stringResource(id = R.string.codelab))
-    },
+    title = { Text(stringResource(id = R.string.codelab)) },
     text = {
       // See https://developer.android.com/codelabs/jetpack-compose-migration
       Column {
         AndroidView(
           update = { it.text = htmlText },
           factory = {
-            MaterialTextView(it).apply {
-              movementMethod = LinkMovementMethod.getInstance()
-            }
+            MaterialTextView(it).apply { movementMethod = LinkMovementMethod.getInstance() }
           },
         )
         Row(
-          modifier = Modifier
-            .fillMaxWidth()
-            .padding(4.dp),
-          verticalAlignment = Alignment.CenterVertically
+          modifier = Modifier.fillMaxWidth().padding(4.dp),
+          verticalAlignment = Alignment.CenterVertically,
         ) {
           Checkbox(
             checked = isChecked,
             onCheckedChange = {
               isChecked = !isChecked
               onCodelabCheckboxChange(isChecked)
-            }
+            },
           )
           Text(stringResource(id = R.string.do_not_show_again))
         }
@@ -450,10 +462,9 @@ private fun CodelabAlertDialog(
       }
     },
     onDismissRequest = {},
-    dismissButton = {}
+    dismissButton = {},
   )
 }
-
 
 @Composable
 private fun NoDevices() {
@@ -465,23 +476,17 @@ private fun NoDevices() {
     Image(
       painter = painterResource(R.drawable.emptystate_missing_content),
       contentDescription = stringResource(R.string.no_devices_image),
-      modifier = Modifier
-        .fillMaxWidth()
-        .height(200.dp),
+      modifier = Modifier.fillMaxWidth().height(200.dp),
     )
     Text(
       text = stringResource(R.string.no_devices_yet),
       style = MaterialTheme.typography.bodyMedium,
-      modifier = Modifier
-        .fillMaxWidth()
-        .wrapContentWidth(Alignment.CenterHorizontally),
+      modifier = Modifier.fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally),
     )
     Text(
       text = stringResource(R.string.add_your_first),
       style = MaterialTheme.typography.bodySmall,
-      modifier = Modifier
-        .fillMaxWidth()
-        .wrapContentWidth(Alignment.CenterHorizontally),
+      modifier = Modifier.fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally),
     )
   }
 }
@@ -493,7 +498,9 @@ private fun NoDevices() {
 @Composable
 private fun HomeScreenNoDevicesPreview() {
   val bogus: (a: Long, b: Boolean) -> Unit = { _, _ -> }
-  MaterialTheme { HomeScreen(PaddingValues(8.dp), emptyList(), false, {}, null, {},false, {}, {}, {}, bogus) }
+  MaterialTheme {
+    HomeScreen(PaddingValues(8.dp), emptyList(), false, {}, null, {}, false, {}, {}, {}, bogus)
+  }
 }
 
 @Preview
@@ -506,7 +513,9 @@ private fun HomeScreenWithDevicesPreview() {
       DeviceUiModel(createDevice(name = "Smart Outlet"), true, false),
       DeviceUiModel(createDevice(name = "My living room lamp"), false, true),
     )
-  MaterialTheme { HomeScreen(PaddingValues(8.dp), devicesList, false, {}, null, {},false, {}, {}, {}, bogus) }
+  MaterialTheme {
+    HomeScreen(PaddingValues(8.dp), devicesList, false, {}, null, {}, false, {}, {}, {}, bogus)
+  }
 }
 
 @Preview
@@ -587,7 +596,7 @@ fun multiAdminCommissionDevice(
   intent: Intent,
   homeViewModel: HomeViewModel,
   commissionDeviceLauncher: ManagedActivityResultLauncher<IntentSenderRequest, ActivityResult>,
-  ) {
+) {
   Timber.d("CommissionDevice: starting")
   // fixme _commissionDeviceStatus.postValue(TaskStatus.InProgress)
 
@@ -611,21 +620,24 @@ fun multiAdminCommissionDevice(
   val timeLeftSeconds = (commissioningWindowExpirationMillis - currentUptimeMillis) / 1000
   Timber.d(
     "commissionDevice: TargetCommissioner for MultiAdmin. " +
-        "uptime [${currentUptimeMillis}] " +
-        "commissioningWindowExpiration [${commissioningWindowExpirationMillis}] " +
-        "-> expires in ${timeLeftSeconds} seconds")
+      "uptime [${currentUptimeMillis}] " +
+      "commissioningWindowExpiration [${commissioningWindowExpirationMillis}] " +
+      "-> expires in ${timeLeftSeconds} seconds"
+  )
 
   if (commissioningWindowExpirationMillis == -1L) {
     Timber.e(
       "EXTRA_COMMISSIONING_WINDOW_EXPIRATION not specified in multi-admin call. " +
-          "Still going ahead with the multi-admin though.")
+        "Still going ahead with the multi-admin though."
+    )
   } else if (timeLeftSeconds < MIN_COMMISSIONING_WINDOW_EXPIRATION_SECONDS) {
     homeViewModel.showMsgDialog(
-        title = "Commissioning Window Expiration",
-        msg =
+      title = "Commissioning Window Expiration",
+      msg =
         "The commissioning window will " +
-            "expire in ${timeLeftSeconds} seconds, not long enough to complete the commissioning.\n\n" +
-            "In the future, please select the target commissioning application faster to avoid this situation.")
+          "expire in ${timeLeftSeconds} seconds, not long enough to complete the commissioning.\n\n" +
+          "In the future, please select the target commissioning application faster to avoid this situation.",
+    )
     return
   }
 
@@ -645,9 +657,10 @@ fun multiAdminCommissionDevice(
 
   Timber.d(
     "multiadmin: commissioningRequest " +
-        "onboardingPayload [${commissioningRequest.onboardingPayload}] " +
-        "vendorId [${commissioningRequest.deviceInfo!!.vendorId}] " +
-        "productId [${commissioningRequest.deviceInfo!!.productId}]")
+      "onboardingPayload [${commissioningRequest.onboardingPayload}] " +
+      "vendorId [${commissioningRequest.deviceInfo!!.vendorId}] " +
+      "productId [${commissioningRequest.deviceInfo!!.productId}]"
+  )
 
   Matter.getCommissioningClient(context)
     .commissionDevice(commissioningRequest)
@@ -659,7 +672,7 @@ fun multiAdminCommissionDevice(
       Timber.e(error)
       homeViewModel.showMsgDialog(
         title = "Failed to to get the IntentSender",
-        msg = error.toString()
+        msg = error.toString(),
       )
     }
 }
