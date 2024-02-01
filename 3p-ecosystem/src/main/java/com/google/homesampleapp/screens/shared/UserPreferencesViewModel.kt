@@ -18,7 +18,6 @@ package com.google.homesampleapp.screens.shared
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.homesampleapp.DialogInfo
 import com.google.homesampleapp.data.UserPreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow

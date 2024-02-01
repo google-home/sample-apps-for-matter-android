@@ -91,13 +91,14 @@ import com.google.android.gms.home.matter.commissioning.SharedDeviceData.EXTRA_P
 import com.google.android.gms.home.matter.commissioning.SharedDeviceData.EXTRA_VENDOR_ID
 import com.google.android.material.textview.MaterialTextView
 import com.google.homesampleapp.Device
-import com.google.homesampleapp.DialogInfo
 import com.google.homesampleapp.MIN_COMMISSIONING_WINDOW_EXPIRATION_SECONDS
 import com.google.homesampleapp.R
 import com.google.homesampleapp.TaskStatus
 import com.google.homesampleapp.commissioning.AppCommissioningService
 import com.google.homesampleapp.getDeviceTypeIconId
 import com.google.homesampleapp.isMultiAdminCommissioning
+import com.google.homesampleapp.screens.common.DialogInfo
+import com.google.homesampleapp.screens.common.MsgAlertDialog
 import com.google.homesampleapp.screens.shared.UserPreferencesViewModel
 import com.google.homesampleapp.screens.thread.getActivity
 import com.google.homesampleapp.stateDisplayString
@@ -453,32 +454,6 @@ private fun CodelabAlertDialog(
   )
 }
 
-@Composable
-private fun MsgAlertDialog(dialogInfo: DialogInfo?, onDismissMsgAlertDialog: () -> Unit) {
-  if (dialogInfo == null) return
-
-  AlertDialog(
-    title = {
-      if (!dialogInfo.title.isNullOrEmpty()) {
-        Text(dialogInfo.title)
-      }
-    },
-    text = {
-      if (!dialogInfo.message.isNullOrEmpty()) {
-        Text(dialogInfo.message)
-      }
-    },
-    confirmButton = {
-        TextButton(
-          onClick = onDismissMsgAlertDialog
-        ) {
-          Text("OK")
-        }
-      },
-    onDismissRequest = {},
-    dismissButton = {}
-  )
-}
 
 @Composable
 private fun NoDevices() {
@@ -597,7 +572,7 @@ fun commissionDevice(
   Matter.getCommissioningClient(context)
     .commissionDevice(commissionDeviceRequest)
     .addOnSuccessListener { result ->
-      Timber.d("ShareDevice: Success getting the IntentSender: result [${result}]")
+      Timber.d("CommissionDevice: Success getting the IntentSender: result [${result}]")
       commissionDeviceLauncher.launch(IntentSenderRequest.Builder(result).build())
     }
     .addOnFailureListener { error ->

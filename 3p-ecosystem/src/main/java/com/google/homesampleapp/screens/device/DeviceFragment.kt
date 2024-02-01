@@ -16,14 +16,19 @@
 
 package com.google.homesampleapp.screens.device
 
+import android.app.Activity
 import android.app.Activity.RESULT_OK
-import android.net.Uri
+import android.app.Dialog
+import android.content.ComponentName
+import android.content.Context
 import android.os.Bundle
+import android.os.SystemClock
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.ActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -38,6 +43,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -45,6 +51,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -55,6 +62,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
@@ -62,32 +70,35 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
-import androidx.fragment.app.viewModels
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.navigation.NavController
-import androidx.navigation.findNavController
-import androidx.navigation.fragment.findNavController
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.homesampleapp.BackgroundWorkAlertDialogAction
+import com.google.android.gms.home.matter.Matter
+import com.google.android.gms.home.matter.commissioning.CommissioningRequest
+import com.google.android.gms.home.matter.commissioning.CommissioningWindow
+import com.google.android.gms.home.matter.commissioning.ShareDeviceRequest
+import com.google.android.gms.home.matter.common.DeviceDescriptor
+import com.google.android.gms.home.matter.common.Discriminator
+import com.google.homesampleapp.DISCRIMINATOR
 import com.google.homesampleapp.Device
 import com.google.homesampleapp.DeviceState
+import com.google.homesampleapp.OPEN_COMMISSIONING_WINDOW_DURATION_SECONDS
 import com.google.homesampleapp.R
+import com.google.homesampleapp.SETUP_PIN_CODE
 import com.google.homesampleapp.TaskStatus
 import com.google.homesampleapp.TaskStatus.InProgress
+import com.google.homesampleapp.commissioning.AppCommissioningService
 import com.google.homesampleapp.data.DevicesStateRepository
 import com.google.homesampleapp.databinding.FragmentDeviceBinding
 import com.google.homesampleapp.formatTimestamp
-import com.google.homesampleapp.intentSenderToString
 import com.google.homesampleapp.lifeCycleEvent
-import com.google.homesampleapp.screens.device.DeviceViewModel.Companion.DEVICE_REMOVAL_COMPLETED
-import com.google.homesampleapp.screens.device.DeviceViewModel.Companion.DEVICE_REMOVAL_CONFIRM
+import com.google.homesampleapp.screens.common.DialogInfo
+import com.google.homesampleapp.screens.common.MsgAlertDialog
 import com.google.homesampleapp.screens.home.DeviceUiModel
-import com.google.homesampleapp.screens.home.HomeViewModel
-import com.google.homesampleapp.showAlertDialog
+import com.google.homesampleapp.screens.home.commissionDevice
+import com.google.homesampleapp.screens.thread.getActivity
 import com.google.homesampleapp.stateDisplayString
 import com.google.protobuf.Timestamp
 import dagger.hilt.android.AndroidEntryPoint
@@ -96,9 +107,6 @@ import javax.inject.Inject
 
 /*
 FIXME: TODO
-- subscription
-- wire back: remove device
-- wire back: share device
 - cleanup
  */
 
@@ -271,21 +279,7 @@ class DeviceFragment : Fragment() {
 //    }
   }
 
-  private fun removeDevice() {
-//    val deviceId = selectedDeviceViewModel.selectedDeviceIdLiveData.value
-//    MaterialAlertDialogBuilder(requireContext())
-//      .setTitle("Remove this device?")
-//      .setMessage(
-//        "This device will be removed and unlinked from this sample app. Other services and connection-types may still have access."
-//      )
-//      .setNegativeButton(resources.getString(R.string.cancel)) { _, _ ->
-//        // nothing to do
-//      }
-//      .setPositiveButton(resources.getString(R.string.yes_remove_it)) { _, _ ->
-//        viewModel.removeDevice(deviceId!!)
-//      }
-//      .show()
-  }
+
 
   private fun showBackgroundWorkAlertDialog(title: String?, message: String?) {
     if (title != null) {
@@ -357,82 +351,152 @@ class DeviceFragment : Fragment() {
   fun DeviceRoute(
     navController: NavController,
     innerPadding: PaddingValues,
-    deviceId: Long
-//    viewModel: DeviceViewModel,
-//    selectedDeviceViewModel: SelectedDeviceViewModel
+    deviceId: Long,
+    deviceViewModel: DeviceViewModel = hiltViewModel(),
   ) {
     Timber.d("DeviceRoute deviceId [$deviceId]")
 
-    val viewModel: DeviceViewModel = hiltViewModel()
+    // Lauching GPS commissioning requires Activity.
+    val activity = LocalContext.current.getActivity()
 
     // Observes values needed by the DeviceScreen.
-    val deviceUiModel by viewModel.deviceUiModel.collectAsState()
+    val deviceUiModel by deviceViewModel.deviceUiModel.collectAsState()
     Timber.d("DeviceRoute deviceUiModel [${deviceUiModel?.device?.deviceId}]")
+
+    // When the device has been removed by the ViewModel, navigate back to the Home screen
+    val deviceRemovalCompleted by deviceViewModel.deviceRemovalCompleted.collectAsState()
+    if (deviceRemovalCompleted) {
+      // FIXME: Does order matter here?
+      navController.navigate("home")
+      deviceViewModel.resetDeviceRemovalCompleted()
+    }
+
+
+
+    //  private fun deviceRemovalCompleted() {
+//    requireView().findNavController().navigate(R.id.action_deviceFragment_to_homeFragment)
+//  }
+
+    //val uiAction by deviceViewModel.uiActionLiveData.observeAsState()
+
+    // Controls the Msg AlertDialog.
+    // When the user dismisses the Msg AlertDialog, we "consume" the dialog.
+    val msgDialogInfo by deviceViewModel.msgDialogInfo.collectAsState()
+    val onDismissMsgDialog: () -> Unit = {
+      deviceViewModel.dismissMsgDialog()
+    }
+
+    // Controls whether the "remove device" alert dialog should be shown.
+    val showRemoveDeviceAlertDialog by deviceViewModel.showRemoveDeviceAlertDialog.collectAsState()
+    val onRemoveDeviceClick: () -> Unit = {
+      deviceViewModel.showRemoveDeviceAlertDialog()
+    }
+    val onRemoveDeviceOutcome: (doIt: Boolean) -> Unit = { doIt ->
+      // FIXME: this is not dismissed right away, it stays up...
+      // how to force it? maybe the msg dialog must only be shown after we
+      // start the suspend function?
+      // While we dismiss the dialog right away, it won't take effect until
+      // the UI gets some processing cycles back. And in this case, the removeDevice()
+      // call immediately shows another Dialog.
+      deviceViewModel.dismissRemoveDeviceDialog()
+      if (doIt) {
+        deviceViewModel.removeDevice(deviceUiModel!!.device.deviceId)
+      }
+    }
+
+    // Controls whether the "confirm device removal" alert dialog should be shown.
+    val showConfirmDeviceRemovalAlertDialog by deviceViewModel.showConfirmDeviceRemovalAlertDialog.collectAsState()
+    // FIXME: the dialog will be hidden as soon as checkbox is clicked.
+    val onConfirmDeviceRemovalOutcome: (doIt: Boolean) -> Unit = { doIt ->
+      deviceViewModel.dismissConfirmDeviceRemovalDialog()
+      if (doIt) {
+        deviceViewModel.removeDeviceWithoutUnlink(deviceUiModel!!.device.deviceId)
+      }
+    }
 
     // As soon as the route is invoked, need to load the device info.
 
 
 //    val selectedDeviceId by selectedDeviceViewModel.selectedDeviceIdLiveData.observeAsState()
 //    val selectedDeviceUiModel by selectedDeviceViewModel.selectedDeviceLiveData.observeAsState()
-    val lastUpdatedDeviceState by viewModel.devicesStateRepository.lastUpdatedDeviceState.observeAsState()
-    val shareDeviceStatus by viewModel.shareDeviceStatus.observeAsState()
+    val lastUpdatedDeviceState by deviceViewModel.devicesStateRepository.lastUpdatedDeviceState.observeAsState()
+    val shareDeviceStatus by deviceViewModel.shareDeviceStatus.observeAsState()
     // fixme  val showInspectInfo by showInspectInfoLiveData.observeAsState()
     val showInspectInfo = false // false
 
     // FIXME
 //    binding.topAppBar.title = selectedDevice?.device?.name
 
+    // On/Off Switch click.
     val onOnOffClick: (deviceUiModel: DeviceUiModel, value: Boolean) -> Unit =
       { deviceUiModel, value ->
-        viewModel.updateDeviceStateOn(deviceUiModel, value)
+        deviceViewModel.updateDeviceStateOn(deviceUiModel, value)
       }
 
-    val onShareDeviceClick: (deviceId: Long) -> Unit = { deviceId ->
-      viewModel.shareDevice(deviceId)
-    }
 
-    // Share Device Step 1, where an activity launcher is registered.
-    // At step 2 of the "Share Device" flow, the user triggers the "Share Device"
-    // action and the ViewModel calls the Google Play Services (GPS) API
-    // (commissioningClient.shareDevice()).
-    // This returns an  IntentSender that is then used in step 3 to call
-    // shareDevicelauncher.launch().
-    // CODELAB: shareDeviceLauncher definition
+    // The device sharing flow involves multiple steps as it is based on an Activity
+    // that is launched on the Google Play Services (GPS).
+    // Step 1 (here) is where an activity launcher is registered.
+    // At step 2, the user triggers the "Share Device" action by clicking on the
+    // "Share" button on this screen. This creates the proper IntentSender that is then
+    // used in step 3 to call shareDevicelauncher.launch().
+    // Step 4 is when GPS takes over the sharing flow.
+    // Step 5 is when the GPS activity completes and the result is handled here.
     val shareDeviceLauncher =
-      rememberLauncherForActivityResult(contract = ActivityResultContracts.StartIntentSenderForResult()) { result ->
-        // Share Device Step 5.
+      rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+      ) { result ->
+        // Commission Device Step 5.
         // The Share Device activity in GPS (step 4) has completed.
         val resultCode = result.resultCode
-        if (resultCode == RESULT_OK) {
-          Timber.d("ShareDevice: Success")
-          viewModel.shareDeviceSucceeded()
+        if (resultCode == Activity.RESULT_OK) {
+          deviceViewModel.shareDeviceSucceeded()
         } else {
-//          viewModel.shareDeviceFailed(
-            // FIXME
-            //selectedDeviceViewModel.selectedDeviceLiveData.value!!, resultCode
-//          )
+          deviceViewModel.shareDeviceFailed(resultCode)
         }
       }
+
+    // When the pairing window has been open for device sharing.
+    val pairingWindowOpenForDeviceSharing by deviceViewModel.pairingWindowOpenForDeviceSharing.collectAsState()
+    if (pairingWindowOpenForDeviceSharing) {
+      // FIXME: Does order matter here?
+      deviceViewModel.resetPairingWindowOpenForDeviceSharing()
+      shareDevice(activity!!.applicationContext, shareDeviceLauncher, deviceViewModel)
+    }
+
+    // Share Device button click.
+    val onShareDevice: () -> Unit = {
+      deviceViewModel.openPairingWindow(deviceUiModel!!.device.deviceId)
+    }
 
     // FIXME: Understand when I come from the constructor and when I come from here.
     // When app is sent to the background, and pulled back, this kicks in.
     LifecycleResumeEffect {
       Timber.d("LifecycleResumeEffect: deviceUiModel [${deviceUiModel?.device?.deviceId}]")
-      viewModel.loadDevice(deviceId)
+      deviceViewModel.loadDevice(deviceId)
+      deviceViewModel.startMonitoringStateChanges()
       onPauseOrDispose {
         // do any needed clean up here
         Timber.d("LifecycleResumeEffect:onPauseOrDispose deviceUiModel [${deviceUiModel?.device?.deviceId}]")
+        deviceViewModel.stopMonitoringStateChanges()
       }
     }
-
 
     DeviceScreen(
       innerPadding,
       deviceUiModel,
       lastUpdatedDeviceState,
       shareDeviceStatus,
+      onOnOffClick,
+      onRemoveDeviceClick,
+      onShareDevice,
+      msgDialogInfo,
+      onDismissMsgDialog,
+      showRemoveDeviceAlertDialog,
       showInspectInfo,
-      onOnOffClick
+      onRemoveDeviceOutcome,
+      showConfirmDeviceRemovalAlertDialog,
+      onConfirmDeviceRemovalOutcome,
     )
   }
 
@@ -442,8 +506,16 @@ class DeviceFragment : Fragment() {
     deviceUiModel: DeviceUiModel?,
     deviceState: DeviceState?,
     shareDeviceStatus: TaskStatus?,
-    showInspectInfo: Boolean?,
-    onOnOffClick: (deviceUiModel: DeviceUiModel, value: Boolean) -> Unit
+    onOnOffClick: (deviceUiModel: DeviceUiModel, value: Boolean) -> Unit,
+    onRemoveDeviceClick: () -> Unit,
+    onShareDevice: () -> Unit,
+    msgDialogInfo: DialogInfo?,
+    onDismissMsgDialog: () -> Unit,
+    showRemoveDeviceAlertDialog: Boolean,
+    showInspectInfo: Boolean?, // fixme: why allows null value?
+    onRemoveDeviceOutcome: (Boolean) -> Unit,
+    showConfirmDeviceRemovalAlertDialog: Boolean,
+    onConfirmDeviceRemovalOutcome: (Boolean) -> Unit,
   ) {
     // The current state of the device.
     // The DeviceUiModel is not updated whenever we observe changes in the state of the device.
@@ -480,6 +552,10 @@ class DeviceFragment : Fragment() {
       }
     }
 
+    MsgAlertDialog(msgDialogInfo, onDismissMsgDialog)
+    RemoveDeviceAlertDialog(showRemoveDeviceAlertDialog, onRemoveDeviceOutcome)
+    ConfirmDeviceRemovalAlertDialog(showConfirmDeviceRemovalAlertDialog, onConfirmDeviceRemovalOutcome)
+
     deviceUiModel.let { model ->
       Column(
         modifier = Modifier
@@ -492,14 +568,15 @@ class DeviceFragment : Fragment() {
         ShareSection(
           id = model.device.deviceId,
           name = model.device.name,
-          shareDeviceStatus
+          shareDeviceStatus,
+          onShareDevice,
         )
         // TODO: Use HorizontalDivider when it becomes part of the stable Compose BOM.
         Spacer(
           modifier = Modifier,
         )
         TechnicalInfoSection(model.device)
-        RemoveDeviceSection({ /* fixme removeDevice() */ })
+        RemoveDeviceSection(onRemoveDeviceClick)
       }
     }
 
@@ -554,11 +631,12 @@ class DeviceFragment : Fragment() {
   }
 
   @Composable
-  private fun ShareSection(id: Long, name: String, shareDeviceStatus: TaskStatus?) {
-    val shareButtonEnabled = shareDeviceStatus !is InProgress
-    if (shareDeviceStatus is TaskStatus.Failed) {
-      // fixme showAlertDialog(errorAlertDialog, shareDeviceStatus.message, shareDeviceStatus.cause!!.toString())
-    }
+  private fun ShareSection(id: Long, name: String, shareDeviceStatus: TaskStatus?,
+                           onShareDevice: () -> Unit) {
+    //val shareButtonEnabled = shareDeviceStatus !is InProgress
+//    if (shareDeviceStatus is TaskStatus.Failed) {
+//      // fixme showAlertDialog(errorAlertDialog, shareDeviceStatus.message, shareDeviceStatus.cause!!.toString())
+//    }
     Surface(
       modifier = Modifier.padding(dimensionResource(R.dimen.margin_normal)),
       border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
@@ -582,12 +660,8 @@ class DeviceFragment : Fragment() {
           horizontalArrangement = Arrangement.End,
         ) {
           Button(
-            onClick = {
-//              val deviceId = selectedDeviceViewModel.selectedDeviceLiveData.value?.device?.deviceId
-//              // Trigger the processing for sharing the device
-//              viewModel.shareDevice(requireActivity(), id)
-            },
-            enabled = shareButtonEnabled,
+            onClick = onShareDevice,
+//            enabled = shareButtonEnabled,
           ) {
             Text(stringResource(R.string.share))
           }
@@ -635,10 +709,94 @@ class DeviceFragment : Fragment() {
           Icons.Outlined.Delete,
           contentDescription = "Localized description"
         )
-        Text(stringResource(R.string.remove_device).toUpperCase())
+        Text(stringResource(R.string.remove_device).uppercase())
       }
     }
   }
+
+@Composable
+private fun RemoveDeviceAlertDialog(
+  showRemoveDeviceAlertDialog: Boolean,
+  onRemoveDeviceOutcome: (doIt: Boolean) -> Unit,
+) {
+  Timber.d("RemoveDeviceAlertDialog [$showRemoveDeviceAlertDialog]")
+  if (!showRemoveDeviceAlertDialog) {
+    return
+  }
+
+//  var showDialog by remember { mutableStateOf(true) }
+//  if (!showDialog) return
+
+  AlertDialog(
+    title = { Text(text = "Remove this device?") },
+    text = {
+      Text("This device will be removed and unlinked from this sample app. " +
+          "Other services and connection-types may still have access.")
+    },
+    confirmButton = {
+      Button(
+        onClick = {
+//          showDialog = false
+          onRemoveDeviceOutcome(true)
+        },
+      ) {
+        Text(stringResource(R.string.yes_remove_it))
+      }
+    },
+    onDismissRequest = {},
+    dismissButton = {
+      Button(
+        onClick = {
+//          showDialog = false
+          onRemoveDeviceOutcome(false)
+        },
+      ) {
+        Text(stringResource(R.string.cancel))
+      }
+    },
+  )
+}
+
+@Composable
+private fun ConfirmDeviceRemovalAlertDialog(
+  showConfirmDeviceRemovalAlertDialog: Boolean,
+  onConfirmDeviceRemovalOutcome: (doIt: Boolean) -> Unit,
+) {
+  if (!showConfirmDeviceRemovalAlertDialog) {
+    return
+  }
+
+  var showDialog by remember { mutableStateOf(false) }
+
+  AlertDialog(
+    title = { Text(text = "Error removing the fabric from the device") },
+    text = {
+      Text("Removing the fabric from the device failed. " +
+               "Do you still want to remove the device from the application?")
+    },
+    confirmButton = {
+      Button(
+        onClick = {
+          showDialog = false
+          onConfirmDeviceRemovalOutcome(true)
+        },
+      ) {
+        Text(stringResource(R.string.yes_remove_it))
+      }
+    },
+    onDismissRequest = {},
+    dismissButton = {
+      Button(
+        onClick = {
+          showDialog = false
+          onConfirmDeviceRemovalOutcome(false)
+        },
+      ) {
+        Text(stringResource(R.string.cancel))
+      }
+    },
+  )
+}
 
   // -----------------------------------------------------------------------------------------------
   // UIAction handling
@@ -656,9 +814,49 @@ class DeviceFragment : Fragment() {
 //        .show()
 //  }
 
-//  private fun deviceRemovalCompleted() {
-//    requireView().findNavController().navigate(R.id.action_deviceFragment_to_homeFragment)
-//  }
+  // ---------------------------------------------------------------------------
+  // Launch GPS Activity
+
+fun shareDevice(
+  context: Context,
+  shareDeviceLauncher: ManagedActivityResultLauncher<IntentSenderRequest, ActivityResult>,
+  deviceViewModel: DeviceViewModel
+) {
+  Timber.d("ShareDevice: starting")
+
+  val shareDeviceRequest =
+    ShareDeviceRequest.builder()
+      .setDeviceDescriptor(DeviceDescriptor.builder().build())
+      .setDeviceName("GHSAFM temp device name")
+      .setCommissioningWindow(
+        CommissioningWindow.builder()
+          .setDiscriminator(Discriminator.forLongValue(DISCRIMINATOR))
+          .setPasscode(SETUP_PIN_CODE)
+          .setWindowOpenMillis(SystemClock.elapsedRealtime())
+          .setDurationSeconds(OPEN_COMMISSIONING_WINDOW_DURATION_SECONDS.toLong())
+          .build()
+      )
+      .build()
+  Timber.d(
+    "ShareDevice: shareDeviceRequest " +
+        "onboardingPayload [${shareDeviceRequest.commissioningWindow.passcode}] " +
+        "discriminator [${shareDeviceRequest.commissioningWindow.discriminator}]"
+  )
+
+  // The call to shareDevice() creates the IntentSender that will eventually be launched
+  // in the fragment to trigger the multi-admin activity in GPS (step 3).
+  Matter.getCommissioningClient(context)
+    .shareDevice(shareDeviceRequest)
+    .addOnSuccessListener { result ->
+      Timber.d("ShareDevice: Success getting the IntentSender: result [${result}]")
+      // Communication with fragment is via livedata
+      shareDeviceLauncher.launch(IntentSenderRequest.Builder(result).build())
+    }
+    .addOnFailureListener { error ->
+      Timber.e(error)
+      deviceViewModel.showMsgDialog("Share device failed", error.toString())
+    }
+}
 
   // -----------------------------------------------------------------------------------------------
   // Compose Preview
@@ -683,7 +881,7 @@ class DeviceFragment : Fragment() {
   @Composable
   private fun ShareSectionPreview() {
     MaterialTheme {
-      ShareSection(1L, "Lightbulb", TaskStatus.NotStarted)
+      ShareSection(1L, "Lightbulb", TaskStatus.NotStarted, {})
     }
   }
 
@@ -716,7 +914,21 @@ class DeviceFragment : Fragment() {
         Timber.d("deviceUiModel [$deviceUiModel] value [$value]")
       }
     MaterialTheme {
-      DeviceScreen(PaddingValues(), deviceUiModel, deviceState, TaskStatus.NotStarted, false, onOnOffClick)
+      DeviceScreen(
+        PaddingValues(),
+        deviceUiModel,
+        deviceState,
+        TaskStatus.NotStarted,
+        onOnOffClick,
+        { },
+        {},
+        null,
+        { },
+        false,
+        false,
+        {},
+        false,
+        {})
     }
   }
 

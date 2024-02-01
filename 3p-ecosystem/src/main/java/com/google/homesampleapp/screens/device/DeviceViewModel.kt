@@ -18,13 +18,11 @@ package com.google.homesampleapp.screens.device
 
 import android.content.IntentSender
 import android.os.SystemClock
-import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import chip.devicecontroller.model.NodeState
-import com.google.android.gms.home.matter.Matter
 import com.google.android.gms.home.matter.commissioning.CommissioningWindow
 import com.google.android.gms.home.matter.commissioning.ShareDeviceRequest
 import com.google.android.gms.home.matter.common.DeviceDescriptor
@@ -47,6 +45,7 @@ import com.google.homesampleapp.chip.MatterConstants.OnOffAttribute
 import com.google.homesampleapp.chip.SubscriptionHelper
 import com.google.homesampleapp.data.DevicesRepository
 import com.google.homesampleapp.data.DevicesStateRepository
+import com.google.homesampleapp.screens.common.DialogInfo
 import com.google.homesampleapp.screens.home.DeviceUiModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDateTime
@@ -90,10 +89,33 @@ constructor(
   val shareDeviceStatus: LiveData<TaskStatus>
     get() = _shareDeviceStatus
 
+  // Controls whether the "Message" AlertDialog should be shown in the UI.
+  private var _msgDialogInfo = MutableStateFlow<DialogInfo?>(null)
+  val msgDialogInfo: StateFlow<DialogInfo?> = _msgDialogInfo.asStateFlow()
+
+  // Controls whether the "Remove Device" AlertDialog should be shown in the UI.
+  private var _showRemoveDeviceAlertDialog = MutableStateFlow<Boolean>(false)
+  val showRemoveDeviceAlertDialog: StateFlow<Boolean> = _showRemoveDeviceAlertDialog.asStateFlow()
+
+  // Controls whether the "Confirm Device Removal" AlertDialog should be shown in the UI.
+  private var _showConfirmDeviceRemovalAlertDialog = MutableStateFlow<Boolean>(false)
+  val showConfirmDeviceRemovalAlertDialog: StateFlow<Boolean> = _showConfirmDeviceRemovalAlertDialog.asStateFlow()
+
+  // Communicates to the UI that removal of the device has completed successfully.
+  // See resetDeviceRemovalCompleted() to reset this state after being handled by the UI.
+  private var _deviceRemovalCompleted = MutableStateFlow<Boolean>(false)
+  val deviceRemovalCompleted: StateFlow<Boolean> = _deviceRemovalCompleted.asStateFlow()
+
+  // Communicates to the UI that the pairing window is open for device sharing.
+  // See resetPairingWindowOpenForDeviceSharing() to reset this state after being handled by the UI.
+  private var _pairingWindowOpenForDeviceSharing = MutableStateFlow<Boolean>(false)
+  val pairingWindowOpenForDeviceSharing: StateFlow<Boolean> = _pairingWindowOpenForDeviceSharing.asStateFlow()
+
   /**
    * Actions that drive showing/hiding a "background work" alert dialog. The enum it is based on is
    * used by the Fragment to properly react on the management of that dialog.
    */
+  //FIXME: REMOVE THIS
   private val _backgroundWorkAlertDialogAction =
       MutableLiveData<BackgroundWorkAlertDialogAction>(BackgroundWorkAlertDialogAction.Hide)
   val backgroundWorkAlertDialogAction: LiveData<BackgroundWorkAlertDialogAction>
@@ -105,6 +127,12 @@ constructor(
     get() = _shareDeviceIntentSender
 
   /** Let the fragment know about a UI action to handle. */
+  /* FIXME
+  The issue is that this works to trigger fire and forget actionsin the UI
+  (e.g. navigation to another screen).
+  But let's say this is to show an info dialog, we still need the DialogInfo to be specified.
+  As for the confirm dialog: same thing and there is processing to be done...
+   */
   private val _uiActionLiveData = MutableLiveData<UiAction?>()
   val uiActionLiveData: LiveData<UiAction?>
     get() = _uiActionLiveData
@@ -200,36 +228,45 @@ constructor(
     }
   }
 
-  // CODELAB FEATURED BEGIN
-  /**
-   * Consumes the value in [_shareDeviceIntentSender] and sets it back to null. Needs to be called
-   * to avoid re-processing an IntentSender after a configuration change where the LiveData is
-   * re-posted.
-   */
-  fun consumeShareDeviceIntentSender() {
-    _shareDeviceIntentSender.postValue(null)
+  fun openPairingWindow(deviceId: Long) {
+    stopMonitoringStateChanges()
+    showMsgDialog(
+      "Opening pairing window", "This may take a few seconds...", false)
+    viewModelScope.launch {
+      // First we need to open a commissioning window.
+      try {
+        when (OPEN_COMMISSIONING_WINDOW_API) {
+          OpenCommissioningWindowApi.ChipDeviceController ->
+            openCommissioningWindowUsingOpenPairingWindowWithPin(deviceId)
+
+          OpenCommissioningWindowApi.AdministratorCommissioningCluster ->
+            openCommissioningWindowWithAdministratorCommissioningCluster(deviceId)
+        }
+        dismissMsgDialog()
+        _pairingWindowOpenForDeviceSharing.value = true
+      } catch (e: Throwable) {
+        dismissMsgDialog()
+        val msg = "Failed to open the commissioning window"
+        showMsgDialog(msg, e.toString())
+        Timber.d("ShareDevice: ${msg} [${e}]")
+        return@launch
+      }
+    }
   }
-  // CODELAB FEATURED END
 
   // Called by the fragment in Step 5 of the Device Sharing flow when the GPS activity for
   // Device Sharing has succeeded.
   fun shareDeviceSucceeded() {
-    _shareDeviceStatus.postValue(TaskStatus.Completed("Device sharing completed successfully"))
+    showMsgDialog("Device sharing completed successfully", null)
     startDevicePeriodicPing()
   }
 
   // Called by the fragment in Step 5 of the Device Sharing flow when the GPS activity for
   // Device Sharing has failed.
-  fun shareDeviceFailed(deviceUiModel: DeviceUiModel, resultCode: Int) {
+  fun shareDeviceFailed(resultCode: Int) {
     Timber.d("ShareDevice: Failed with errorCode [${resultCode}]")
-    _shareDeviceStatus.postValue(TaskStatus.Failed("Device sharing failed [${resultCode}]", null))
+    showMsgDialog("Device sharing failed", "error code: [$resultCode]")
     startDevicePeriodicPing()
-  }
-
-  // Called after we dismiss an error dialog. If we don't consume, a config change redisplays the
-  // alert dialog.
-  fun consumeShareDeviceStatus() {
-    _shareDeviceStatus.postValue(TaskStatus.NotStarted)
   }
 
   // -----------------------------------------------------------------------------------------------
@@ -259,34 +296,39 @@ constructor(
 
   // Removes the device. First we remove the fabric from the device, and then we remove the
   // device from the app's devices repository.
-  // If removing the fabric from the device fails (e.g. device is offline), a dialog is shown so
-  // the user has the option to force remove the device without unlinking the fabric at the
-  // device. If a forced removal is selected, then function removeDeviceWithoutUnlink is called.
+  // Note that unlinking the device may take a while if the device is offline. Because of that,
+  // a MsgAlertDIalog is shown, without any confirm button, to let the user know that unlinking
+  // may take a while. That way the user is not left hanging wondering what is going on.
+  // If removing the fabric from the device fails (e.g. device is offline), then another dialog
+  // is shown so the user has the option to force remove the device without unlinking
+  // the fabric at the device. If a forced removal is selected, then function
+  // removeDeviceWithoutUnlink is called.
   // TODO: The device will still be linked to the local Android fabric. We should remove all the
-  //  fabrics at the device.
+  // fabrics at the device.
   fun removeDevice(deviceId: Long) {
     Timber.d("Removing device [${deviceId}]")
+    showMsgDialog("Unlinking the device",
+      "Calling the device to remove the sample app's fabric. " +
+          "If the device is offline, this will fail when the call times out, " +
+          "and this may take a while.\n\n" +
+          "Unlinking the device...",
+      false)
     viewModelScope.launch {
       try {
-        _backgroundWorkAlertDialogAction.postValue(
-            BackgroundWorkAlertDialogAction.Show(
-                "Unlinking the device",
-                "Calling the device to remove the sample app's fabric. " +
-                    "If the device is offline, this will fail when the call times out, " +
-                    "and this may take a while."))
         chipClient.awaitUnpairDevice(deviceId)
       } catch (e: Exception) {
         Timber.e(e, "Unlinking the device failed.")
-        _backgroundWorkAlertDialogAction.postValue(BackgroundWorkAlertDialogAction.Hide)
+        dismissMsgDialog()
         // Show a dialog so the user has the option to force remove without unlinking the device.
-        _uiActionLiveData.postValue(
-            UiAction(id = DEVICE_REMOVAL_CONFIRM, data = deviceId.toString()))
+        _showConfirmDeviceRemovalAlertDialog.value = true
         return@launch
       }
       // Remove device from the app's devices repository.
-      _backgroundWorkAlertDialogAction.postValue(BackgroundWorkAlertDialogAction.Hide)
+      Timber.d("removeDevice succeeded! [$deviceId]")
+      dismissMsgDialog()
       devicesRepository.removeDevice(deviceId)
-      _uiActionLiveData.postValue(UiAction(id = DEVICE_REMOVAL_COMPLETED))
+      // Notify UI so we navigate back to Home screen.
+      _deviceRemovalCompleted.value = true
     }
   }
 
@@ -300,7 +342,7 @@ constructor(
     viewModelScope.launch {
       // Remove device from the app's devices repository.
       devicesRepository.removeDevice(deviceId)
-      _uiActionLiveData.postValue(UiAction(id = DEVICE_REMOVAL_COMPLETED))
+      _deviceRemovalCompleted.value = true
     }
   }
 
@@ -576,6 +618,43 @@ constructor(
 
   private fun stopDevicePeriodicPing() {
     devicePeriodicPingEnabled = false
+  }
+
+  // -----------------------------------------------------------------------------------------------
+  // UI State update
+
+  fun showMsgDialog(title: String?, msg: String?, showConfirmButton: Boolean = true) {
+    Timber.d("showMsgDialog [$title]")
+    _msgDialogInfo.value = DialogInfo(title, msg, showConfirmButton)
+  }
+
+  // Called after user dismisss the Info dialog. If we don't consume, a config change redisplays the
+  // alert dialog.
+  fun dismissMsgDialog() {
+    Timber.d("dismissMsgDialog()")
+    _msgDialogInfo.value = null
+  }
+
+  fun showRemoveDeviceAlertDialog() {
+    Timber.d("showRemoveDeviceAlertDialog")
+    _showRemoveDeviceAlertDialog.value = true
+  }
+  fun dismissRemoveDeviceDialog() {
+    Timber.d("dismissRemoveDeviceDialog")
+    _showRemoveDeviceAlertDialog.value = false
+  }
+
+  fun dismissConfirmDeviceRemovalDialog() {
+    Timber.d("dismissConfirmDeviceRemovalDialog")
+    _showConfirmDeviceRemovalAlertDialog.value = false
+  }
+
+  fun resetDeviceRemovalCompleted() {
+    _deviceRemovalCompleted.value = false
+  }
+
+  fun resetPairingWindowOpenForDeviceSharing() {
+    _pairingWindowOpenForDeviceSharing.value = false
   }
 
   // -----------------------------------------------------------------------------------------------

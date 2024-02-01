@@ -34,7 +34,6 @@ import com.google.android.gms.home.matter.commissioning.SharedDeviceData.*
 import com.google.homesampleapp.Device
 import com.google.homesampleapp.Devices
 import com.google.homesampleapp.DevicesState
-import com.google.homesampleapp.DialogInfo
 import com.google.homesampleapp.MIN_COMMISSIONING_WINDOW_EXPIRATION_SECONDS
 import com.google.homesampleapp.PERIODIC_READ_INTERVAL_HOME_SCREEN_SECONDS
 import com.google.homesampleapp.STATE_CHANGES_MONITORING_MODE
@@ -51,6 +50,7 @@ import com.google.homesampleapp.data.DevicesRepository
 import com.google.homesampleapp.data.DevicesStateRepository
 import com.google.homesampleapp.data.UserPreferencesRepository
 import com.google.homesampleapp.getTimestampForNow
+import com.google.homesampleapp.screens.common.DialogInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDateTime
 import javax.inject.Inject
