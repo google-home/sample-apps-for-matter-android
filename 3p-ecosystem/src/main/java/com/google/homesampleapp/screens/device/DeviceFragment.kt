@@ -297,7 +297,9 @@ private fun DeviceScreen(
   )
 
   deviceUiModel.let { model ->
-    Column(modifier = Modifier.fillMaxWidth().padding(innerPadding)) {
+    Column(modifier = Modifier
+      .fillMaxWidth()
+      .padding(innerPadding)) {
       OnOffStateSection(isOnline, isOn) { onOnOffClick(deviceUiModel, it) }
       ShareSection(
         id = model.device.deviceId,
@@ -378,7 +380,7 @@ private fun ShareSection(
         style = MaterialTheme.typography.bodySmall,
       )
       Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-        Button(onClick = onShareDevice) { Text(stringResource(R.string.share)) }
+        TextButton(onClick = onShareDevice) { Text(stringResource(R.string.share)) }
       }
     }
   }
@@ -386,14 +388,20 @@ private fun ShareSection(
 
 @Composable
 private fun TechnicalInfoSection(device: Device) {
-  Column(modifier = Modifier.padding(dimensionResource(R.dimen.margin_normal))) {
-    Text(
-      text = stringResource(R.string.technical_information),
-      style = MaterialTheme.typography.bodyLarge,
-      modifier = Modifier,
-    )
-    Text(
-      text =
+  Surface(
+    modifier = Modifier.padding(dimensionResource(R.dimen.margin_normal)),
+    border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
+    shape = RoundedCornerShape(dimensionResource(R.dimen.rounded_corner)),
+  ) {
+
+    Column(modifier = Modifier.padding(dimensionResource(R.dimen.margin_normal))) {
+      Text(
+        text = stringResource(R.string.technical_information),
+        style = MaterialTheme.typography.bodyLarge,
+        modifier = Modifier,
+      )
+      Text(
+        text =
         stringResource(
           R.string.share_device_info,
           formatTimestamp(device.dateCommissioned, null),
@@ -404,8 +412,12 @@ private fun TechnicalInfoSection(device: Device) {
           device.productId,
           device.deviceType,
         ),
-      style = MaterialTheme.typography.bodySmall,
-    )
+        style = MaterialTheme.typography.bodySmall,
+      )
+      Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+        TextButton(onClick = { /*fixme*/ }) { Text(stringResource(R.string.inspect)) }
+      }
+    }
   }
 }
 
