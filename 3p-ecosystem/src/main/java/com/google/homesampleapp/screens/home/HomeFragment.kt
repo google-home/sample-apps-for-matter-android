@@ -172,7 +172,7 @@ internal fun HomeRoute(
   // Controls the Msg AlertDialog.
   // When the user dismisses the Msg AlertDialog, we "consume" the dialog.
   val msgDialogInfo by homeViewModel.msgDialogInfo.collectAsState()
-  val onDismissMsgDialog: () -> Unit = { homeViewModel.consumeMsgDialog() }
+  val onDismissMsgDialog: () -> Unit = { homeViewModel.dismissMsgDialog() }
 
   // Status of multiadmin commissioning.
   val multiadminCommissionDeviceTaskStatus by

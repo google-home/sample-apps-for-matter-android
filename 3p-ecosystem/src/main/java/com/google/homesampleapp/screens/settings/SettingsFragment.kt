@@ -177,6 +177,8 @@ private fun SettingsScreen(
   }
 }
 
+
+// FIXME: move to common
 @Composable
 fun HtmlInfoDialog(title: String, htmlInfo: String, onClick: () -> Unit) {
   val htmlText = HtmlCompat.fromHtml(htmlInfo, FROM_HTML_MODE_LEGACY)
@@ -195,7 +197,7 @@ fun HtmlInfoDialog(title: String, htmlInfo: String, onClick: () -> Unit) {
     },
     confirmButton = {
       TextButton(
-        onClick = { onClick() }
+        onClick = onClick
       ) {
         Text("OK")
       }

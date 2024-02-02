@@ -7,10 +7,13 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.google.homesampleapp.screens.commissionable.CommissionableRoute
 import com.google.homesampleapp.screens.device.DeviceRoute
 import com.google.homesampleapp.screens.home.HomeRoute
 import com.google.homesampleapp.screens.inspect.InspectRoute
+import com.google.homesampleapp.screens.settings.SettingsDeveloperUtilitiesRoute
 import com.google.homesampleapp.screens.settings.SettingsRoute
+import com.google.homesampleapp.screens.thread.ThreadRoute
 
 @Composable
 fun AppNavigation(navController: NavHostController, innerPadding: PaddingValues) {
@@ -33,6 +36,14 @@ fun AppNavigation(navController: NavHostController, innerPadding: PaddingValues)
     composable("settings") {
       SettingsRoute(navController, innerPadding)
     }
-
+    composable("developer_utilities") {
+      SettingsDeveloperUtilitiesRoute(navController, innerPadding)
+    }
+    composable("commissionable_devices") {
+      CommissionableRoute(navController, innerPadding)
+    }
+    composable("thread") {
+      ThreadRoute(navController, innerPadding)
+    }
   }
 }

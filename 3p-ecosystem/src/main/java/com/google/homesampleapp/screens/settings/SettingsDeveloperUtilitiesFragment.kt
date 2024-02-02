@@ -16,207 +16,183 @@
 
 package com.google.homesampleapp.screens.settings
 
-import android.Manifest
 import android.bluetooth.BluetoothAdapter
-import android.content.pm.PackageManager
-import android.os.Build
-import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.core.content.ContextCompat
-import androidx.databinding.DataBindingUtil
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
-import androidx.navigation.fragment.findNavController
+import androidx.compose.ui.res.stringResource
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.google.homesampleapp.R
-import com.google.homesampleapp.databinding.FragmentDeveloperUtilitiesSettingsBinding
-import dagger.hilt.android.AndroidEntryPoint
-import me.zhanghai.compose.preference.ProvidePreferenceLocals
+import com.google.homesampleapp.screens.common.DialogInfo
+import com.google.homesampleapp.screens.common.MsgAlertDialog
+import com.google.homesampleapp.screens.thread.getActivity
 import me.zhanghai.compose.preference.preference
 import timber.log.Timber
 
 /** Shows Developer Utilities . */
-@AndroidEntryPoint
-class SettingsDeveloperUtilitiesFragment : Fragment() {
+@Composable
+internal fun SettingsDeveloperUtilitiesRoute(
+  navController: NavController,
+  innerPadding: PaddingValues,
+  developerUtilitiesViewModel: DeveloperUtilitiesViewModel = hiltViewModel()
+) {
 
-  // The fragment's ViewModel
-  private val viewModel: DeveloperUtilitiesViewModel by viewModels()
+  // Permissions require Activity.
+  val activity = LocalContext.current.getActivity()
 
-  private lateinit var binding: FragmentDeveloperUtilitiesSettingsBinding
-  private lateinit var scanningPermissionsLauncher: ActivityResultLauncher<Array<String>>
+  // Controls the Msg AlertDialog.
+  // When the user dismisses the Msg AlertDialog, we "consume" the dialog.
+  val msgDialogInfo by developerUtilitiesViewModel.msgDialogInfo.collectAsState()
+  val onDismissMsgDialog: () -> Unit = { developerUtilitiesViewModel.dismissMsgDialog() }
 
-  override fun onCreateView(
-    inflater: LayoutInflater,
-    container: ViewGroup?,
-    savedInstanceState: Bundle?
-  ): View {
-
-    binding =
-      DataBindingUtil.inflate<FragmentDeveloperUtilitiesSettingsBinding>(
-        inflater,
-        R.layout.fragment_developer_utilities_settings,
-        container,
-        false
-      ).apply {
-        composeView.apply {
-          // Dispose the Composition when the view's LifecycleOwner is destroyed
-          setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-          setContent {
-            MaterialTheme {
-              ProvidePreferenceLocals {
-                SettingsDeveloperUtilitiesScreen()
-              }
-            }
-          }
-        }
-      }
-    setupUiElements()
-
-    scanningPermissionsLauncher =
-      registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
-        if (results.values.any { granted -> !granted }) {
-          // TODO --> error dialog and then go back to settings
-          Timber.d("*** scanningPermissionsLauncher: Permissions were not granted.")
-        } else {
-          Timber.d("*** scanningPermissionsLauncher: Permissions were OK!")
-          findNavController().navigate(R.id.action_settingsDeveloperUtilitiesFragment_to_discoveryFragment)
-        }
-      }
-
-    return binding.root
+  // Log Repos
+  val showLogReposDialog by developerUtilitiesViewModel.showLogReposDialog.collectAsState()
+  val onShowLogReposDialog: () -> Unit = {
+    developerUtilitiesViewModel.printRepositories()
+  }
+  val onDismissLogReposDialog: () -> Unit = {
+    developerUtilitiesViewModel.dismissLogRepositoriesDialog()
   }
 
-  private fun setupUiElements() {
-    binding.topAppBar.setNavigationOnClickListener {
-      // navigate back.
-      Timber.d("topAppBar.setNavigationOnClickListener()")
-      findNavController().popBackStack()
+  // Showing the commissionable devices requires scanning permissions.
+  // This defines a launcher for the activity that requests the user to
+  // allow the required permissions.
+  val scanningPermissionsLauncher =
+    rememberLauncherForActivityResult(
+      contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+      // Process the "RequestMultiplePermissions" activity results
+      if (results.values.any { granted -> !granted }) {
+        // At least one permission is not granted.
+        Timber.d("scanningPermissionsLauncher: All scanning permissions needed were not granted.")
+        developerUtilitiesViewModel.showMsgDialog(
+          "Scanning Permissions",
+          "Scanning permissions were not granted, so unfortunatly " +
+              "the \"Commissionable Devices\" feature is not available."
+        )
+      } else {
+        Timber.d("scanningPermissionsLauncher: Permissions were OK!")
+        navController.navigate("commissionable_devices")
+      }
+    }
+
+  val onCommissionableDevicesClick: () -> Unit = {
+    developerUtilitiesViewModel.logScanningPermissions(activity!!.applicationContext)
+    if (!developerUtilitiesViewModel.allScanningPermissionsGranted(activity.applicationContext)) {
+      Timber.d("All scanning permissions NOT granted. Asking for them.")
+      scanningPermissionsLauncher.launch(developerUtilitiesViewModel.getRequiredScanningPermissions())
+    } else {
+      // Check if Bluetooth is enabled.
+      val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+      if (bluetoothAdapter.isEnabled) {
+        navController.navigate("commissionable_devices")
+      } else {
+        Timber.d("Bluetooth is not enabled") // FIXME
+        developerUtilitiesViewModel.showMsgDialog(
+          "Bluetooth is not enabled",
+          "Bluetooth must be enabled on your phone to allow discovery of matter devices"
+        )
+      }
     }
   }
 
-  // -----------------------------------------------------------------------------------------------
-  // Composables
+  val onThreadClick: () -> Unit = {
+    navController.navigate("thread")
+  }
 
-  @Composable
-  private fun SettingsDeveloperUtilitiesScreen(
+  SettingsDeveloperUtilitiesScreen(
+    navController,
+    innerPadding,
+    msgDialogInfo,
+    onDismissMsgDialog,
+    showLogReposDialog,
+    onShowLogReposDialog,
+    onDismissLogReposDialog,
+    onCommissionableDevicesClick,
+    onThreadClick,
+  )
+}
+
+@Composable
+private fun SettingsDeveloperUtilitiesScreen(
+  navController: NavController,
+  innerPadding: PaddingValues,
+  msgDialogInfo: DialogInfo?,
+  onDismissMsgDialog: () -> Unit,
+  showLogReposDialog: Boolean,
+  onShowLogReposDialog: () -> Unit,
+  onDismissLogReposDialog: () -> Unit,
+  onCommissionableDevicesClick: () -> Unit,
+  onThreadClick: () -> Unit,
+) {
+  // Alert Dialog for messages to be shown to the user.
+  MsgAlertDialog(msgDialogInfo, onDismissMsgDialog)
+
+  // FIXME: do as is done in HomeScreen?
+  LazyColumn(
+    modifier = Modifier
+      .fillMaxSize()
+      .padding(innerPadding)
   ) {
-    var showLogReposDialog by remember { mutableStateOf(false) }
-
-    LazyColumn(modifier = Modifier.fillMaxSize() /*contentPadding = contentPadding*/) {
-      preference(
-        key = "commissionable_devices_preference",
-        icon = {
-          Icon(
-            painter = painterResource(id = R.drawable.ic_baseline_search_24),
-            contentDescription = null // decorative element
-          )
-        },
-        title = { Text(text = "Commissionable devices") },
-        summary = { Text(text = "Discover commissionable Matter devices") },
-        onClick = {
-          logScanningPermissions()
-          if (!allScanningPermissionsGranted()) {
-            Timber.d("All scanning permissions NOT granted. Asking for them.")
-            scanningPermissionsLauncher.launch(getRequiredScanningPermissions())
-          } else {
-            // Check if Bluetooth is enabled.
-            val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
-            if (bluetoothAdapter.isEnabled) {
-              findNavController()
-                .navigate(R.id.action_settingsDeveloperUtilitiesFragment_to_discoveryFragment)
-            } else {
-              Timber.d("Blutooth is not enabled) --> DISPLAY AN ERROR DIALOG") // FIXME
-            }
-          }
-        }
-      )
-      preference(
-        key = "thread_preference",
-        icon = {
-          Icon(
-            painter = painterResource(id = R.drawable.baseline_device_hub_24),
-            contentDescription = null // decorative element
-          )
-        },
-        title = { Text(text = "Thread network") },
-        summary = { Text(text = "Information about the thread network") },
-        onClick = {
-          findNavController().navigate(R.id.action_settingsDeveloperUtilitiesFragment_to_threadFragment)
-        }
-      )
-      preference(
-        key = "logrepos_preference",
-        icon = {
-          Icon(
-            painter = painterResource(id = R.drawable.ic_outline_storage_24),
-            contentDescription = null // decorative element
-          )
-        },
-        title = { Text(text = "Log repositories content") },
-        summary = { Text(text = "View in the logs the content of repositories used in the app") },
-        onClick = { showLogReposDialog = true }
-      )
-    }
-    if (showLogReposDialog) {
-      viewModel.printRepositories()
-      HtmlInfoDialog(
-        "Repositories logged",
-        getString(R.string.log_repos_info),
-        onClick = { showLogReposDialog = false })
-    }
-  }
-
-  // -----------------------------------------------------------------------------------------------
-  // Permissions handling
-
-  private fun allScanningPermissionsGranted() =
-    getRequiredScanningPermissions().all {
-      ContextCompat.checkSelfPermission(requireContext(), it) == PackageManager.PERMISSION_GRANTED
-    }
-
-  private fun logScanningPermissions() {
-    val permissions = getRequiredScanningPermissions()
-    permissions.forEach { permission ->
-      Timber.d(
-        "Permission [${permission}] Granted [${
-          ContextCompat.checkSelfPermission(
-            requireContext(),
-            permission
-          ) == PackageManager.PERMISSION_GRANTED
-        }]"
-      )
-    }
-  }
-
-  private fun getRequiredScanningPermissions(): Array<String> {
-    Timber.d("getRequiredScanningPermissions(): Build.VERSION.SDK_INT is ${Build.VERSION.SDK_INT}")
-    return when {
-      Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
-        arrayOf(
-          Manifest.permission.BLUETOOTH_SCAN,
-          Manifest.permission.ACCESS_FINE_LOCATION,
+    preference(
+      key = "commissionable_devices_preference",
+      icon = {
+        Icon(
+          painter = painterResource(id = R.drawable.ic_baseline_search_24),
+          contentDescription = null // decorative element
         )
-
-      else ->
-        arrayOf(
-          Manifest.permission.ACCESS_FINE_LOCATION,
+      },
+      title = { Text(text = "Commissionable devices") },
+      summary = { Text(text = "Discover commissionable Matter devices") },
+      onClick = onCommissionableDevicesClick
+    )
+    preference(
+      key = "thread_preference",
+      icon = {
+        Icon(
+          painter = painterResource(id = R.drawable.baseline_device_hub_24),
+          contentDescription = null // decorative element
         )
-    }
+      },
+      title = { Text(text = "Thread network") },
+      summary = { Text(text = "Information about the thread network") },
+      onClick = onThreadClick,
+    )
+    preference(
+      key = "logrepos_preference",
+      icon = {
+        Icon(
+          painter = painterResource(id = R.drawable.ic_outline_storage_24),
+          contentDescription = null // decorative element
+        )
+      },
+      title = { Text(text = "Log repositories content") },
+      summary = { Text(text = "View in the logs the content of repositories used in the app") },
+      onClick = onShowLogReposDialog,
+    )
+  }
+  if (showLogReposDialog) {
+    HtmlInfoDialog(
+      "Repositories logged",
+      stringResource(R.string.log_repos_info),
+      onClick = onDismissLogReposDialog
+    )
   }
 }
+
+
+
+

@@ -362,9 +362,10 @@ constructor(
         Timber.d("Commissioning: Adding device state to repository: isOnline:true isOn:false")
         devicesStateRepository.addDeviceState(deviceId, isOnline = true, isOn = false)
       } catch (e: Exception) {
-        val msg = "Adding device [${deviceId}] [${deviceName}] to app's repository failed"
+        val title = "Adding device to app's repository failed"
+        val msg = "Adding device [${deviceId}] [${deviceName}] to app's repository failed."
         Timber.e(msg, e)
-        _msgDialogInfo.value = DialogInfo("Ooops...", msg)
+        showMsgDialog("Ooops...", "$msg\n\n$e")
       }
 
       // Introspect the device and update its deviceType.
@@ -403,9 +404,9 @@ constructor(
       try {
         clustersHelper.writeBasicClusterNodeLabelAttribute(deviceId, deviceName)
       } catch (ex: Exception) {
-        val msg = "Failed to write NodeLabel"
-        Timber.e(ex, msg)
-        _msgDialogInfo.value = DialogInfo("Ooops...", msg)
+        val title = "Failed to write NodeLabel"
+        Timber.e(title, ex)
+        showMsgDialog(title, "$ex")
       }
     }
   }
@@ -417,9 +418,9 @@ constructor(
       // User simply wilfully exited from GPS commissioning.
       return
     }
-    val msg = "CommissionDevice: Failed [${resultCode}]"
-    Timber.e(msg)
-    _msgDialogInfo.value = DialogInfo("Ooops...", msg)
+    val title = "Commissioning the device failed"
+    Timber.e(title)
+    showMsgDialog(title, "result code: $resultCode")
   }
 
   // FIXME:
@@ -626,9 +627,9 @@ constructor(
     _msgDialogInfo.value = DialogInfo(title, msg)
   }
 
-  // Called after user dismisss the Info dialog. If we don't consume, a config change redisplays the
+  // Called after user dismisses the Info dialog. If we don't consume, a config change redisplays the
   // alert dialog.
-  fun consumeMsgDialog() {
+  fun dismissMsgDialog() {
     _msgDialogInfo.value = null
   }
 
