@@ -125,7 +125,8 @@ constructor(
     _multiadminCommissionDeviceTaskStatus.asStateFlow()
 
   // Controls whether a Device Attestation failure is ignored or not.
-  private var _deviceAttestationFailureIgnored = MutableStateFlow(false)
+  // FIXME: set to true for now until issues with attestation resolved.
+  private var _deviceAttestationFailureIgnored = MutableStateFlow(true)
   val deviceAttestationFailureIgnored: StateFlow<Boolean> =
     _deviceAttestationFailureIgnored.asStateFlow()
 
