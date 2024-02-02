@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Google LLC
+ * Copyright 2024 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package com.google.homesampleapp.screens.device
 
 import android.app.Activity
-import android.app.Activity.RESULT_OK
 import android.content.Context
 import android.os.SystemClock
 import androidx.activity.compose.ManagedActivityResultLauncher
@@ -25,7 +24,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -74,7 +72,6 @@ import com.google.homesampleapp.DeviceState
 import com.google.homesampleapp.OPEN_COMMISSIONING_WINDOW_DURATION_SECONDS
 import com.google.homesampleapp.R
 import com.google.homesampleapp.SETUP_PIN_CODE
-import com.google.homesampleapp.TaskStatus
 import com.google.homesampleapp.formatTimestamp
 import com.google.homesampleapp.screens.common.DialogInfo
 import com.google.homesampleapp.screens.common.MsgAlertDialog
@@ -83,11 +80,6 @@ import com.google.homesampleapp.screens.thread.getActivity
 import com.google.homesampleapp.stateDisplayString
 import com.google.protobuf.Timestamp
 import timber.log.Timber
-
-/*
-FIXME: TODO
-- cleanup
- */
 
 /**
  * The Device Screen shows all the information about the device that was selected in the Home
@@ -111,14 +103,14 @@ internal fun DeviceRoute(
 ) {
   Timber.d("DeviceRoute deviceId [$deviceId]")
 
-  // Lauching GPS commissioning requires Activity.
+  // Launching GPS commissioning requires Activity.
   val activity = LocalContext.current.getActivity()
 
   // Observes values needed by the DeviceScreen.
   val deviceUiModel by deviceViewModel.deviceUiModel.collectAsState()
   Timber.d("DeviceRoute deviceUiModel [${deviceUiModel?.device?.deviceId}]")
 
-  // When the device has been removed by the ViewModel, navigate back to the Home screen
+  // When the device has been removed by the ViewModel, navigate back to the Home screen.
   val deviceRemovalCompleted by deviceViewModel.deviceRemovalCompleted.collectAsState()
   if (deviceRemovalCompleted) {
     navController.navigate("home")
@@ -150,19 +142,13 @@ internal fun DeviceRoute(
     }
   }
 
-  // FIXME: those still needed?
   val lastUpdatedDeviceState by
     deviceViewModel.devicesStateRepository.lastUpdatedDeviceState.observeAsState()
-  // fixme  val showInspectInfo by showInspectInfoLiveData.observeAsState()
-  val showInspectInfo = false // false
-
-  // FIXME
-  //    binding.topAppBar.title = selectedDevice?.device?.name
 
   // On/Off Switch click.
-  val onOnOffClick: (deviceUiModel: DeviceUiModel, value: Boolean) -> Unit =
-    { deviceUiModel, value ->
-      deviceViewModel.updateDeviceStateOn(deviceUiModel, value)
+  val onOnOffClick: (value: Boolean) -> Unit =
+    { value ->
+      deviceViewModel.updateDeviceStateOn(deviceUiModel!!, value)
     }
 
   // Inspect button click handler.
@@ -173,7 +159,7 @@ internal fun DeviceRoute(
     } else {
       deviceViewModel.showMsgDialog(
         "Inspect Device",
-        "Device is offline, so it cannot be inspected."
+        "Device is offline, so it cannot be inspected.",
       )
     }
   }
@@ -238,7 +224,6 @@ internal fun DeviceRoute(
     msgDialogInfo,
     onDismissMsgDialog,
     showRemoveDeviceAlertDialog,
-    showInspectInfo,
     onRemoveDeviceOutcome,
     showConfirmDeviceRemovalAlertDialog,
     onConfirmDeviceRemovalOutcome,
@@ -250,14 +235,13 @@ private fun DeviceScreen(
   innerPadding: PaddingValues,
   deviceUiModel: DeviceUiModel?,
   deviceState: DeviceState?,
-  onOnOffClick: (deviceUiModel: DeviceUiModel, value: Boolean) -> Unit,
+  onOnOffClick: (value: Boolean) -> Unit,
   onRemoveDeviceClick: () -> Unit,
   onShareDevice: () -> Unit,
   onInspect: (isOnline: Boolean) -> Unit,
   msgDialogInfo: DialogInfo?,
   onDismissMsgDialog: () -> Unit,
   showRemoveDeviceAlertDialog: Boolean,
-  showInspectInfo: Boolean?, // fixme: why allows null value?
   onRemoveDeviceOutcome: (Boolean) -> Unit,
   showConfirmDeviceRemovalAlertDialog: Boolean,
   onConfirmDeviceRemovalOutcome: (Boolean) -> Unit,
@@ -309,15 +293,9 @@ private fun DeviceScreen(
   )
 
   deviceUiModel.let { model ->
-    Column(modifier = Modifier
-      .fillMaxWidth()
-      .padding(innerPadding)) {
-      OnOffStateSection(isOnline, isOn) { onOnOffClick(deviceUiModel, it) }
-      ShareSection(
-        id = model.device.deviceId,
-        name = model.device.name,
-        onShareDevice,
-      )
+    Column(modifier = Modifier.fillMaxWidth().padding(innerPadding)) {
+      OnOffStateSection(isOnline, isOn) { onOnOffClick(it) }
+      ShareSection(name = model.device.name, onShareDevice)
       // TODO: Use HorizontalDivider when it becomes part of the stable Compose BOM.
       Spacer(modifier = Modifier)
       TechnicalInfoSection(model.device, onInspect, isOnline)
@@ -358,11 +336,7 @@ private fun OnOffStateSection(
 }
 
 @Composable
-private fun ShareSection(
-  id: Long,
-  name: String,
-  onShareDevice: () -> Unit,
-) {
+private fun ShareSection(name: String, onShareDevice: () -> Unit) {
   Surface(
     modifier = Modifier.padding(dimensionResource(R.dimen.margin_normal)),
     border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
@@ -385,13 +359,16 @@ private fun ShareSection(
 }
 
 @Composable
-private fun TechnicalInfoSection(device: Device, onInspect: (isOnline: Boolean) -> Unit, isOnline:Boolean) {
+private fun TechnicalInfoSection(
+  device: Device,
+  onInspect: (isOnline: Boolean) -> Unit,
+  isOnline: Boolean,
+) {
   Surface(
     modifier = Modifier.padding(dimensionResource(R.dimen.margin_normal)),
     border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
     shape = RoundedCornerShape(dimensionResource(R.dimen.rounded_corner)),
   ) {
-
     Column(modifier = Modifier.padding(dimensionResource(R.dimen.margin_normal))) {
       Text(
         text = stringResource(R.string.technical_information),
@@ -400,24 +377,20 @@ private fun TechnicalInfoSection(device: Device, onInspect: (isOnline: Boolean) 
       )
       Text(
         text =
-        stringResource(
-          R.string.share_device_info,
-          formatTimestamp(device.dateCommissioned, null),
-          device.deviceId.toString(),
-          device.vendorName,
-          device.vendorId,
-          device.productName,
-          device.productId,
-          device.deviceType,
-        ),
+          stringResource(
+            R.string.share_device_info,
+            formatTimestamp(device.dateCommissioned, null),
+            device.deviceId.toString(),
+            device.vendorName,
+            device.vendorId,
+            device.productName,
+            device.productId,
+            device.deviceType,
+          ),
         style = MaterialTheme.typography.bodySmall,
       )
       Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-        TextButton(
-          onClick = { onInspect(isOnline) }
-        ) {
-          Text(stringResource(R.string.inspect))
-        }
+        TextButton(onClick = { onInspect(isOnline) }) { Text(stringResource(R.string.inspect)) }
       }
     }
   }
@@ -425,7 +398,7 @@ private fun TechnicalInfoSection(device: Device, onInspect: (isOnline: Boolean) 
 
 @Composable
 private fun RemoveDeviceSection(onClick: () -> Unit) {
-  Row() {
+  Row {
     TextButton(onClick = onClick) {
       Icon(Icons.Outlined.Delete, contentDescription = "Localized description")
       Text(stringResource(R.string.remove_device).uppercase())
@@ -556,7 +529,9 @@ fun shareDevice(
 @Preview(widthDp = 300)
 @Composable
 private fun OnOffStateSection_OnlineOn() {
-  MaterialTheme { OnOffStateSection(true, true, { Timber.d("OnOff state changed to $it") }) }
+  MaterialTheme { OnOffStateSection(isOnline = true, isOn = true)
+    { Timber.d("OnOff state changed to $it") }
+  }
 }
 
 @Preview(widthDp = 300)
@@ -568,9 +543,7 @@ private fun OnOffStateSection_Offline() {
 @Preview(widthDp = 300)
 @Composable
 private fun ShareSectionPreview() {
-  MaterialTheme {
-    ShareSection(1L, "Lightbulb", {})
-  }
+  MaterialTheme { ShareSection("Lightbulb", {}) }
 }
 
 @Preview(widthDp = 300)
@@ -579,7 +552,7 @@ private fun TechnicalInfoSectionPreview() {
   MaterialTheme { TechnicalInfoSection(DeviceTest, {}, true) }
 }
 
-@Preview()
+@Preview
 @Composable
 private fun RemoveDeviceSectionPreview() {
   MaterialTheme { RemoveDeviceSection({ Timber.d("preview", "button clicked") }) }
@@ -591,8 +564,8 @@ private fun DeviceScreenOnlineOnPreview() {
   val deviceState = DeviceState_OnlineOn
   val device = DeviceTest
   val deviceUiModel = DeviceUiModel(device, true, true)
-  val onOnOffClick: (deviceUiModel: DeviceUiModel, value: Boolean) -> Unit =
-    { deviceUiModel, value ->
+  val onOnOffClick: (value: Boolean) -> Unit =
+    { value ->
       Timber.d("deviceUiModel [$deviceUiModel] value [$value]")
     }
   MaterialTheme {
@@ -605,8 +578,7 @@ private fun DeviceScreenOnlineOnPreview() {
       {},
       {},
       null,
-      { } ,
-      false,
+      {},
       false,
       {},
       false,

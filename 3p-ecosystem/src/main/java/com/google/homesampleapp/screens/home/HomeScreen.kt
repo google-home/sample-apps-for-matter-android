@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Google LLC
+ * Copyright 2024 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -77,15 +77,12 @@ import androidx.core.text.HtmlCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.navigation.NavController
-import chip.devicecontroller.AttestationInfo
-import chip.devicecontroller.DeviceAttestationDelegate
 import com.google.android.gms.home.matter.Matter
 import com.google.android.gms.home.matter.commissioning.CommissioningRequest
 import com.google.android.gms.home.matter.commissioning.DeviceInfo
 import com.google.android.gms.home.matter.commissioning.SharedDeviceData
 import com.google.android.gms.home.matter.commissioning.SharedDeviceData.EXTRA_COMMISSIONING_WINDOW_EXPIRATION
 import com.google.android.gms.home.matter.commissioning.SharedDeviceData.EXTRA_DEVICE_NAME
-import com.google.android.gms.home.matter.commissioning.SharedDeviceData.EXTRA_DEVICE_TYPE
 import com.google.android.gms.home.matter.commissioning.SharedDeviceData.EXTRA_MANUAL_PAIRING_CODE
 import com.google.android.gms.home.matter.commissioning.SharedDeviceData.EXTRA_PRODUCT_ID
 import com.google.android.gms.home.matter.commissioning.SharedDeviceData.EXTRA_VENDOR_ID
@@ -105,14 +102,6 @@ import com.google.homesampleapp.screens.thread.getActivity
 import com.google.homesampleapp.stateDisplayString
 import com.google.protobuf.Timestamp
 import timber.log.Timber
-
-/*
-FIXME: TODO
-- wire in the settings screen and double check proper behavior for
-    - codelab info
-    - hide offline devices
-- cleanup
- */
 
 /**
  * Home screen for the application.
@@ -143,8 +132,7 @@ internal fun HomeRoute(
   appViewModel: AppViewModel = hiltViewModel(),
   homeViewModel: HomeViewModel = hiltViewModel(),
 ) {
-
-  // FIXME: does not change the topAppBar title
+  // FIXME[TJ]: does not change the topAppBar title
   appViewModel.setAppBarTitle("[HOME]")
 
   // Launching GPS commissioning requires Activity.
@@ -159,7 +147,8 @@ internal fun HomeRoute(
   // This is used in the "Device information" screen to warn the user about that fact.
   // We're doing it this way as we cannot ask permission to the user while the
   // decision has to be made because UI is fully controlled by GPS at that point.
-  val deviceAttestationFailureIgnored by homeViewModel.deviceAttestationFailureIgnored.collectAsState()
+  val deviceAttestationFailureIgnored by
+    homeViewModel.deviceAttestationFailureIgnored.collectAsState()
 
   // Controls whether the codelab alert dialog should be shown.
   val showCodelabAlertDialog by userPreferencesViewModel.showCodelabAlertDialog.collectAsState()
@@ -191,8 +180,6 @@ internal fun HomeRoute(
   val onOnOffClick: (deviceId: Long, value: Boolean) -> Unit = { deviceId, value ->
     homeViewModel.updateDeviceStateOn(deviceId, value)
   }
-
-  // userPreferencesViewModel.updateHideCodelabInfo(checked)
 
   // The device commissioning flow involves multiple steps as it is based on an Activity
   // that is launched on the Google Play Services (GPS).
@@ -237,7 +224,7 @@ internal fun HomeRoute(
         Timber.d("TaskStatus.NotStarted so starting multiadmin commissioning")
         homeViewModel.setMultiadminCommissioningTaskStatus(TaskStatus.InProgress)
         multiAdminCommissionDevice(
-          activity!!.applicationContext,
+          activity.applicationContext,
           intent,
           homeViewModel,
           commissionDeviceLauncher,
@@ -261,8 +248,6 @@ internal fun HomeRoute(
       homeViewModel.stopMonitoringStateChanges()
       // FIXME: should be done onDestroy()
       homeViewModel.resetDeviceAttestationDelegate()
-
-
     }
   }
 
@@ -304,7 +289,11 @@ private fun HomeScreen(
   MsgAlertDialog(msgDialogInfo, onConsumeMsgDialog)
 
   // Alert Dialog shown when the name of the device must be captured in the commissioning flow.
-  NewDeviceAlertDialog(showNewDeviceAlertDialog, onCommissionedDeviceNameCaptured, deviceAttestationFailureIgnored)
+  NewDeviceAlertDialog(
+    showNewDeviceAlertDialog,
+    onCommissionedDeviceNameCaptured,
+    deviceAttestationFailureIgnored,
+  )
 
   // Content for the screen.
   Box {
@@ -314,9 +303,7 @@ private fun HomeScreen(
       Box(Modifier.fillMaxSize()) {
         LazyColumn(
           // verticalArrangement = Arrangement.spacedBy(1.dp),
-          modifier = Modifier
-            .fillMaxWidth()
-            .padding(innerPadding)
+          modifier = Modifier.fillMaxWidth().padding(innerPadding)
         ) {
           this.items(devicesList) { device ->
             val onDeviceItemClick: () -> Unit = { onDeviceClick(device) }
@@ -335,14 +322,11 @@ private fun HomeScreen(
     }
     FloatingActionButton(
       onClick = onCommissionDevice,
-      modifier = Modifier
-        .align(Alignment.BottomEnd)
-        .padding(16.dp),
+      modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
     ) {
       Icon(Icons.Filled.Add, contentDescription = "Add")
     }
   }
-
   LaunchedEffect(devicesList) { Timber.d("HomeRoute [$devicesList]") }
 }
 
@@ -367,9 +351,7 @@ private fun DeviceItem(
   val onCheckedChange: (value: Boolean) -> Unit = { onOnOffClick(deviceId, it) }
 
   Surface(
-    modifier = Modifier
-      .padding(top = 12.dp)
-      .padding(PaddingValues(horizontal = 12.dp)),
+    modifier = Modifier.padding(top = 12.dp).padding(PaddingValues(horizontal = 12.dp)),
     border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
     contentColor = contentColor,
     color = bgColor,
@@ -399,7 +381,7 @@ private fun DeviceItem(
 private fun NewDeviceAlertDialog(
   showNewDeviceAlertDialog: Boolean,
   onCommissionedDeviceNameCaptured: (name: String) -> Unit,
-  deviceAttestationFailureIgnored: Boolean
+  deviceAttestationFailureIgnored: Boolean,
 ) {
   if (!showNewDeviceAlertDialog) {
     return
@@ -420,16 +402,15 @@ private fun NewDeviceAlertDialog(
         if (deviceAttestationFailureIgnored) {
           val htmlText =
             HtmlCompat.fromHtml(
-              stringResource(R.string.device_attestation_warning),
-              HtmlCompat.FROM_HTML_MODE_LEGACY,
-            ).toString()
+                stringResource(R.string.device_attestation_warning),
+                HtmlCompat.FROM_HTML_MODE_LEGACY,
+              )
+              .toString()
           AndroidView(
             modifier = Modifier.padding(top = 20.dp),
             update = { it.text = htmlText },
             factory = {
-              MaterialTextView(it).apply {
-                movementMethod = LinkMovementMethod.getInstance()
-              }
+              MaterialTextView(it).apply { movementMethod = LinkMovementMethod.getInstance() }
             },
           )
         }
@@ -483,9 +464,7 @@ private fun CodelabAlertDialog(
           },
         )
         Row(
-          modifier = Modifier
-            .fillMaxWidth()
-            .padding(4.dp),
+          modifier = Modifier.fillMaxWidth().padding(4.dp),
           verticalAlignment = Alignment.CenterVertically,
         ) {
           Checkbox(
@@ -524,36 +503,19 @@ private fun NoDevices() {
     Image(
       painter = painterResource(R.drawable.emptystate_missing_content),
       contentDescription = stringResource(R.string.no_devices_image),
-      modifier = Modifier
-        .fillMaxWidth()
-        .height(200.dp),
+      modifier = Modifier.fillMaxWidth().height(200.dp),
     )
     Text(
       text = stringResource(R.string.no_devices_yet),
       style = MaterialTheme.typography.bodyMedium,
-      modifier = Modifier
-        .fillMaxWidth()
-        .wrapContentWidth(Alignment.CenterHorizontally),
+      modifier = Modifier.fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally),
     )
     Text(
       text = stringResource(R.string.add_your_first),
       style = MaterialTheme.typography.bodySmall,
-      modifier = Modifier
-        .fillMaxWidth()
-        .wrapContentWidth(Alignment.CenterHorizontally),
+      modifier = Modifier.fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally),
     )
   }
-}
-
-// ---------------------------------------------------------------------------
-// Device Attestation Delegate
-
-private class EmptyAttestationDelegate : DeviceAttestationDelegate {
-  override fun onDeviceAttestationCompleted(
-    devicePtr: Long,
-    attestationInfo: AttestationInfo,
-    errorCode: Int,
-  ) {}
 }
 
 // ---------------------------------------------------------------------------
@@ -615,7 +577,7 @@ fun multiAdminCommissionDevice(
     "commissionDevice: TargetCommissioner for MultiAdmin. " +
       "uptime [${currentUptimeMillis}] " +
       "commissioningWindowExpiration [${commissioningWindowExpirationMillis}] " +
-      "-> expires in ${timeLeftSeconds} seconds"
+      "-> expires in $timeLeftSeconds seconds"
   )
 
   if (commissioningWindowExpirationMillis == -1L) {
@@ -628,7 +590,7 @@ fun multiAdminCommissionDevice(
       title = "Commissioning Window Expiration",
       msg =
         "The commissioning window will " +
-          "expire in ${timeLeftSeconds} seconds, not long enough to complete the commissioning.\n\n" +
+          "expire in $timeLeftSeconds seconds, not long enough to complete the commissioning.\n\n" +
           "In the future, please select the target commissioning application faster to avoid this situation.",
     )
     return
@@ -639,7 +601,6 @@ fun multiAdminCommissionDevice(
 
   val vendorId = intent.getIntExtra(EXTRA_VENDOR_ID, -1)
   val productId = intent.getIntExtra(EXTRA_PRODUCT_ID, -1)
-  val deviceType = intent.getIntExtra(EXTRA_DEVICE_TYPE, -1)
   val deviceInfo = DeviceInfo.builder().setProductId(productId).setVendorId(vendorId).build()
   commissionRequestBuilder.setDeviceInfo(deviceInfo)
 
@@ -678,7 +639,20 @@ fun multiAdminCommissionDevice(
 private fun HomeScreenNoDevicesPreview() {
   val bogus: (a: Long, b: Boolean) -> Unit = { _, _ -> }
   MaterialTheme {
-    HomeScreen(PaddingValues(8.dp), emptyList(), false, {}, null, {}, false, false, {}, {}, {}, bogus)
+    HomeScreen(
+      PaddingValues(8.dp),
+      emptyList(),
+      false,
+      {},
+      null,
+      {},
+      false,
+      false,
+      {},
+      {},
+      {},
+      bogus,
+    )
   }
 }
 
@@ -693,7 +667,20 @@ private fun HomeScreenWithDevicesPreview() {
       DeviceUiModel(createDevice(name = "My living room lamp"), false, true),
     )
   MaterialTheme {
-    HomeScreen(PaddingValues(8.dp), devicesList, false, {}, null, {}, false, false, {}, {}, {}, bogus)
+    HomeScreen(
+      PaddingValues(8.dp),
+      devicesList,
+      false,
+      {},
+      null,
+      {},
+      false,
+      false,
+      {},
+      {},
+      {},
+      bogus,
+    )
   }
 }
 
@@ -712,18 +699,15 @@ private fun CodelabAlertDialogPreview() {
 @Preview
 @Composable
 private fun NewDeviceAlertDialogPreview() {
-  MaterialTheme {
-    NewDeviceAlertDialog(true, {}, false)
-  }
+  MaterialTheme { NewDeviceAlertDialog(true, {}, false) }
 }
 
 @Preview
 @Composable
 private fun NewDeviceAlertDialogAttestationFailureIgnoredPreview() {
-  MaterialTheme {
-    NewDeviceAlertDialog(true, {}, true)
-  }
+  MaterialTheme { NewDeviceAlertDialog(true, {}, true) }
 }
+
 private fun createDevice(
   deviceId: Long = 1L,
   deviceType: Device.DeviceType = Device.DeviceType.TYPE_OUTLET,
@@ -743,4 +727,3 @@ private fun createDevice(
     .setRoom(room)
     .build()
 }
-

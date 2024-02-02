@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Google LLC
+ * Copyright 2024 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,11 @@
 
 package com.google.homesampleapp.screens.settings
 
-import android.text.method.LinkMovementMethod
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,41 +29,27 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.text.HtmlCompat
-import androidx.core.text.HtmlCompat.FROM_HTML_MODE_LEGACY
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import androidx.navigation.fragment.findNavController
-import com.google.android.material.textview.MaterialTextView
 import com.google.homesampleapp.R
 import com.google.homesampleapp.VERSION_NAME
-import com.google.homesampleapp.screens.home.HomeViewModel
-import com.google.homesampleapp.screens.shared.UserPreferencesViewModel
+import com.google.homesampleapp.screens.common.HtmlInfoDialog
 import me.zhanghai.compose.preference.SwitchPreference
 import me.zhanghai.compose.preference.preference
 import me.zhanghai.compose.preference.rememberPreferenceState
 import me.zhanghai.compose.preference.switchPreference
 
 @Composable
-internal fun SettingsRoute(
-  navController: NavController,
-  innerPadding: PaddingValues,
-) {
+internal fun SettingsRoute(navController: NavController, innerPadding: PaddingValues) {
   SettingsScreen(navController, innerPadding)
 }
 
 @Composable
-private fun SettingsScreen(
-  navController: NavController,
-  innerPadding: PaddingValues,
-) {
+private fun SettingsScreen(navController: NavController, innerPadding: PaddingValues) {
   var showHelpAndFeedbackDialog by remember { mutableStateOf(false) }
   var showAboutDialog by remember { mutableStateOf(false) }
   var showHalfsheetDialog by remember { mutableStateOf(false) }
   // Cannot use extension function for Halfsheet Preference, onValueChange needed.
-  val showHalfsheetPref =
-    rememberPreferenceState("halfsheet_preference", false)
+  val showHalfsheetPref = rememberPreferenceState("halfsheet_preference", false)
 
   LazyColumn(modifier = Modifier.fillMaxSize()) {
     switchPreference(
@@ -75,11 +58,15 @@ private fun SettingsScreen(
       icon = {
         Icon(
           painter = painterResource(id = R.drawable.ic_baseline_code_24),
-          contentDescription = null // decorative element
+          contentDescription = null, // decorative element
         )
       },
       title = { Text(text = "Codelab") },
-      summary = { Text(text = if (it) "Show codelab info at startup" else "Do not show codelab info at startup") }
+      summary = {
+        Text(
+          text = if (it) "Show codelab info at startup" else "Do not show codelab info at startup"
+        )
+      },
     )
     switchPreference(
       key = "offline_devices_preference",
@@ -87,11 +74,11 @@ private fun SettingsScreen(
       icon = {
         Icon(
           painter = painterResource(id = R.drawable.ic_baseline_signal_wifi_off_24),
-          contentDescription = null // decorative element
+          contentDescription = null, // decorative element
         )
       },
       title = { Text(text = "Offline devices") },
-      summary = { Text(text = if (it) "Show offline devices" else "Do not show offline devices") }
+      summary = { Text(text = if (it) "Show offline devices" else "Do not show offline devices") },
     )
     item {
       // Need to use this form as we must have access to onValueChange.
@@ -101,109 +88,80 @@ private fun SettingsScreen(
         icon = {
           Icon(
             painter = painterResource(id = R.drawable.baseline_notifications_24),
-            contentDescription = null // decorative element
+            contentDescription = null, // decorative element
           )
         },
         title = { Text(text = "Halfsheet notification") },
         summary = {
           Text(
-            text = if (showHalfsheetPref.value)
-              "Show proactive commissionable discovery notifications for Matter devices"
-            else
-              "Do not show proactive commissionable discovery notifications for Matter devices"
+            text =
+              if (showHalfsheetPref.value)
+                "Show proactive commissionable discovery notifications for Matter devices"
+              else "Do not show proactive commissionable discovery notifications for Matter devices"
           )
         },
         onValueChange = {
           value = it
           showHalfsheetDialog = true
-        })
+        },
+      )
     }
     preference(
       key = "developer_utilities_preference",
       icon = {
         Icon(
           painter = painterResource(id = R.drawable.ic_baseline_developer_mode_24),
-          contentDescription = null // decorative element
+          contentDescription = null, // decorative element
         )
       },
       title = { Text(text = "Developer utilities") },
       summary = { Text(text = "Various utility functions for developers who want to dig deeper!") },
-      onClick = {
-        navController.navigate("developer_utilities")
-      }
+      onClick = { navController.navigate("developer_utilities") },
     )
     preference(
       key = "help_feedback_preference",
       icon = {
         Icon(
           painter = painterResource(id = R.drawable.ic_baseline_help_24),
-          contentDescription = null // decorative element
+          contentDescription = null, // decorative element
         )
       },
       title = { Text(text = "Help and Feedback") },
       summary = { Text(text = "Learn how to use this sample app and/or give us feedback") },
-      onClick = { showHelpAndFeedbackDialog = true }
+      onClick = { showHelpAndFeedbackDialog = true },
     )
     preference(
       key = "about_preference",
       icon = {
         Icon(
           painter = painterResource(id = R.drawable.ic_baseline_help_24),
-          contentDescription = null // decorative element
+          contentDescription = null, // decorative element
         )
       },
       title = { Text(text = "About this app") },
       summary = { Text(text = "More information about this application") },
-      onClick = { showAboutDialog = true }
+      onClick = { showAboutDialog = true },
     )
   }
   if (showHelpAndFeedbackDialog) {
     HtmlInfoDialog(
       "Help and Feedback",
       stringResource(R.string.help_and_feedback),
-      onClick = { showHelpAndFeedbackDialog = false })
+      onClick = { showHelpAndFeedbackDialog = false },
+    )
   }
   if (showAboutDialog) {
     HtmlInfoDialog(
       "About this app",
       stringResource(R.string.about_app, VERSION_NAME),
-      onClick = { showAboutDialog = false })
+      onClick = { showAboutDialog = false },
+    )
   }
   if (showHalfsheetDialog) {
     HtmlInfoDialog(
       "Halfsheet Notification",
       stringResource(R.string.halfsheet_notification_alert),
-      onClick = { showHalfsheetDialog = false })
+      onClick = { showHalfsheetDialog = false },
+    )
   }
 }
-
-
-// FIXME: move to common
-@Composable
-fun HtmlInfoDialog(title: String, htmlInfo: String, onClick: () -> Unit) {
-  val htmlText = HtmlCompat.fromHtml(htmlInfo, FROM_HTML_MODE_LEGACY)
-  AlertDialog(
-    title = { Text(text = title) },
-    text = {
-      // See https://developer.android.com/codelabs/jetpack-compose-migration
-      AndroidView(
-        update = { it.text = htmlText },
-        factory = {
-          MaterialTextView(it).apply {
-            movementMethod = LinkMovementMethod.getInstance()
-          }
-        },
-      )
-    },
-    confirmButton = {
-      TextButton(
-        onClick = onClick
-      ) {
-        Text("OK")
-      }
-    },
-    onDismissRequest = {},
-    dismissButton = {}
-  )
-}
-

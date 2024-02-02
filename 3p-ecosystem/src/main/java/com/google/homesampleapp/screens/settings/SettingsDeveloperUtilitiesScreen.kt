@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Google LLC
+ * Copyright 2024 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Icon
@@ -37,6 +36,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.google.homesampleapp.R
 import com.google.homesampleapp.screens.common.DialogInfo
+import com.google.homesampleapp.screens.common.HtmlInfoDialog
 import com.google.homesampleapp.screens.common.MsgAlertDialog
 import com.google.homesampleapp.screens.thread.getActivity
 import me.zhanghai.compose.preference.preference
@@ -47,7 +47,7 @@ import timber.log.Timber
 internal fun SettingsDeveloperUtilitiesRoute(
   navController: NavController,
   innerPadding: PaddingValues,
-  developerUtilitiesViewModel: DeveloperUtilitiesViewModel = hiltViewModel()
+  developerUtilitiesViewModel: DeveloperUtilitiesViewModel = hiltViewModel(),
 ) {
 
   // Permissions require Activity.
@@ -60,9 +60,7 @@ internal fun SettingsDeveloperUtilitiesRoute(
 
   // Log Repos
   val showLogReposDialog by developerUtilitiesViewModel.showLogReposDialog.collectAsState()
-  val onShowLogReposDialog: () -> Unit = {
-    developerUtilitiesViewModel.printRepositories()
-  }
+  val onShowLogReposDialog: () -> Unit = { developerUtilitiesViewModel.printRepositories() }
   val onDismissLogReposDialog: () -> Unit = {
     developerUtilitiesViewModel.dismissLogRepositoriesDialog()
   }
@@ -80,8 +78,8 @@ internal fun SettingsDeveloperUtilitiesRoute(
         Timber.d("scanningPermissionsLauncher: All scanning permissions needed were not granted.")
         developerUtilitiesViewModel.showMsgDialog(
           "Scanning Permissions",
-          "Scanning permissions were not granted, so unfortunatly " +
-              "the \"Commissionable Devices\" feature is not available."
+          "Scanning permissions were not granted, so unfortunately " +
+            "the \"Commissionable Devices\" feature is not available.",
         )
       } else {
         Timber.d("scanningPermissionsLauncher: Permissions were OK!")
@@ -93,7 +91,9 @@ internal fun SettingsDeveloperUtilitiesRoute(
     developerUtilitiesViewModel.logScanningPermissions(activity!!.applicationContext)
     if (!developerUtilitiesViewModel.allScanningPermissionsGranted(activity.applicationContext)) {
       Timber.d("All scanning permissions NOT granted. Asking for them.")
-      scanningPermissionsLauncher.launch(developerUtilitiesViewModel.getRequiredScanningPermissions())
+      scanningPermissionsLauncher.launch(
+        developerUtilitiesViewModel.getRequiredScanningPermissions()
+      )
     } else {
       // Check if Bluetooth is enabled.
       val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
@@ -103,15 +103,13 @@ internal fun SettingsDeveloperUtilitiesRoute(
         Timber.d("Bluetooth is not enabled") // FIXME
         developerUtilitiesViewModel.showMsgDialog(
           "Bluetooth is not enabled",
-          "Bluetooth must be enabled on your phone to allow discovery of matter devices"
+          "Bluetooth must be enabled on your phone to allow discovery of matter devices",
         )
       }
     }
   }
 
-  val onThreadClick: () -> Unit = {
-    navController.navigate("thread")
-  }
+  val onThreadClick: () -> Unit = { navController.navigate("thread") }
 
   SettingsDeveloperUtilitiesScreen(
     navController,
@@ -142,29 +140,25 @@ private fun SettingsDeveloperUtilitiesScreen(
   MsgAlertDialog(msgDialogInfo, onDismissMsgDialog)
 
   // FIXME: do as is done in HomeScreen?
-  LazyColumn(
-    modifier = Modifier
-      .fillMaxSize()
-      .padding(innerPadding)
-  ) {
+  LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
     preference(
       key = "commissionable_devices_preference",
       icon = {
         Icon(
           painter = painterResource(id = R.drawable.ic_baseline_search_24),
-          contentDescription = null // decorative element
+          contentDescription = null, // decorative element
         )
       },
       title = { Text(text = "Commissionable devices") },
       summary = { Text(text = "Discover commissionable Matter devices") },
-      onClick = onCommissionableDevicesClick
+      onClick = onCommissionableDevicesClick,
     )
     preference(
       key = "thread_preference",
       icon = {
         Icon(
           painter = painterResource(id = R.drawable.baseline_device_hub_24),
-          contentDescription = null // decorative element
+          contentDescription = null, // decorative element
         )
       },
       title = { Text(text = "Thread network") },
@@ -176,7 +170,7 @@ private fun SettingsDeveloperUtilitiesScreen(
       icon = {
         Icon(
           painter = painterResource(id = R.drawable.ic_outline_storage_24),
-          contentDescription = null // decorative element
+          contentDescription = null, // decorative element
         )
       },
       title = { Text(text = "Log repositories content") },
@@ -188,11 +182,7 @@ private fun SettingsDeveloperUtilitiesScreen(
     HtmlInfoDialog(
       "Repositories logged",
       stringResource(R.string.log_repos_info),
-      onClick = onDismissLogReposDialog
+      onClick = onDismissLogReposDialog,
     )
   }
 }
-
-
-
-

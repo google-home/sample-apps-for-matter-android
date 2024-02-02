@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Google LLC
+ * Copyright 2024 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,17 +21,17 @@ import com.google.homesampleapp.chip.ClustersHelper
 import com.google.homesampleapp.chip.DeviceMatterInfo
 import com.google.homesampleapp.screens.common.DialogInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import javax.inject.Inject
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
-/** The ViewModel for the Inspect Fragment. See [InspectFragment] for additional information. */
+/** The ViewModel for the [InspectScreen]. */
 @HiltViewModel
 class InspectViewModel @Inject constructor(private val clustersHelper: ClustersHelper) :
-    ViewModel() {
+  ViewModel() {
 
   // The introspection info fetched from the device.
   private var _deviceMatterInfoList = MutableStateFlow<List<DeviceMatterInfo>?>(null)
@@ -40,11 +40,6 @@ class InspectViewModel @Inject constructor(private val clustersHelper: ClustersH
   // Controls whether the "Message" AlertDialog should be shown in the UI.
   private var _msgDialogInfo = MutableStateFlow<DialogInfo?>(null)
   val msgDialogInfo: StateFlow<DialogInfo?> = _msgDialogInfo.asStateFlow()
-
-//  /** Introspection device info from the clusters. */
-//  private val _instrospectionInfo = MutableLiveData<List<DeviceMatterInfo>>()
-//  val instrospectionInfo: LiveData<List<DeviceMatterInfo>>
-//    get() = _instrospectionInfo
 
   // -----------------------------------------------------------------------------------------------
   // Inspect device
@@ -59,7 +54,7 @@ class InspectViewModel @Inject constructor(private val clustersHelper: ClustersH
         Timber.d("after fetch...")
       } catch (e: Exception) {
         Timber.e("*** EXCEPTION GETTING DEVICE MATTER INFO *****", e)
-        _deviceMatterInfoList.value = emptyList<DeviceMatterInfo>()
+        _deviceMatterInfoList.value = emptyList()
         showMsgDialog("Error introspecting the device", e.toString())
       }
     }
@@ -89,12 +84,12 @@ class InspectViewModel @Inject constructor(private val clustersHelper: ClustersH
   // -----------------------------------------------------------------------------------------------
   // UI State update
 
-  fun showMsgDialog(title: String?, msg: String?, showConfirmButton: Boolean = true) {
+  private fun showMsgDialog(title: String?, msg: String?, showConfirmButton: Boolean = true) {
     Timber.d("showMsgDialog [$title]")
     _msgDialogInfo.value = DialogInfo(title, msg, showConfirmButton)
   }
 
-  // Called after user dismisss the Info dialog. If we don't consume, a config change redisplays the
+  // Called after user dismiss the Info dialog. If we don't consume, a config change redisplays the
   // alert dialog.
   fun dismissMsgDialog() {
     Timber.d("dismissMsgDialog()")

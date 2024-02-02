@@ -1,0 +1,3 @@
+- Cleanup
+  - get rid of FIXMEs. the ones left will be for TJ to provide some input.
+

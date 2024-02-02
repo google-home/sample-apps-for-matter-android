@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Google LLC
+ * Copyright 2024 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,6 @@ import chip.devicecontroller.model.NodeState
 import com.google.android.gms.home.matter.commissioning.CommissioningRequest
 import com.google.android.gms.home.matter.commissioning.CommissioningResult
 import com.google.android.gms.home.matter.commissioning.DeviceInfo
-import com.google.android.gms.home.matter.commissioning.SharedDeviceData
 import com.google.android.gms.home.matter.commissioning.SharedDeviceData.*
 import com.google.homesampleapp.Device
 import com.google.homesampleapp.Devices
@@ -98,7 +97,7 @@ data class DevicesListUiModel(
 // -----------------------------------------------------------------------------
 // ViewModel
 
-/** The ViewModel for the Home Fragment. See [HomeFragment] for additional information. */
+/** The ViewModel for the [HomeScreen]. */
 @HiltViewModel
 class HomeViewModel
 @Inject
@@ -116,7 +115,7 @@ constructor(
   val msgDialogInfo: StateFlow<DialogInfo?> = _msgDialogInfo.asStateFlow()
 
   // Controls whether the "New Device" AlertDialog should be shown in the UI.
-  private var _showNewDeviceNameAlertDialog = MutableStateFlow<Boolean>(false)
+  private var _showNewDeviceNameAlertDialog = MutableStateFlow(false)
   val showNewDeviceNameAlertDialog: StateFlow<Boolean> = _showNewDeviceNameAlertDialog.asStateFlow()
 
   /** The current status of multiadmin commissioning. */
@@ -124,14 +123,11 @@ constructor(
   val multiadminCommissionDeviceTaskStatus: StateFlow<TaskStatus> = _multiadminCommissionDeviceTaskStatus.asStateFlow()
 
   // Controls whether a Device Attestation failure is ignored or not.
-  private var _deviceAttestationFailureIgnored = MutableStateFlow<Boolean>(false)
+  private var _deviceAttestationFailureIgnored = MutableStateFlow(false)
   val deviceAttestationFailureIgnored: StateFlow<Boolean> = _deviceAttestationFailureIgnored.asStateFlow()
 
   // Controls whether a periodic ping to the devices is enabled or not.
   private var devicesPeriodicPingEnabled: Boolean = true
-
-  // The last device id used for devices commissioned on the app's fabric.
-  private var lastDeviceId = 0L
 
   // Saves the result of the GPS Commissioning action (step 4).
   // It is then used in step 5 to complete the commissioning.
@@ -169,11 +165,6 @@ constructor(
 
   val devicesUiModelLiveData = devicesListUiModelFlow.asLiveData()
 
-  // Indicates whether the codelab dialog has already been shown.
-  // If the pref is true to show the codelab dialog, we still only want to show it once,
-  // when the Home screen is first shown.
-  var codelabDialogHasBeenShown = false
-
   private fun processDevices(
     devices: Devices,
     devicesStates: DevicesState,
@@ -208,12 +199,10 @@ constructor(
    * Sample app has been invoked for multi-admin commissionning. TODO: Can we do it without going
    * through GMSCore? All we're missing is network location.
    */
- // FIXME!!!
   fun multiadminCommissioning(intent: Intent, context: Context) {
     Timber.d("multiadminCommissioning: starting")
-//    _commissionDeviceStatus.postValue(TaskStatus.InProgress)
 
-    val sharedDeviceData = SharedDeviceData.fromIntent(intent)
+    val sharedDeviceData = fromIntent(intent)
     Timber.d("multiadminCommissioning: sharedDeviceData [${sharedDeviceData}]")
     Timber.d("multiadminCommissioning: manualPairingCode [${sharedDeviceData.manualPairingCode}]")
 
@@ -233,7 +222,7 @@ constructor(
       "commissionDevice: TargetCommissioner for MultiAdmin. " +
         "uptime [${currentUptimeMillis}] " +
         "commissioningWindowExpiration [${commissioningWindowExpirationMillis}] " +
-        "-> expires in ${timeLeftSeconds} seconds"
+        "-> expires in $timeLeftSeconds seconds"
     )
 
     if (commissioningWindowExpirationMillis == -1L) {
@@ -259,7 +248,6 @@ constructor(
 
     val vendorId = intent.getIntExtra(EXTRA_VENDOR_ID, -1)
     val productId = intent.getIntExtra(EXTRA_PRODUCT_ID, -1)
-    val deviceType = intent.getIntExtra(EXTRA_DEVICE_TYPE, -1)
     val deviceInfo = DeviceInfo.builder().setProductId(productId).setVendorId(vendorId).build()
     commissionRequestBuilder.setDeviceInfo(deviceInfo)
 
@@ -274,21 +262,6 @@ constructor(
         "vendorId [${commissioningRequest.deviceInfo!!.vendorId}] " +
         "productId [${commissioningRequest.deviceInfo!!.productId}]"
     )
-
-//    Matter.getCommissioningClient(context)
-//      .commissionDevice(commissioningRequest)
-//      .addOnSuccessListener { result ->
-//        // Communication with fragment is via livedata
-//        _commissionDeviceStatus.postValue(TaskStatus.InProgress)
-//        //          FIXME
-//        //          _commissionDeviceIntentSender.postValue(result)
-//      }
-//      .addOnFailureListener { error ->
-//        Timber.e(error)
-//        _commissionDeviceStatus.postValue(
-//          TaskStatus.Failed("Failed to to get the IntentSender.", error)
-//        )
-//      }
   }
 
   // This is step 4 of the commissioning flow where GPS takes over.
@@ -303,7 +276,6 @@ constructor(
     Timber.i("Device commissioned successfully! room [${gpsCommissioningResult!!.room}]")
     Timber.i(
       "Device commissioned successfully! DeviceDescriptor of device:\n" +
-        "deviceType [${gpsCommissioningResult!!.commissionedDeviceDescriptor.deviceType}]\n" +
         "productId [${gpsCommissioningResult!!.commissionedDeviceDescriptor.productId}]\n" +
         "vendorId [${gpsCommissioningResult!!.commissionedDeviceDescriptor.vendorId}]\n" +
         "hashCode [${gpsCommissioningResult!!.commissionedDeviceDescriptor.hashCode()}]"
@@ -365,7 +337,7 @@ constructor(
         val title = "Adding device to app's repository failed"
         val msg = "Adding device [${deviceId}] [${deviceName}] to app's repository failed."
         Timber.e(msg, e)
-        showMsgDialog("Ooops...", "$msg\n\n$e")
+        showMsgDialog(title, "$msg\n\n$e")
       }
 
       // Introspect the device and update its deviceType.
@@ -423,7 +395,6 @@ constructor(
     showMsgDialog(title, "result code: $resultCode")
   }
 
-  // FIXME:
   fun updateDeviceStateOn(deviceId: Long, isOn: Boolean) {
     Timber.d("updateDeviceStateOn: Device [${deviceId}]  isOn [${isOn}]")
     viewModelScope.launch {
@@ -579,7 +550,7 @@ constructor(
     Timber.d("setDeviceAttestationDelegate")
     chipClient.chipDeviceController.setDeviceAttestationDelegate(
       failureTimeoutSeconds
-    ) { devicePtr, attestationInfo, errorCode ->
+    ) { devicePtr, _, errorCode ->
           Timber.d(
               "Device attestation errorCode: $errorCode, " +
                   "Look at 'src/credentials/attestation_verifier/DeviceAttestationVerifier.h' " +

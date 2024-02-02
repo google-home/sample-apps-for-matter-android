@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Google LLC
+ * Copyright 2024 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,12 +47,11 @@ import timber.log.Timber
  * Fragment used to display a list of nearby discovered Matter devices (discoverable over BLE,
  * Wi-Fi, or mDNS).
  */
-
 @Composable
 internal fun CommissionableRoute(
   navController: NavController,
   innerPadding: PaddingValues,
-  commissionableViewModel: CommissionableViewModel = hiltViewModel()
+  commissionableViewModel: CommissionableViewModel = hiltViewModel(),
 ) {
   val beacons by commissionableViewModel.beaconsLiveData.observeAsState()
   val beaconsList = beacons?.toList() ?: emptyList()
@@ -61,18 +60,9 @@ internal fun CommissionableRoute(
 
 @Composable
 private fun CommissionableScreen(innerPadding: PaddingValues, beaconsList: List<MatterBeacon>) {
-  Box(
-    modifier = Modifier
-      .fillMaxSize()
-      .padding(innerPadding)
-  ) {
-    LazyColumn(
-      modifier = Modifier
-        .padding(dimensionResource(R.dimen.padding_surface_content))
-    ) {
-      this.items(beaconsList) {
-        MatterBeaconItem(it)
-      }
+  Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+    LazyColumn(modifier = Modifier.padding(dimensionResource(R.dimen.padding_surface_content))) {
+      this.items(beaconsList) { MatterBeaconItem(it) }
     }
   }
 }
@@ -85,25 +75,20 @@ fun MatterBeaconItem(beacon: MatterBeacon) {
       is Transport.Hotspot -> R.drawable.quantum_gm_ic_wifi_vd_theme_24
       is Transport.Mdns -> R.drawable.quantum_gm_ic_router_vd_theme_24
     }
-  Row(modifier = Modifier
-    .clickable {
-      // [TODO] Selecting an item in this list could display a screen with detailed information
-      //  about the device, and allow actions on it such as "commissioning".
-      Timber.d("beacon item clicked")
-    }
+  Row(
+    modifier =
+      Modifier.clickable {
+        // [TODO] Selecting an item in this list could display a screen with detailed information
+        //  about the device, and allow actions on it such as "commissioning".
+        Timber.d("beacon item clicked")
+      }
   ) {
     Image(
       painter = painterResource(icon),
       contentDescription = stringResource(R.string.transport_icon),
-      modifier = Modifier
-        .padding(4.dp)
-        .align(Alignment.CenterVertically)
+      modifier = Modifier.padding(4.dp).align(Alignment.CenterVertically),
     )
-    Column(
-      modifier = Modifier
-        .padding(8.dp)
-        .align(Alignment.CenterVertically)
-    ) {
+    Column(modifier = Modifier.padding(8.dp).align(Alignment.CenterVertically)) {
       val text: String
       val color: androidx.compose.ui.graphics.Color
       if (beacon.transport is Transport.Mdns) {
@@ -119,16 +104,16 @@ fun MatterBeaconItem(beacon: MatterBeacon) {
         text = beacon.name
         color = androidx.compose.ui.graphics.Color.Black
       }
+      Text(text = text, color = color, style = MaterialTheme.typography.titleMedium)
       Text(
-        text = text,
-        color = color,
-        style = MaterialTheme.typography.titleMedium
-      )
-      Text(
-        text = stringResource(
-          R.string.beacon_detail_text, beacon.vendorId, beacon.productId, beacon.discriminator
-        ),
-        style = MaterialTheme.typography.bodyMedium
+        text =
+          stringResource(
+            R.string.beacon_detail_text,
+            beacon.vendorId,
+            beacon.productId,
+            beacon.discriminator,
+          ),
+        style = MaterialTheme.typography.bodyMedium,
       )
     }
   }
@@ -140,13 +125,11 @@ fun MatterBeaconItem(beacon: MatterBeacon) {
 @Preview
 @Composable
 private fun CommissionableScreenPreview() {
-  val beaconsList = listOf(
-    MatterBeacon("Acme LightBulb", 1, 2, 3, Transport.Ble("address")),
-    MatterBeacon("Acme Plug", 1, 2, 3, Transport.Mdns("address", 5480, false)),
-    MatterBeacon("0AFE867DE", 1, 2, 3, Transport.Hotspot("onhub"))
-  )
-  MaterialTheme {
-    CommissionableScreen(PaddingValues(), beaconsList)
-  }
+  val beaconsList =
+    listOf(
+      MatterBeacon("Acme LightBulb", 1, 2, 3, Transport.Ble("address")),
+      MatterBeacon("Acme Plug", 1, 2, 3, Transport.Mdns("address", 5480, false)),
+      MatterBeacon("0AFE867DE", 1, 2, 3, Transport.Hotspot("onhub")),
+    )
+  MaterialTheme { CommissionableScreen(PaddingValues(), beaconsList) }
 }
-
