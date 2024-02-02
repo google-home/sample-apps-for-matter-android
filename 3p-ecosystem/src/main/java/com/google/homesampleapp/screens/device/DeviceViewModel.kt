@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Google LLC
+ * Copyright 2024 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,20 +16,9 @@
 
 package com.google.homesampleapp.screens.device
 
-import android.content.IntentSender
-import android.os.SystemClock
-import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import chip.devicecontroller.model.NodeState
-import com.google.android.gms.home.matter.Matter
-import com.google.android.gms.home.matter.commissioning.CommissioningWindow
-import com.google.android.gms.home.matter.commissioning.ShareDeviceRequest
-import com.google.android.gms.home.matter.common.DeviceDescriptor
-import com.google.android.gms.home.matter.common.Discriminator
-import com.google.homesampleapp.BackgroundWorkAlertDialogAction
 import com.google.homesampleapp.DISCRIMINATOR
 import com.google.homesampleapp.ITERATION
 import com.google.homesampleapp.OPEN_COMMISSIONING_WINDOW_API
@@ -39,316 +28,133 @@ import com.google.homesampleapp.PERIODIC_READ_INTERVAL_DEVICE_SCREEN_SECONDS
 import com.google.homesampleapp.SETUP_PIN_CODE
 import com.google.homesampleapp.STATE_CHANGES_MONITORING_MODE
 import com.google.homesampleapp.StateChangesMonitoringMode
-import com.google.homesampleapp.TaskStatus
-import com.google.homesampleapp.UiAction
 import com.google.homesampleapp.chip.ChipClient
 import com.google.homesampleapp.chip.ClustersHelper
 import com.google.homesampleapp.chip.MatterConstants.OnOffAttribute
 import com.google.homesampleapp.chip.SubscriptionHelper
 import com.google.homesampleapp.data.DevicesRepository
 import com.google.homesampleapp.data.DevicesStateRepository
+import com.google.homesampleapp.screens.common.DialogInfo
 import com.google.homesampleapp.screens.home.DeviceUiModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDateTime
 import javax.inject.Inject
 import kotlin.random.Random
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
-/** The ViewModel for the Device Fragment. See [DeviceFragment] for additional information. */
+/** The ViewModel for the Device Screen. */
 @HiltViewModel
 class DeviceViewModel
 @Inject
 constructor(
-    private val devicesRepository: DevicesRepository,
-    private val devicesStateRepository: DevicesStateRepository,
-    private val chipClient: ChipClient,
-    private val clustersHelper: ClustersHelper,
-    private val subscriptionHelper: SubscriptionHelper
+  private val devicesRepository: DevicesRepository,
+  val devicesStateRepository: DevicesStateRepository,
+  private val chipClient: ChipClient,
+  private val clustersHelper: ClustersHelper,
+  private val subscriptionHelper: SubscriptionHelper,
 ) : ViewModel() {
 
-  // The deviceId being shown by the Fragment.
-  // Initialized in Fragment onResume().
-  lateinit var deviceUiModel: DeviceUiModel
+  // The UI model for device shown on the Device screen.
+  private var _deviceUiModel = MutableStateFlow<DeviceUiModel?>(null)
+  val deviceUiModel: StateFlow<DeviceUiModel?> = _deviceUiModel.asStateFlow()
 
   // Controls whether a periodic ping to the device is enabled or not.
   private var devicePeriodicPingEnabled: Boolean = true
 
-  /**
-   * The current status of the share device task. The enum it is based on is used by the Fragment to
-   * properly react to the processing happening with the share device task.
-   */
-  private val _shareDeviceStatus = MutableLiveData<TaskStatus>(TaskStatus.NotStarted)
-  val shareDeviceStatus: LiveData<TaskStatus>
-    get() = _shareDeviceStatus
+  // Controls whether the "Message" AlertDialog should be shown in the UI.
+  private var _msgDialogInfo = MutableStateFlow<DialogInfo?>(null)
+  val msgDialogInfo: StateFlow<DialogInfo?> = _msgDialogInfo.asStateFlow()
 
-  /**
-   * Actions that drive showing/hiding a "background work" alert dialog. The enum it is based on is
-   * used by the Fragment to properly react on the management of that dialog.
-   */
-  private val _backgroundWorkAlertDialogAction =
-      MutableLiveData<BackgroundWorkAlertDialogAction>(BackgroundWorkAlertDialogAction.Hide)
-  val backgroundWorkAlertDialogAction: LiveData<BackgroundWorkAlertDialogAction>
-    get() = _backgroundWorkAlertDialogAction
+  // Controls whether the "Remove Device" AlertDialog should be shown in the UI.
+  private var _showRemoveDeviceAlertDialog = MutableStateFlow(false)
+  val showRemoveDeviceAlertDialog: StateFlow<Boolean> = _showRemoveDeviceAlertDialog.asStateFlow()
 
-  /** IntentSender LiveData triggered by [shareDevice]. */
-  private val _shareDeviceIntentSender = MutableLiveData<IntentSender?>()
-  val shareDeviceIntentSender: LiveData<IntentSender?>
-    get() = _shareDeviceIntentSender
+  // Controls whether the "Confirm Device Removal" AlertDialog should be shown in the UI.
+  private var _showConfirmDeviceRemovalAlertDialog = MutableStateFlow(false)
+  val showConfirmDeviceRemovalAlertDialog: StateFlow<Boolean> =
+    _showConfirmDeviceRemovalAlertDialog.asStateFlow()
 
-  /** Let the fragment know about a UI action to handle. */
-  private val _uiActionLiveData = MutableLiveData<UiAction?>()
-  val uiActionLiveData: LiveData<UiAction?>
-    get() = _uiActionLiveData
+  // Communicates to the UI that removal of the device has completed successfully.
+  // See resetDeviceRemovalCompleted() to reset this state after being handled by the UI.
+  private var _deviceRemovalCompleted = MutableStateFlow(false)
+  val deviceRemovalCompleted: StateFlow<Boolean> = _deviceRemovalCompleted.asStateFlow()
 
-  fun consumeUiActionLiveData() {
-    _uiActionLiveData.postValue(null)
+  // Communicates to the UI that the pairing window is open for device sharing.
+  // See resetPairingWindowOpenForDeviceSharing() to reset this state after being handled by the UI.
+  private var _pairingWindowOpenForDeviceSharing = MutableStateFlow(false)
+  val pairingWindowOpenForDeviceSharing: StateFlow<Boolean> =
+    _pairingWindowOpenForDeviceSharing.asStateFlow()
+
+  // -----------------------------------------------------------------------------------------------
+  // Load device
+
+  fun loadDevice(deviceId: Long) {
+    if (deviceId == deviceUiModel.value?.device?.deviceId) {
+      Timber.d("loadDevice: [${deviceId}] was already loaded")
+      return
+    } else {
+      Timber.d("loadDevice: loading [${deviceId}]")
+      viewModelScope.launch {
+        val device = devicesRepository.getDevice(deviceId)
+        val deviceState = devicesStateRepository.loadDeviceState(deviceId)
+        var isOnline = false
+        var isOn = false
+        if (deviceState != null) {
+          isOnline = deviceState.online
+          isOn = deviceState.on
+        }
+        _deviceUiModel.value = DeviceUiModel(device, isOnline, isOn)
+      }
+    }
   }
 
   // -----------------------------------------------------------------------------------------------
-  // Device Sharing (aka Multi-Admin)
-  //
-  // See "docs/Google Home Mobile SDK.pdf" for a good overview of all the artifacts needed
-  // to transfer control from the sample app's UI to the GPS ShareDevice UI, and get a result back.
+  // Share Device (aka Multi-Admin)
 
-  /**
-   * Share Device Step 2 (part 2). Triggered by the "Share Device" button in the fragment. Initiates
-   * a share device task. The success callback of the commissioningClient.shareDevice() API provides
-   * the IntentSender to be used to launch the "Share Device" activity in Google Play Services. This
-   * viewModel provides two LiveData objects to report on the result of this API call that can then
-   * be used by the Fragment who's observing them:
-   * 1. [shareDeviceStatus] updates the fragment's UI according to the TaskStatus
-   * 2. [shareDeviceIntentSender] is the IntentSender to be used in the Fragment to launch the
-   *    Google Play Services "Share Device" activity (step 3).
-   *
-   * See [consumeShareDeviceIntentSender()] for proper management of the IntentSender in the face of
-   * configuration changes that repost LiveData.
-   */
-  fun shareDevice(activity: FragmentActivity, deviceId: Long) {
-    Timber.d("ShareDevice: starting")
-    stopDevicePeriodicPing()
-    _shareDeviceStatus.postValue(TaskStatus.InProgress)
-    _backgroundWorkAlertDialogAction.postValue(
-        BackgroundWorkAlertDialogAction.Show(
-            "Opening Pairing Window", "This may take a few seconds."))
-
+  fun openPairingWindow(deviceId: Long) {
+    stopMonitoringStateChanges()
+    showMsgDialog("Opening pairing window", "This may take a few seconds...", false)
     viewModelScope.launch {
       // First we need to open a commissioning window.
       try {
         when (OPEN_COMMISSIONING_WINDOW_API) {
           OpenCommissioningWindowApi.ChipDeviceController ->
-              openCommissioningWindowUsingOpenPairingWindowWithPin(deviceId)
+            openCommissioningWindowUsingOpenPairingWindowWithPin(deviceId)
           OpenCommissioningWindowApi.AdministratorCommissioningCluster ->
-              openCommissioningWindowWithAdministratorCommissioningCluster(deviceId)
+            openCommissioningWindowWithAdministratorCommissioningCluster(deviceId)
         }
+        dismissMsgDialog()
+        // Communicate to the UI that the pairing window is open.
+        // UI can then launch the GPS activity for device sharing.
+        _pairingWindowOpenForDeviceSharing.value = true
       } catch (e: Throwable) {
+        dismissMsgDialog()
         val msg = "Failed to open the commissioning window"
-        Timber.d("ShareDevice: ${msg} [${e}]")
-        _backgroundWorkAlertDialogAction.postValue(BackgroundWorkAlertDialogAction.Hide)
-        _shareDeviceStatus.postValue(TaskStatus.Failed(msg, e))
-        return@launch
+        Timber.d("ShareDevice: $msg [$e]")
+        showMsgDialog(msg, e.toString())
       }
-
-      // Second, we get the IntentSender and post it as LiveData for the fragment to pick it up
-      // and trigger the GPS ShareDevice activity.
-      // CODELAB: shareDevice
-      Timber.d("ShareDevice: Setting up the IntentSender")
-      val shareDeviceRequest =
-          ShareDeviceRequest.builder()
-              .setDeviceDescriptor(DeviceDescriptor.builder().build())
-              .setDeviceName("temp device name")
-              .setCommissioningWindow(
-                  CommissioningWindow.builder()
-                      .setDiscriminator(Discriminator.forLongValue(DISCRIMINATOR))
-                      .setPasscode(SETUP_PIN_CODE)
-                      .setWindowOpenMillis(SystemClock.elapsedRealtime())
-                      .setDurationSeconds(OPEN_COMMISSIONING_WINDOW_DURATION_SECONDS.toLong())
-                      .build())
-              .build()
-
-      Timber.d(
-          "ShareDevice: shareDeviceRequest " +
-              "onboardingPayload [${shareDeviceRequest.commissioningWindow.passcode}] " +
-              "discriminator [${shareDeviceRequest.commissioningWindow.discriminator}]")
-
-      // The call to shareDevice() creates the IntentSender that will eventually be launched
-      // in the fragment to trigger the multi-admin activity in GPS (step 3).
-      Matter.getCommissioningClient(activity)
-          .shareDevice(shareDeviceRequest)
-          .addOnSuccessListener { result ->
-            Timber.d("ShareDevice: Success getting the IntentSender: result [${result}]")
-            // Communication with fragment is via livedata
-            _backgroundWorkAlertDialogAction.postValue(BackgroundWorkAlertDialogAction.Hide)
-            _shareDeviceIntentSender.postValue(result)
-          }
-          .addOnFailureListener { error ->
-            Timber.e(error)
-            _backgroundWorkAlertDialogAction.postValue(BackgroundWorkAlertDialogAction.Hide)
-            _shareDeviceStatus.postValue(
-                TaskStatus.Failed("Setting up the IntentSender failed", error))
-          }
-      // CODELAB SECTION END
     }
   }
-
-  // CODELAB FEATURED BEGIN
-  /**
-   * Consumes the value in [_shareDeviceIntentSender] and sets it back to null. Needs to be called
-   * to avoid re-processing an IntentSender after a configuration change where the LiveData is
-   * re-posted.
-   */
-  fun consumeShareDeviceIntentSender() {
-    _shareDeviceIntentSender.postValue(null)
-  }
-  // CODELAB FEATURED END
 
   // Called by the fragment in Step 5 of the Device Sharing flow when the GPS activity for
   // Device Sharing has succeeded.
   fun shareDeviceSucceeded() {
-    _shareDeviceStatus.postValue(TaskStatus.Completed("Device sharing completed successfully"))
+    showMsgDialog("Device sharing completed successfully", null)
     startDevicePeriodicPing()
   }
 
   // Called by the fragment in Step 5 of the Device Sharing flow when the GPS activity for
   // Device Sharing has failed.
-  fun shareDeviceFailed(deviceUiModel: DeviceUiModel, resultCode: Int) {
+  fun shareDeviceFailed(resultCode: Int) {
     Timber.d("ShareDevice: Failed with errorCode [${resultCode}]")
-    _shareDeviceStatus.postValue(TaskStatus.Failed("Device sharing failed [${resultCode}]", null))
+    showMsgDialog("Device sharing failed", "error code: [$resultCode]")
     startDevicePeriodicPing()
   }
-
-  // Called after we dismiss an error dialog. If we don't consume, a config change redisplays the
-  // alert dialog.
-  fun consumeShareDeviceStatus() {
-    _shareDeviceStatus.postValue(TaskStatus.NotStarted)
-  }
-
-  // -----------------------------------------------------------------------------------------------
-  // Operations on device
-
-  // Removes the device. First we remove the fabric from the device, and then we remove the
-  // device from the app's devices repository.
-  // If removing the fabric from the device fails (e.g. device is offline), a dialog is shown so
-  // the user has the option to force remove the device without unlinking the fabric at the
-  // device. If a forced removal is selected, then function removeDeviceWithoutUnlink is called.
-  // TODO: The device will still be linked to the local Android fabric. We should remove all the
-  //  fabrics at the device.
-  fun removeDevice(deviceId: Long) {
-    Timber.d("Removing device [${deviceId}]")
-    viewModelScope.launch {
-      try {
-        _backgroundWorkAlertDialogAction.postValue(
-            BackgroundWorkAlertDialogAction.Show(
-                "Unlinking the device",
-                "Calling the device to remove the sample app's fabric. " +
-                    "If the device is offline, this will fail when the call times out, " +
-                    "and this may take a while."))
-        chipClient.awaitUnpairDevice(deviceId)
-      } catch (e: Exception) {
-        Timber.e(e, "Unlinking the device failed.")
-        _backgroundWorkAlertDialogAction.postValue(BackgroundWorkAlertDialogAction.Hide)
-        // Show a dialog so the user has the option to force remove without unlinking the device.
-        _uiActionLiveData.postValue(
-            UiAction(id = DEVICE_REMOVAL_CONFIRM, data = deviceId.toString()))
-        return@launch
-      }
-      // Remove device from the app's devices repository.
-      _backgroundWorkAlertDialogAction.postValue(BackgroundWorkAlertDialogAction.Hide)
-      devicesRepository.removeDevice(deviceId)
-      _uiActionLiveData.postValue(UiAction(id = DEVICE_REMOVAL_COMPLETED))
-    }
-  }
-
-  // Removes the device from the app's devices repository, and does not unlink the fabric
-  // from the device.
-  // This function is called after removeDevice() has failed trying to unlink the device
-  // and the user has confirmed that the device should still be removed from the app's device
-  // repository.
-  fun removeDeviceWithoutUnlink(deviceId: Long) {
-    Timber.d("removeDeviceWithoutUnlink: [${deviceId}]")
-    viewModelScope.launch {
-      // Remove device from the app's devices repository.
-      devicesRepository.removeDevice(deviceId)
-      _uiActionLiveData.postValue(UiAction(id = DEVICE_REMOVAL_COMPLETED))
-    }
-  }
-
-  fun updateDeviceStateOn(deviceUiModel: DeviceUiModel, isOn: Boolean) {
-    Timber.d("updateDeviceStateOn: isOn [${isOn}]")
-    val deviceId = deviceUiModel.device.deviceId
-    viewModelScope.launch {
-
-      // CODELAB: toggle
-      Timber.d("Handling real device")
-      try {
-        clustersHelper.setOnOffDeviceStateOnOffCluster(deviceUiModel.device.deviceId, isOn, 1)
-        devicesStateRepository.updateDeviceState(deviceUiModel.device.deviceId, true, isOn)
-      } catch (e: Throwable) {
-        Timber.e("Failed setting on/off state")
-      }
-      // CODELAB SECTION END
-    }
-  }
-
-  // -----------------------------------------------------------------------------------------------
-  // Inspect device
-
-  fun inspectDescriptorCluster(deviceUiModel: DeviceUiModel) {
-    val nodeId = deviceUiModel.device.deviceId
-    val name = deviceUiModel.device.name
-    val divider = "-".repeat(20)
-
-    Timber.d("\n${divider} Inspect Device [${name}] [${nodeId}] $divider")
-    viewModelScope.launch {
-      val partsListAttribute =
-          clustersHelper.readDescriptorClusterPartsListAttribute(
-              chipClient.getConnectedDevicePointer(nodeId), 0)
-      Timber.d("partsListAttribute [${partsListAttribute}]")
-
-      partsListAttribute?.forEach { part ->
-        Timber.d("part [$part] is [${part.javaClass}]")
-        val endpoint =
-            when (part) {
-              is Int -> part.toInt()
-              else -> return@forEach
-            }
-        Timber.d("Processing part [$part]")
-
-        val deviceListAttribute =
-            clustersHelper.readDescriptorClusterDeviceListAttribute(
-                chipClient.getConnectedDevicePointer(nodeId), endpoint)
-        deviceListAttribute.forEach { Timber.d("device attribute: [${it}]") }
-
-        val serverListAttribute =
-            clustersHelper.readDescriptorClusterServerListAttribute(
-                chipClient.getConnectedDevicePointer(nodeId), endpoint)
-        serverListAttribute.forEach { Timber.d("server attribute: [${it}]") }
-      }
-    }
-  }
-
-  fun inspectApplicationBasicCluster(nodeId: Long) {
-    Timber.d("inspectApplicationBasicCluster: nodeId [${nodeId}]")
-    viewModelScope.launch {
-      val attributeList = clustersHelper.readApplicationBasicClusterAttributeList(nodeId, 1)
-      attributeList.forEach { Timber.d("inspectDevice attribute: [$it]") }
-    }
-  }
-
-  fun inspectBasicCluster(deviceId: Long) {
-    Timber.d("inspectBasicCluster: deviceId [${deviceId}]")
-    viewModelScope.launch {
-      val vendorId = clustersHelper.readBasicClusterVendorIDAttribute(deviceId, 0)
-      Timber.d("vendorId [${vendorId}]")
-
-      val attributeList = clustersHelper.readBasicClusterAttributeList(deviceId, 0)
-      Timber.d("attributeList [${attributeList}]")
-    }
-  }
-
-  // -----------------------------------------------------------------------------------------------
-  // Open commissioning window
 
   private suspend fun openCommissioningWindowUsingOpenPairingWindowWithPin(deviceId: Long) {
     // TODO: Should generate random 64 bit value for SETUP_PIN_CODE (taking into account
@@ -373,11 +179,17 @@ constructor(
 
     val duration = OPEN_COMMISSIONING_WINDOW_DURATION_SECONDS
     Timber.d(
-        "ShareDevice: chipClient.chipClient.awaitOpenPairingWindowWithPIN " +
-            "duration [${duration}] iteration [${ITERATION}] discriminator [${DISCRIMINATOR}] " +
-            "setupPinCode [${SETUP_PIN_CODE}]")
+      "ShareDevice: chipClient.chipClient.awaitOpenPairingWindowWithPIN " +
+        "duration [${duration}] iteration [${ITERATION}] discriminator [${DISCRIMINATOR}] " +
+        "setupPinCode [${SETUP_PIN_CODE}]"
+    )
     chipClient.awaitOpenPairingWindowWithPIN(
-        connectedDevicePointer, duration, ITERATION, DISCRIMINATOR, SETUP_PIN_CODE)
+      connectedDevicePointer,
+      duration,
+      ITERATION,
+      DISCRIMINATOR,
+      SETUP_PIN_CODE,
+    )
     Timber.d("ShareDevice: After chipClient.awaitOpenPairingWindowWithPIN")
   }
 
@@ -385,20 +197,161 @@ constructor(
   // for now.
   private suspend fun openCommissioningWindowWithAdministratorCommissioningCluster(deviceId: Long) {
     Timber.d(
-        "ShareDevice: openCommissioningWindowWithAdministratorCommissioningCluster [${deviceId}]")
+      "ShareDevice: openCommissioningWindowWithAdministratorCommissioningCluster [${deviceId}]"
+    )
     val salt = Random.nextBytes(32)
     val timedInvokeTimeoutMs = 10000
     val devicePtr = chipClient.awaitGetConnectedDevicePointer(deviceId)
     val verifier = chipClient.computePaseVerifier(devicePtr, SETUP_PIN_CODE, ITERATION, salt)
     clustersHelper.openCommissioningWindowAdministratorCommissioningCluster(
-        deviceId,
-        0,
-        180,
-        verifier.pakeVerifier,
-        DISCRIMINATOR,
-        ITERATION,
-        salt,
-        timedInvokeTimeoutMs)
+      deviceId,
+      0,
+      180,
+      verifier.pakeVerifier,
+      DISCRIMINATOR,
+      ITERATION,
+      salt,
+      timedInvokeTimeoutMs,
+    )
+  }
+
+  // -----------------------------------------------------------------------------------------------
+  // Remove device
+
+  // Removes the device. First we remove the fabric from the device, and then we remove the
+  // device from the app's devices repository.
+  // Note that unlinking the device may take a while if the device is offline. Because of that,
+  // a MsgAlertDIalog is shown, without any confirm button, to let the user know that unlinking
+  // may take a while. That way the user is not left hanging wondering what is going on.
+  // If removing the fabric from the device fails (e.g. device is offline), then another dialog
+  // is shown so the user has the option to force remove the device without unlinking
+  // the fabric at the device. If a forced removal is selected, then function
+  // removeDeviceWithoutUnlink is called.
+  // TODO: The device will still be linked to the local Android fabric. We should remove all the
+  // fabrics at the device.
+  fun removeDevice(deviceId: Long) {
+    Timber.d("Removing device [${deviceId}]")
+    showMsgDialog(
+      "Unlinking the device",
+      "Calling the device to remove the sample app's fabric. " +
+        "If the device is offline, this will fail when the call times out, " +
+        "and this may take a while.\n\n" +
+        "Unlinking the device...",
+      false,
+    )
+    viewModelScope.launch {
+      try {
+        chipClient.awaitUnpairDevice(deviceId)
+      } catch (e: Exception) {
+        Timber.e(e, "Unlinking the device failed.")
+        dismissMsgDialog()
+        // Show a dialog so the user has the option to force remove without unlinking the device.
+        _showConfirmDeviceRemovalAlertDialog.value = true
+        return@launch
+      }
+      // Remove device from the app's devices repository.
+      Timber.d("removeDevice succeeded! [$deviceId]")
+      dismissMsgDialog()
+      devicesRepository.removeDevice(deviceId)
+      // Notify UI so we navigate back to Home screen.
+      _deviceRemovalCompleted.value = true
+    }
+  }
+
+  // Removes the device from the app's devices repository, and does not unlink the fabric
+  // from the device.
+  // This function is called after removeDevice() has failed trying to unlink the device
+  // and the user has confirmed that the device should still be removed from the app's device
+  // repository.
+  fun removeDeviceWithoutUnlink(deviceId: Long) {
+    Timber.d("removeDeviceWithoutUnlink: [${deviceId}]")
+    viewModelScope.launch {
+      // Remove device from the app's devices repository.
+      devicesRepository.removeDevice(deviceId)
+      _deviceRemovalCompleted.value = true
+    }
+  }
+
+  // -----------------------------------------------------------------------------------------------
+  // Device state (On/Off)
+
+  fun updateDeviceStateOn(deviceUiModel: DeviceUiModel, isOn: Boolean) {
+    Timber.d("updateDeviceStateOn: isOn [${isOn}]")
+    viewModelScope.launch {
+
+      // CODELAB: toggle
+      Timber.d("Handling real device")
+      try {
+        clustersHelper.setOnOffDeviceStateOnOffCluster(deviceUiModel.device.deviceId, isOn, 1)
+        // We observe state changes there, so we'll get these updates
+        devicesStateRepository.updateDeviceState(deviceUiModel.device.deviceId, true, isOn)
+      } catch (e: Throwable) {
+        Timber.e("Failed setting on/off state")
+      }
+      // CODELAB SECTION END
+    }
+  }
+
+  // -----------------------------------------------------------------------------------------------
+  // Inspect device
+
+  fun inspectDescriptorCluster(deviceUiModel: DeviceUiModel) {
+    val nodeId = deviceUiModel.device.deviceId
+    val name = deviceUiModel.device.name
+    val divider = "-".repeat(20)
+
+    Timber.d("\n${divider} Inspect Device [${name}] [${nodeId}] $divider")
+    viewModelScope.launch {
+      val partsListAttribute =
+        clustersHelper.readDescriptorClusterPartsListAttribute(
+          chipClient.getConnectedDevicePointer(nodeId),
+          0,
+        )
+      Timber.d("partsListAttribute [${partsListAttribute}]")
+
+      partsListAttribute?.forEach { part ->
+        Timber.d("part [$part] is [${part.javaClass}]")
+        val endpoint =
+          when (part) {
+            is Int -> part.toInt()
+            else -> return@forEach
+          }
+        Timber.d("Processing part [$part]")
+
+        val deviceListAttribute =
+          clustersHelper.readDescriptorClusterDeviceListAttribute(
+            chipClient.getConnectedDevicePointer(nodeId),
+            endpoint,
+          )
+        deviceListAttribute.forEach { Timber.d("device attribute: [${it}]") }
+
+        val serverListAttribute =
+          clustersHelper.readDescriptorClusterServerListAttribute(
+            chipClient.getConnectedDevicePointer(nodeId),
+            endpoint,
+          )
+        serverListAttribute.forEach { Timber.d("server attribute: [${it}]") }
+      }
+    }
+  }
+
+  fun inspectApplicationBasicCluster(nodeId: Long) {
+    Timber.d("inspectApplicationBasicCluster: nodeId [${nodeId}]")
+    viewModelScope.launch {
+      val attributeList = clustersHelper.readApplicationBasicClusterAttributeList(nodeId, 1)
+      attributeList.forEach { Timber.d("inspectDevice attribute: [$it]") }
+    }
+  }
+
+  fun inspectBasicCluster(deviceId: Long) {
+    Timber.d("inspectBasicCluster: deviceId [${deviceId}]")
+    viewModelScope.launch {
+      val vendorId = clustersHelper.readBasicClusterVendorIDAttribute(deviceId, 0)
+      Timber.d("vendorId [${vendorId}]")
+
+      val attributeList = clustersHelper.readBasicClusterAttributeList(deviceId, 0)
+      Timber.d("attributeList [${attributeList}]")
+    }
   }
 
   // -----------------------------------------------------------------------------------------------
@@ -458,35 +411,41 @@ constructor(
   private fun subscribeToPeriodicUpdates() {
     Timber.d("subscribeToPeriodicUpdates()")
     val reportCallback =
-        object : SubscriptionHelper.ReportCallbackForDevice(deviceUiModel.device.deviceId) {
-          override fun onReport(nodeState: NodeState) {
-            super.onReport(nodeState)
-            val onOffState =
-                subscriptionHelper.extractAttribute(nodeState, 1, OnOffAttribute) as Boolean?
-            Timber.d("onOffState [${onOffState}]")
-            if (onOffState == null) {
-              Timber.e("onReport(): WARNING -> onOffState is NULL. Ignoring.")
-              return
-            }
-            viewModelScope.launch {
-              devicesStateRepository.updateDeviceState(
-                  deviceUiModel.device.deviceId, isOnline = true, isOn = onOffState)
-            }
+      object : SubscriptionHelper.ReportCallbackForDevice(deviceUiModel.value!!.device.deviceId) {
+        override fun onReport(nodeState: NodeState) {
+          super.onReport(nodeState)
+          val onOffState =
+            subscriptionHelper.extractAttribute(nodeState, 1, OnOffAttribute) as Boolean?
+          Timber.d("onOffState [${onOffState}]")
+          if (onOffState == null) {
+            Timber.e("onReport(): WARNING -> onOffState is NULL. Ignoring.")
+            return
+          }
+          viewModelScope.launch {
+            devicesStateRepository.updateDeviceState(
+              deviceUiModel.value!!.device.deviceId,
+              isOnline = true,
+              isOn = onOffState,
+            )
           }
         }
+      }
     viewModelScope.launch {
       try {
         val connectedDevicePointer =
-            chipClient.getConnectedDevicePointer(deviceUiModel.device.deviceId)
+          chipClient.getConnectedDevicePointer(deviceUiModel.value!!.device.deviceId)
         subscriptionHelper.awaitSubscribeToPeriodicUpdates(
-            connectedDevicePointer,
-            SubscriptionHelper.SubscriptionEstablishedCallbackForDevice(
-                deviceUiModel.device.deviceId),
-            SubscriptionHelper.ResubscriptionAttemptCallbackForDevice(
-                deviceUiModel.device.deviceId),
-            reportCallback)
+          connectedDevicePointer,
+          SubscriptionHelper.SubscriptionEstablishedCallbackForDevice(
+            deviceUiModel.value!!.device.deviceId
+          ),
+          SubscriptionHelper.ResubscriptionAttemptCallbackForDevice(
+            deviceUiModel.value!!.device.deviceId
+          ),
+          reportCallback,
+        )
       } catch (e: IllegalStateException) {
-        Timber.e("Can't get connectedDevicePointer for ${deviceUiModel.device.deviceId}.")
+        Timber.e("Can't get connectedDevicePointer for ${deviceUiModel.value!!.device.deviceId}.")
         return@launch
       }
     }
@@ -496,10 +455,11 @@ constructor(
     Timber.d("unsubscribeToPeriodicUpdates()")
     viewModelScope.launch {
       try {
-        val connectedDevicePtr = chipClient.getConnectedDevicePointer(deviceUiModel.device.deviceId)
+        val connectedDevicePtr =
+          chipClient.getConnectedDevicePointer(deviceUiModel.value!!.device.deviceId)
         subscriptionHelper.awaitUnsubscribeToPeriodicUpdates(connectedDevicePtr)
       } catch (e: IllegalStateException) {
-        Timber.e("Can't get connectedDevicePointer for ${deviceUiModel.device.deviceId}.")
+        Timber.e("Can't get connectedDevicePointer for ${deviceUiModel.value!!.device.deviceId}.")
         return@launch
       }
     }
@@ -512,9 +472,10 @@ constructor(
 
   private fun startDevicePeriodicPing() {
     Timber.d(
-        "${LocalDateTime.now()} startDevicePeriodicPing every $PERIODIC_READ_INTERVAL_DEVICE_SCREEN_SECONDS seconds")
+      "${LocalDateTime.now()} startDevicePeriodicPing every $PERIODIC_READ_INTERVAL_DEVICE_SCREEN_SECONDS seconds"
+    )
     devicePeriodicPingEnabled = true
-    runDevicePeriodicUpdate(deviceUiModel)
+    runDevicePeriodicUpdate(deviceUiModel.value!!)
   }
 
   private fun runDevicePeriodicUpdate(deviceUiModel: DeviceUiModel) {
@@ -537,7 +498,10 @@ constructor(
           isOnline = true
         }
         devicesStateRepository.updateDeviceState(
-            deviceUiModel.device.deviceId, isOnline = isOnline, isOn = isOn == true)
+          deviceUiModel.device.deviceId,
+          isOnline = isOnline,
+          isOn = isOn == true,
+        )
         delay(PERIODIC_READ_INTERVAL_DEVICE_SCREEN_SECONDS * 1000L)
       }
     }
@@ -548,22 +512,40 @@ constructor(
   }
 
   // -----------------------------------------------------------------------------------------------
-  // Utiltity functions for testing.
+  // UI State update
 
-  fun testBackgroundWorkAlertDialog(seconds: Int) {
-    viewModelScope.launch {
-      _backgroundWorkAlertDialogAction.postValue(
-          BackgroundWorkAlertDialogAction.Show("Testing", "Delay of ${seconds} seconds"))
-      delay(seconds.toLong() * 1000)
-      _backgroundWorkAlertDialogAction.postValue(BackgroundWorkAlertDialogAction.Hide)
-    }
+  fun showMsgDialog(title: String?, msg: String?, showConfirmButton: Boolean = true) {
+    Timber.d("showMsgDialog [$title]")
+    _msgDialogInfo.value = DialogInfo(title, msg, showConfirmButton)
   }
 
-  // ---------------------------------------------------------------------------
-  // Companion object
+  // Called after user dismisss the Info dialog. If we don't consume, a config change redisplays the
+  // alert dialog.
+  fun dismissMsgDialog() {
+    Timber.d("dismissMsgDialog()")
+    _msgDialogInfo.value = null
+  }
 
-  companion object {
-    public const val DEVICE_REMOVAL_CONFIRM = "DEVICE_REMOVAL_CONFIRM"
-    public const val DEVICE_REMOVAL_COMPLETED = "DEVICE_REMOVAL_COMPLETED"
+  fun showRemoveDeviceAlertDialog() {
+    Timber.d("showRemoveDeviceAlertDialog")
+    _showRemoveDeviceAlertDialog.value = true
+  }
+
+  fun dismissRemoveDeviceDialog() {
+    Timber.d("dismissRemoveDeviceDialog")
+    _showRemoveDeviceAlertDialog.value = false
+  }
+
+  fun dismissConfirmDeviceRemovalDialog() {
+    Timber.d("dismissConfirmDeviceRemovalDialog")
+    _showConfirmDeviceRemovalAlertDialog.value = false
+  }
+
+  fun resetDeviceRemovalCompleted() {
+    _deviceRemovalCompleted.value = false
+  }
+
+  fun resetPairingWindowOpenForDeviceSharing() {
+    _pairingWindowOpenForDeviceSharing.value = false
   }
 }
