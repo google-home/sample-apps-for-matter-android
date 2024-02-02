@@ -31,38 +31,80 @@ import com.google.homesampleapp.screens.settings.SettingsDeveloperUtilitiesRoute
 import com.google.homesampleapp.screens.settings.SettingsRoute
 import com.google.homesampleapp.screens.thread.ThreadRoute
 
+// Constants for Navigation destinations
+const val DEST_HOME = "home"
+const val DEST_DEVICE = "device"
+const val DEST_INSPECT = "inspect"
+const val DEST_SETTINGS = "settings"
+const val DEST_DEVELOPER_UTILITIES = "developer_utilities"
+const val DEST_COMMISSIONABLE_DEVICES = "commissionable_devices"
+const val DEST_THREAD = "thread"
+
 @Composable
 fun AppNavigation(
   navController: NavHostController,
   innerPadding: PaddingValues,
   ) {
-  NavHost(navController = navController, startDestination = "home") {
-    composable("home") {
-      HomeRoute(navController, innerPadding)
+  // Lambdas to all destinations needed in our various routes.
+  // [Top level Route Composables should not be passed the navController explicitly,
+  // as NavController is an unstable type. Indirection like a lambda should be used
+  // as the compiler considers lambdas stable.]
+  val navigateToHome: () -> Unit = {
+    navController.navigate(DEST_HOME)
+  }
+  val navigateToDevice: (deviceId: Long) -> Unit = {
+    navController.navigate("device/$it")
+  }
+  val navigateToInspect: (deviceId: Long) -> Unit = {
+    navController.navigate("inspect/$it")
+  }
+  val navigateToDeveloperUtilities: () -> Unit = {
+    navController.navigate(DEST_DEVELOPER_UTILITIES)
+  }
+
+  NavHost(navController = navController, startDestination = DEST_HOME) {
+    // Home
+    composable("home") { backStackEntry ->
+      // FIXME
+      // java.lang.IllegalArgumentException:
+      // No destination with route App is on the NavController's back stack.
+      // The current destination is Destination(0x78d845ec) route=home
+ //      val appEntry = remember(backStackEntry) {
+//        navController.getBackStackEntry("App")
+//      }
+//      val appViewModel = hiltViewModel<AppViewModel>(appEntry)
+//      HomeRoute(innerPadding, navigateToDevice, appViewModel)
+        HomeRoute(innerPadding, navigateToDevice)
     }
+    // Device
     composable(
-      "device/{deviceId}",
+      "$DEST_DEVICE/{deviceId}",
         arguments = listOf(navArgument("deviceId") { type = NavType.LongType }))
     {
-      DeviceRoute(navController, innerPadding, it.arguments?.getLong("deviceId")!!)
+      DeviceRoute(innerPadding, navigateToHome, navigateToInspect, it.arguments?.getLong("deviceId")!!)
     }
+    // Inspect device
     composable(
-      "inspect/{deviceId}",
+      "$DEST_INSPECT/{deviceId}",
       arguments = listOf(navArgument("deviceId") { type = NavType.LongType }))
     {
-      InspectRoute(navController, innerPadding, it.arguments?.getLong("deviceId")!!)
+      InspectRoute(innerPadding, it.arguments?.getLong("deviceId")!!)
     }
-    composable("settings") {
-      SettingsRoute(navController, innerPadding)
+    // Settings
+    composable(DEST_SETTINGS) {
+      SettingsRoute(innerPadding, navigateToDeveloperUtilities)
     }
-    composable("developer_utilities") {
+    // Developer Utilities
+    composable(DEST_DEVELOPER_UTILITIES) {
       SettingsDeveloperUtilitiesRoute(navController, innerPadding)
     }
-    composable("commissionable_devices") {
-      CommissionableRoute(navController, innerPadding)
+    // Commissionable devices
+    composable(DEST_COMMISSIONABLE_DEVICES) {
+      CommissionableRoute(innerPadding)
     }
-    composable("thread") {
-      ThreadRoute(navController, innerPadding)
+    // Thread network utilities
+    composable(DEST_THREAD) {
+      ThreadRoute(innerPadding)
     }
   }
 }

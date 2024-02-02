@@ -47,7 +47,6 @@ import timber.log.Timber
  */
 @Composable
 fun InspectRoute(
-  navController: NavController,
   innerPadding: PaddingValues,
   deviceId: Long,
   inspectViewModel: InspectViewModel = hiltViewModel(),

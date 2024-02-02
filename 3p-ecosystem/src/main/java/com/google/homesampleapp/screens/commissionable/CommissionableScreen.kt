@@ -49,7 +49,6 @@ import timber.log.Timber
  */
 @Composable
 internal fun CommissionableRoute(
-  navController: NavController,
   innerPadding: PaddingValues,
   commissionableViewModel: CommissionableViewModel = hiltViewModel(),
 ) {

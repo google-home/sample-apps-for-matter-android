@@ -96,8 +96,9 @@ import timber.log.Timber
  */
 @Composable
 internal fun DeviceRoute(
-  navController: NavController,
   innerPadding: PaddingValues,
+  navigateToHome: () -> Unit,
+  navigateToInspect: (deviceId: Long) -> Unit,
   deviceId: Long,
   deviceViewModel: DeviceViewModel = hiltViewModel(),
 ) {
@@ -113,7 +114,7 @@ internal fun DeviceRoute(
   // When the device has been removed by the ViewModel, navigate back to the Home screen.
   val deviceRemovalCompleted by deviceViewModel.deviceRemovalCompleted.collectAsState()
   if (deviceRemovalCompleted) {
-    navController.navigate("home")
+    navigateToHome()
     deviceViewModel.resetDeviceRemovalCompleted()
   }
 
@@ -155,7 +156,7 @@ internal fun DeviceRoute(
   // isOnline must be provided in InspectScreen because it is updated there.
   val onInspect: (isOnline: Boolean) -> Unit = { isOnline ->
     if (isOnline) {
-      navController.navigate("inspect/${deviceUiModel!!.device.deviceId}")
+      navigateToInspect(deviceUiModel!!.device.deviceId)
     } else {
       deviceViewModel.showMsgDialog(
         "Inspect Device",

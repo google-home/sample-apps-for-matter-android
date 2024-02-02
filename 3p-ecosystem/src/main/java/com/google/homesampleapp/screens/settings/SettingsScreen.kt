@@ -39,12 +39,12 @@ import me.zhanghai.compose.preference.rememberPreferenceState
 import me.zhanghai.compose.preference.switchPreference
 
 @Composable
-internal fun SettingsRoute(navController: NavController, innerPadding: PaddingValues) {
-  SettingsScreen(navController, innerPadding)
+internal fun SettingsRoute(innerPadding: PaddingValues, navigateToDeveloperUtilities: () -> Unit) {
+  SettingsScreen(innerPadding, navigateToDeveloperUtilities)
 }
 
 @Composable
-private fun SettingsScreen(navController: NavController, innerPadding: PaddingValues) {
+private fun SettingsScreen(innerPadding: PaddingValues, navigateToDeveloperUtilities: () -> Unit) {
   var showHelpAndFeedbackDialog by remember { mutableStateOf(false) }
   var showAboutDialog by remember { mutableStateOf(false) }
   var showHalfsheetDialog by remember { mutableStateOf(false) }
@@ -116,7 +116,7 @@ private fun SettingsScreen(navController: NavController, innerPadding: PaddingVa
       },
       title = { Text(text = "Developer utilities") },
       summary = { Text(text = "Various utility functions for developers who want to dig deeper!") },
-      onClick = { navController.navigate("developer_utilities") },
+      onClick = navigateToDeveloperUtilities,
     )
     preference(
       key = "help_feedback_preference",

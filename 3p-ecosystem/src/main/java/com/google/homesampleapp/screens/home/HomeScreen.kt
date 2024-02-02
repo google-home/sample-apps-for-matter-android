@@ -126,14 +126,14 @@ import timber.log.Timber
  */
 @Composable
 internal fun HomeRoute(
-  navController: NavController,
   innerPadding: PaddingValues,
+  navigateToDevice: (deviceId: Long) -> Unit,
+// fixme  appViewModel: AppViewModel,
   userPreferencesViewModel: UserPreferencesViewModel = hiltViewModel(),
-  appViewModel: AppViewModel = hiltViewModel(),
   homeViewModel: HomeViewModel = hiltViewModel(),
 ) {
   // FIXME[TJ]: does not change the topAppBar title
-  appViewModel.setAppBarTitle("[HOME]")
+//  appViewModel.setAppBarTitle("[HOME]")
 
   // Launching GPS commissioning requires Activity.
   val activity = LocalContext.current.getActivity()
@@ -175,7 +175,7 @@ internal fun HomeRoute(
 
   // Functions invoked when UI controls are clicked on a specific device in the list.
   val onDeviceClick: (deviceUiModel: DeviceUiModel) -> Unit = {
-    navController.navigate("device/${it.device.deviceId}")
+    navigateToDevice(it.device.deviceId)
   }
   val onOnOffClick: (deviceId: Long, value: Boolean) -> Unit = { deviceId, value ->
     homeViewModel.updateDeviceStateOn(deviceId, value)

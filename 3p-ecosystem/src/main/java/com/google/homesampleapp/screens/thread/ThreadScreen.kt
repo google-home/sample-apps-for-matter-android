@@ -124,7 +124,6 @@ import timber.log.Timber
 
 @Composable
 internal fun ThreadRoute(
-  navController: NavController,
   innerPadding: PaddingValues,
   threadViewModel: ThreadViewModel = hiltViewModel(),
 ) {
