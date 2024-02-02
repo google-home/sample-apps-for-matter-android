@@ -119,12 +119,15 @@ constructor(
   val showNewDeviceNameAlertDialog: StateFlow<Boolean> = _showNewDeviceNameAlertDialog.asStateFlow()
 
   /** The current status of multiadmin commissioning. */
-  private val _multiadminCommissionDeviceTaskStatus = MutableStateFlow<TaskStatus>(TaskStatus.NotStarted)
-  val multiadminCommissionDeviceTaskStatus: StateFlow<TaskStatus> = _multiadminCommissionDeviceTaskStatus.asStateFlow()
+  private val _multiadminCommissionDeviceTaskStatus =
+    MutableStateFlow<TaskStatus>(TaskStatus.NotStarted)
+  val multiadminCommissionDeviceTaskStatus: StateFlow<TaskStatus> =
+    _multiadminCommissionDeviceTaskStatus.asStateFlow()
 
   // Controls whether a Device Attestation failure is ignored or not.
   private var _deviceAttestationFailureIgnored = MutableStateFlow(false)
-  val deviceAttestationFailureIgnored: StateFlow<Boolean> = _deviceAttestationFailureIgnored.asStateFlow()
+  val deviceAttestationFailureIgnored: StateFlow<Boolean> =
+    _deviceAttestationFailureIgnored.asStateFlow()
 
   // Controls whether a periodic ping to the devices is enabled or not.
   private var devicesPeriodicPingEnabled: Boolean = true
@@ -231,15 +234,14 @@ constructor(
           "Still going ahead with the multi-admin though."
       )
     } else if (timeLeftSeconds < MIN_COMMISSIONING_WINDOW_EXPIRATION_SECONDS) {
-      // FIXME: Use DialogInfo
-//      _errorLiveData.value =
-//        ErrorInfo(
-//          title = "Commissioning Window Expiration",
-//          message =
-//            "The commissioning window will " +
-//              "expire in ${timeLeftSeconds} seconds, not long enough to complete the commissioning.\n\n" +
-//              "In the future, please select the target commissioning application faster to avoid this situation.",
-//        )
+      showMsgDialog(
+        "Commissioning Window Expiration",
+        "The commissioning window will " +
+          "expire in ${timeLeftSeconds} seconds, not long enough to " +
+          "complete the commissioning.\n\n" +
+          "In the future, please select the target commissioning application faster " +
+          "to avoid this situation.",
+      )
       return
     }
 
@@ -546,36 +548,40 @@ constructor(
   // -----------------------------------------------------------------------------------------------
   // Device Attestation
 
-  fun setDeviceAttestationDelegate(failureTimeoutSeconds: Int = DEVICE_ATTESTATION_FAILED_TIMEOUT_SECONDS) {
+  fun setDeviceAttestationDelegate(
+    failureTimeoutSeconds: Int = DEVICE_ATTESTATION_FAILED_TIMEOUT_SECONDS
+  ) {
     Timber.d("setDeviceAttestationDelegate")
-    chipClient.chipDeviceController.setDeviceAttestationDelegate(
-      failureTimeoutSeconds
-    ) { devicePtr, _, errorCode ->
-          Timber.d(
-              "Device attestation errorCode: $errorCode, " +
-                  "Look at 'src/credentials/attestation_verifier/DeviceAttestationVerifier.h' " +
-                  "AttestationVerificationResult enum to understand the errors")
+    chipClient.chipDeviceController.setDeviceAttestationDelegate(failureTimeoutSeconds) {
+      devicePtr,
+      _,
+      errorCode ->
+      Timber.d(
+        "Device attestation errorCode: $errorCode, " +
+          "Look at 'src/credentials/attestation_verifier/DeviceAttestationVerifier.h' " +
+          "AttestationVerificationResult enum to understand the errors"
+      )
 
-          if (errorCode == STATUS_PAIRING_SUCCESS) {
-            Timber.d("DeviceAttestationDelegate: Success on device attestation.")
-            viewModelScope.launch {
-              chipClient.chipDeviceController.continueCommissioning(devicePtr, true)
-            }
-          } else {
-            Timber.d("DeviceAttestationDelegate: Error on device attestation [$errorCode].")
-            // Ideally, we'd want to show a Dialog and ask the user whether the attestation
-            // failure should be ignored or not.
-            // Unfortunately, the GPS commissioning API is in control at this point, and the
-            // Dialog will only show up after GPS gives us back control.
-            // So, we simply ignore the attestation failure for now.
-            // TODO: Add a new setting to control that behavior.
-            _deviceAttestationFailureIgnored.value = true
-            Timber.w("Ignoring attestation failure.")
-            viewModelScope.launch {
-              chipClient.chipDeviceController.continueCommissioning(devicePtr, true)
-            }
-          }
+      if (errorCode == STATUS_PAIRING_SUCCESS) {
+        Timber.d("DeviceAttestationDelegate: Success on device attestation.")
+        viewModelScope.launch {
+          chipClient.chipDeviceController.continueCommissioning(devicePtr, true)
         }
+      } else {
+        Timber.d("DeviceAttestationDelegate: Error on device attestation [$errorCode].")
+        // Ideally, we'd want to show a Dialog and ask the user whether the attestation
+        // failure should be ignored or not.
+        // Unfortunately, the GPS commissioning API is in control at this point, and the
+        // Dialog will only show up after GPS gives us back control.
+        // So, we simply ignore the attestation failure for now.
+        // TODO: Add a new setting to control that behavior.
+        _deviceAttestationFailureIgnored.value = true
+        Timber.w("Ignoring attestation failure.")
+        viewModelScope.launch {
+          chipClient.chipDeviceController.continueCommissioning(devicePtr, true)
+        }
+      }
+    }
   }
 
   fun resetDeviceAttestationDelegate() {
@@ -587,7 +593,7 @@ constructor(
     override fun onDeviceAttestationCompleted(
       devicePtr: Long,
       attestationInfo: AttestationInfo,
-      errorCode: Int
+      errorCode: Int,
     ) {}
   }
 
@@ -598,7 +604,8 @@ constructor(
     _msgDialogInfo.value = DialogInfo(title, msg)
   }
 
-  // Called after user dismisses the Info dialog. If we don't consume, a config change redisplays the
+  // Called after user dismisses the Info dialog. If we don't consume, a config change redisplays
+  // the
   // alert dialog.
   fun dismissMsgDialog() {
     _msgDialogInfo.value = null

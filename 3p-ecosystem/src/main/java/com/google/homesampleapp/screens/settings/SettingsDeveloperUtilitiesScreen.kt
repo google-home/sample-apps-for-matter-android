@@ -139,7 +139,6 @@ private fun SettingsDeveloperUtilitiesScreen(
   // Alert Dialog for messages to be shown to the user.
   MsgAlertDialog(msgDialogInfo, onDismissMsgDialog)
 
-  // FIXME: do as is done in HomeScreen?
   LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
     preference(
       key = "commissionable_devices_preference",

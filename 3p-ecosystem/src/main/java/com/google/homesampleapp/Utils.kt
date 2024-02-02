@@ -34,8 +34,6 @@ import java.time.format.DateTimeFormatter
 import kotlin.math.abs
 import timber.log.Timber
 
-/** Variety of constants and utility functions used in the app. */
-
 // -------------------------------------------------------------------------------------------------
 // Various constants
 
@@ -312,10 +310,6 @@ fun showAlertDialog(alertDialog: AlertDialog, title: String?, message: String?) 
   }
   alertDialog.show()
 }
-
-// Used by ViewModel to communicate a UI action to be processed by a Fragment.
-// FIXME: probably not a good idea. Try to get rid of it.
-data class UiAction(val id: String, val data: String? = null)
 
 // -------------------------------------------------------------------------------------------------
 // Device Sharing constants

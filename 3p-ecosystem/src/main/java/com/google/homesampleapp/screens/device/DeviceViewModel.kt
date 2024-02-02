@@ -95,7 +95,6 @@ constructor(
 
   fun loadDevice(deviceId: Long) {
     if (deviceId == deviceUiModel.value?.device?.deviceId) {
-      // FIXME: but state may have changed...
       Timber.d("loadDevice: [${deviceId}] was already loaded")
       return
     } else {
@@ -277,7 +276,6 @@ constructor(
   // Device state (On/Off)
 
   fun updateDeviceStateOn(deviceUiModel: DeviceUiModel, isOn: Boolean) {
-    // FIXME: I should update the state of the DeviceUiModel...
     Timber.d("updateDeviceStateOn: isOn [${isOn}]")
     viewModelScope.launch {
 
@@ -285,6 +283,7 @@ constructor(
       Timber.d("Handling real device")
       try {
         clustersHelper.setOnOffDeviceStateOnOffCluster(deviceUiModel.device.deviceId, isOn, 1)
+        // We observe state changes there, so we'll get these updates
         devicesStateRepository.updateDeviceState(deviceUiModel.device.deviceId, true, isOn)
       } catch (e: Throwable) {
         Timber.e("Failed setting on/off state")

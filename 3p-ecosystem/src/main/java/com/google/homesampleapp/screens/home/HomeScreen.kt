@@ -236,7 +236,7 @@ internal fun HomeRoute(
       Timber.d("Invocation: Main")
       homeViewModel.startMonitoringStateChanges()
     }
-    // FIXME: Should be done onCreate() possible with Composable?
+    // FIXME[TJ]: I had this on fragment's create(). Anything similar to that for composables?
     // We need our own device attestation delegate as we currently only support attestation
     // of test Matter devices. This DeviceAttestationDelegate makes it possible to ignore device
     // attestation failures, which happen if commissioning production devices.
@@ -246,7 +246,7 @@ internal fun HomeRoute(
       // do any needed clean up here
       Timber.d("LifecycleResumeEffect:onPauseOrDispose stopMonitoringStateChanges()")
       homeViewModel.stopMonitoringStateChanges()
-      // FIXME: should be done onDestroy()
+      // FIXME[TJ]: I had this on fragment's destroy(). Anything similar to that for composables?
       homeViewModel.resetDeviceAttestationDelegate()
     }
   }
