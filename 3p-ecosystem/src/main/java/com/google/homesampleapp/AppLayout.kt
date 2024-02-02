@@ -13,14 +13,23 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppLayout(
-  navController: NavHostController
+  navController: NavHostController,
+  appViewModel: AppViewModel = hiltViewModel()
 ) {
+  val topAppBarTitle by appViewModel.topAppBarTitle.collectAsState()
+
     Scaffold(
       topBar = {
         TopAppBar(
@@ -30,7 +39,7 @@ fun AppLayout(
               horizontalArrangement = Arrangement.Center
             ) {
               Text(
-                text = "Sample App"
+                text = topAppBarTitle
               )
             }
           },
@@ -47,6 +56,6 @@ fun AppLayout(
         )
       }
     ) { innerPadding ->
-      AppNavigation(navController = navController, innerPadding = innerPadding)
+      AppNavigation(navController, innerPadding)
     }
   }

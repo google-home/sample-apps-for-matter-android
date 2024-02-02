@@ -90,6 +90,7 @@ import com.google.android.gms.home.matter.commissioning.SharedDeviceData.EXTRA_M
 import com.google.android.gms.home.matter.commissioning.SharedDeviceData.EXTRA_PRODUCT_ID
 import com.google.android.gms.home.matter.commissioning.SharedDeviceData.EXTRA_VENDOR_ID
 import com.google.android.material.textview.MaterialTextView
+import com.google.homesampleapp.AppViewModel
 import com.google.homesampleapp.Device
 import com.google.homesampleapp.MIN_COMMISSIONING_WINDOW_EXPIRATION_SECONDS
 import com.google.homesampleapp.R
@@ -139,8 +140,13 @@ internal fun HomeRoute(
   navController: NavController,
   innerPadding: PaddingValues,
   userPreferencesViewModel: UserPreferencesViewModel = hiltViewModel(),
+  appViewModel: AppViewModel = hiltViewModel(),
   homeViewModel: HomeViewModel = hiltViewModel(),
 ) {
+
+  // FIXME: does not change the topAppBar title
+  appViewModel.setAppBarTitle("[HOME]")
+
   // Launching GPS commissioning requires Activity.
   val activity = LocalContext.current.getActivity()
 

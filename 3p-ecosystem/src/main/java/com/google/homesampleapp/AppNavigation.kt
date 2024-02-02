@@ -16,7 +16,10 @@ import com.google.homesampleapp.screens.settings.SettingsRoute
 import com.google.homesampleapp.screens.thread.ThreadRoute
 
 @Composable
-fun AppNavigation(navController: NavHostController, innerPadding: PaddingValues) {
+fun AppNavigation(
+  navController: NavHostController,
+  innerPadding: PaddingValues,
+  ) {
   NavHost(navController = navController, startDestination = "home") {
     composable("home") {
       HomeRoute(navController, innerPadding)
