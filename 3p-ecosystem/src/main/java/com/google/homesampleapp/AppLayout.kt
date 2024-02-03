@@ -31,19 +31,31 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppLayout(navController: NavHostController, appViewModel: AppViewModel = hiltViewModel()) {
-  // FIXME[TJ]: What's a proper way to have a shared TopAppBar, but still allow composables
-  // to modify its title.
-  // What I have below does not work.
-  // The idea was to have AppViewModel which is shared in all the screens that want
-  // to modify that value. See [HomeScreen].
-  val topAppBarTitle by appViewModel.topAppBarTitle.collectAsState()
+fun AppLayout(navController: NavHostController) {
+  // TODO: There must be a better way to allow child composables to easily update the
+  // TopAppBar title of a shared scaffold.
+  // The way it is done here, the lambda updateTopAppBarTitle must be passed to all
+  // the routes. Lots of boilerplate code needed.
+  // Have not been able to make it work with a shared AppViewModel.
+  // val topAppBarTitle by appViewModel.topAppBarTitle.collectAsState()
+  var topAppBarTitle by rememberSaveable { mutableStateOf("Sample App") }
+
+  val updateTopAppBarTitle: (title: String) -> Unit = remember {
+    { title ->
+      topAppBarTitle = "$title"
+    }
+  }
 
   Scaffold(
     topBar = {
@@ -66,6 +78,6 @@ fun AppLayout(navController: NavHostController, appViewModel: AppViewModel = hil
       )
     }
   ) { innerPadding ->
-    AppNavigation(navController, innerPadding)
+    AppNavigation(navController, innerPadding, updateTopAppBarTitle)
   }
 }

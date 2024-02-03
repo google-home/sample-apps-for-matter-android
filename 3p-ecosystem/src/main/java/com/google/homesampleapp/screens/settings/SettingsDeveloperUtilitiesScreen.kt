@@ -26,6 +26,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -46,8 +47,10 @@ import timber.log.Timber
 /** Shows Developer Utilities . */
 @Composable
 internal fun SettingsDeveloperUtilitiesRoute(
-  navController: NavController,
   innerPadding: PaddingValues,
+  updateTitle: (title: String) -> Unit,
+  navigateToCommissionables: () -> Unit,
+  navigateToThread: () -> Unit,
   developerUtilitiesViewModel: DeveloperUtilitiesViewModel = hiltViewModel(),
 ) {
 
@@ -90,7 +93,7 @@ internal fun SettingsDeveloperUtilitiesRoute(
         )
       } else {
         Timber.d("scanningPermissionsLauncher: Permissions were OK!")
-        navController.navigate("commissionable_devices")
+        navigateToCommissionables()
       }
     }
 
@@ -106,7 +109,7 @@ internal fun SettingsDeveloperUtilitiesRoute(
         // Check if Bluetooth is enabled.
         val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
         if (bluetoothAdapter.isEnabled) {
-          navController.navigate("commissionable_devices")
+          navigateToCommissionables()
         } else {
           Timber.d("Bluetooth is not enabled") // FIXME
           developerUtilitiesViewModel.showMsgDialog(
@@ -119,11 +122,14 @@ internal fun SettingsDeveloperUtilitiesRoute(
   }
 
   val onThreadClick: () -> Unit = remember {
-    { navController.navigate("thread") }
+    { navigateToThread() }
+  }
+
+  LaunchedEffect(Unit) {
+    updateTitle("Developer Utilities")
   }
 
   SettingsDeveloperUtilitiesScreen(
-    navController,
     innerPadding,
     msgDialogInfo,
     onDismissMsgDialog,
@@ -137,7 +143,6 @@ internal fun SettingsDeveloperUtilitiesRoute(
 
 @Composable
 private fun SettingsDeveloperUtilitiesScreen(
-  navController: NavController,
   innerPadding: PaddingValues,
   msgDialogInfo: DialogInfo?,
   onDismissMsgDialog: () -> Unit,

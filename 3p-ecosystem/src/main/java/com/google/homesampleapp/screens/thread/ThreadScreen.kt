@@ -53,6 +53,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -117,14 +118,13 @@ import timber.log.Timber
  *   - (1.3-Show) QR Code for these Thread credentials
  */
 
-// FIXME: back on this screen crashes the app.
-
 // -----------------------------------------------------------------------------------------------
 // Top level Composables
 
 @Composable
 internal fun ThreadRoute(
   innerPadding: PaddingValues,
+  updateTitle: (title: String) -> Unit,
   threadViewModel: ThreadViewModel = hiltViewModel(),
 ) {
   // UI Logic implemented in ThreadNetworkUiState requires Activity.
@@ -210,6 +210,10 @@ internal fun ThreadRoute(
       Timber.d("LifecycleResumeEffect:onPauseOrDispose")
       threadNetworkUiState.stopServiceDiscovery()
     }
+  }
+
+  LaunchedEffect(Unit) {
+    updateTitle("Thread Network")
   }
 
   ThreadScreen(innerPadding, currentActionInfo, threadCredentialsInfo, onThreadNetworkAction)

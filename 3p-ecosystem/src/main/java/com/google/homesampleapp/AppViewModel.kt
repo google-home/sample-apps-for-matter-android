@@ -26,8 +26,9 @@ import javax.inject.Inject
 @HiltViewModel
 class AppViewModel @Inject constructor(
 ) : ViewModel() {
-  // The title in the TopAppBar
-  // FIXME[TJ] This does not work...
+  // TODO: Tried to support updating the shared Scaffold TopAppBar title
+  // via a shared AppViewModel. Did not work. Revisit eventually, if this
+  // makes the code cleaner to do it this way instead.
   private var _topAppBarTitle = MutableStateFlow("Sample App")
   val topAppBarTitle: StateFlow<String> = _topAppBarTitle.asStateFlow()
 

@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,7 +40,15 @@ import me.zhanghai.compose.preference.rememberPreferenceState
 import me.zhanghai.compose.preference.switchPreference
 
 @Composable
-internal fun SettingsRoute(innerPadding: PaddingValues, navigateToDeveloperUtilities: () -> Unit) {
+internal fun SettingsRoute(
+  innerPadding: PaddingValues,
+  updateTitle: (title: String) -> Unit,
+  navigateToDeveloperUtilities: () -> Unit,
+) {
+  LaunchedEffect(Unit) {
+    updateTitle("Settings")
+  }
+
   SettingsScreen(innerPadding, navigateToDeveloperUtilities)
 }
 

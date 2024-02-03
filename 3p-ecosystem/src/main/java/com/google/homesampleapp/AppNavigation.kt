@@ -45,75 +45,70 @@ const val DEST_THREAD = "thread"
 fun AppNavigation(
   navController: NavHostController,
   innerPadding: PaddingValues,
+  updateTitle: (title: String) -> Unit,
   ) {
   // Lambdas to all destinations needed in our various routes.
   // [Top level Route Composables should not be passed the navController explicitly,
   // as NavController is an unstable type. Indirection like a lambda should be used
   // as the compiler considers lambdas stable.]
   val navigateToHome: () -> Unit = remember {
-    {
-      navController.navigate(DEST_HOME)
-    }
+    { navController.navigate(DEST_HOME) }
   }
   val navigateToDevice: (deviceId: Long) -> Unit = remember {
-    {
-      navController.navigate("device/$it")
-    }
+    { navController.navigate("device/$it") }
   }
   val navigateToInspect: (deviceId: Long) -> Unit = remember {
-    {
-      navController.navigate("inspect/$it")
-    }
+    { navController.navigate("inspect/$it") }
   }
   val navigateToDeveloperUtilities: () -> Unit = remember {
-    {
-      navController.navigate(DEST_DEVELOPER_UTILITIES)
-    }
+    { navController.navigate(DEST_DEVELOPER_UTILITIES) }
+  }
+  val navigateToCommissionables: () -> Unit = remember {
+    { navController.navigate(DEST_COMMISSIONABLE_DEVICES) }
+  }
+  val navigateToThread: () -> Unit = remember {
+    { navController.navigate(DEST_THREAD) }
   }
 
   NavHost(navController = navController, startDestination = DEST_HOME) {
     // Home
     composable("home") { backStackEntry ->
-      // FIXME
-      // java.lang.IllegalArgumentException:
-      // No destination with route App is on the NavController's back stack.
-      // The current destination is Destination(0x78d845ec) route=home
- //      val appEntry = remember(backStackEntry) {
-//        navController.getBackStackEntry("App")
-//      }
-//      val appViewModel = hiltViewModel<AppViewModel>(appEntry)
-//      HomeRoute(innerPadding, navigateToDevice, appViewModel)
-        HomeRoute(innerPadding, navigateToDevice)
+        HomeRoute(innerPadding, updateTitle, navigateToDevice)
     }
     // Device
     composable(
       "$DEST_DEVICE/{deviceId}",
         arguments = listOf(navArgument("deviceId") { type = NavType.LongType }))
     {
-      DeviceRoute(innerPadding, navigateToHome, navigateToInspect, it.arguments?.getLong("deviceId")!!)
+      DeviceRoute(
+        innerPadding,
+        updateTitle,
+        navigateToHome,
+        navigateToInspect,
+        it.arguments?.getLong("deviceId")!!)
     }
     // Inspect device
     composable(
       "$DEST_INSPECT/{deviceId}",
       arguments = listOf(navArgument("deviceId") { type = NavType.LongType }))
     {
-      InspectRoute(innerPadding, it.arguments?.getLong("deviceId")!!)
+      InspectRoute(innerPadding, updateTitle, it.arguments?.getLong("deviceId")!!)
     }
     // Settings
     composable(DEST_SETTINGS) {
-      SettingsRoute(innerPadding, navigateToDeveloperUtilities)
+      SettingsRoute(innerPadding, updateTitle, navigateToDeveloperUtilities)
     }
     // Developer Utilities
     composable(DEST_DEVELOPER_UTILITIES) {
-      SettingsDeveloperUtilitiesRoute(navController, innerPadding)
+      SettingsDeveloperUtilitiesRoute(innerPadding, updateTitle, navigateToCommissionables, navigateToThread)
     }
     // Commissionable devices
     composable(DEST_COMMISSIONABLE_DEVICES) {
-      CommissionableRoute(innerPadding)
+      CommissionableRoute(innerPadding, updateTitle)
     }
     // Thread network utilities
     composable(DEST_THREAD) {
-      ThreadRoute(innerPadding)
+      ThreadRoute(innerPadding, updateTitle)
     }
   }
 }

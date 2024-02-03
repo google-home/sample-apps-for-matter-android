@@ -29,6 +29,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
@@ -50,10 +51,16 @@ import timber.log.Timber
 @Composable
 internal fun CommissionableRoute(
   innerPadding: PaddingValues,
+  updateTitle: (title: String) -> Unit,
   commissionableViewModel: CommissionableViewModel = hiltViewModel(),
 ) {
   val beacons by commissionableViewModel.beaconsLiveData.observeAsState()
   val beaconsList = beacons?.toList() ?: emptyList()
+
+  LaunchedEffect(Unit) {
+    updateTitle("Commissionable Devices")
+  }
+
   CommissionableScreen(innerPadding, beaconsList)
 }
 

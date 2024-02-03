@@ -76,7 +76,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.text.HtmlCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
-import androidx.navigation.NavController
 import com.google.android.gms.home.matter.Matter
 import com.google.android.gms.home.matter.commissioning.CommissioningRequest
 import com.google.android.gms.home.matter.commissioning.DeviceInfo
@@ -127,8 +126,8 @@ import timber.log.Timber
 @Composable
 internal fun HomeRoute(
   innerPadding: PaddingValues,
+  updateTitle: (title: String) -> Unit,
   navigateToDevice: (deviceId: Long) -> Unit,
-// fixme  appViewModel: AppViewModel,
   userPreferencesViewModel: UserPreferencesViewModel = hiltViewModel(),
   homeViewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -226,6 +225,10 @@ internal fun HomeRoute(
     }
   }
 
+  LaunchedEffect(Unit) {
+    updateTitle("Home")
+  }
+
   LifecycleResumeEffect {
     Timber.d("HomeScreen: LifecycleResumeEffect")
     val intent = activity!!.intent
@@ -317,7 +320,9 @@ private fun HomeScreen(
       Box(Modifier.fillMaxSize()) {
         LazyColumn(
           // verticalArrangement = Arrangement.spacedBy(1.dp),
-          modifier = Modifier.fillMaxWidth().padding(innerPadding)
+          modifier = Modifier
+            .fillMaxWidth()
+            .padding(innerPadding)
         ) {
           this.items(devicesList) { device ->
             val onDeviceItemClick: () -> Unit = { onDeviceClick(device) }
@@ -336,7 +341,9 @@ private fun HomeScreen(
     }
     FloatingActionButton(
       onClick = onCommissionDevice,
-      modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+      modifier = Modifier
+        .align(Alignment.BottomEnd)
+        .padding(16.dp),
     ) {
       Icon(Icons.Filled.Add, contentDescription = "Add")
     }
@@ -365,7 +372,9 @@ private fun DeviceItem(
   val onCheckedChange: (value: Boolean) -> Unit = { onOnOffClick(deviceId, it) }
 
   Surface(
-    modifier = Modifier.padding(top = 12.dp).padding(PaddingValues(horizontal = 12.dp)),
+    modifier = Modifier
+      .padding(top = 12.dp)
+      .padding(PaddingValues(horizontal = 12.dp)),
     border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
     contentColor = contentColor,
     color = bgColor,
@@ -478,7 +487,9 @@ private fun CodelabAlertDialog(
           },
         )
         Row(
-          modifier = Modifier.fillMaxWidth().padding(4.dp),
+          modifier = Modifier
+            .fillMaxWidth()
+            .padding(4.dp),
           verticalAlignment = Alignment.CenterVertically,
         ) {
           Checkbox(
@@ -517,17 +528,23 @@ private fun NoDevices() {
     Image(
       painter = painterResource(R.drawable.emptystate_missing_content),
       contentDescription = stringResource(R.string.no_devices_image),
-      modifier = Modifier.fillMaxWidth().height(200.dp),
+      modifier = Modifier
+        .fillMaxWidth()
+        .height(200.dp),
     )
     Text(
       text = stringResource(R.string.no_devices_yet),
       style = MaterialTheme.typography.bodyMedium,
-      modifier = Modifier.fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally),
+      modifier = Modifier
+        .fillMaxWidth()
+        .wrapContentWidth(Alignment.CenterHorizontally),
     )
     Text(
       text = stringResource(R.string.add_your_first),
       style = MaterialTheme.typography.bodySmall,
-      modifier = Modifier.fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally),
+      modifier = Modifier
+        .fillMaxWidth()
+        .wrapContentWidth(Alignment.CenterHorizontally),
     )
   }
 }

@@ -96,6 +96,7 @@ import timber.log.Timber
 @Composable
 internal fun DeviceRoute(
   innerPadding: PaddingValues,
+  updateTitle: (title: String) -> Unit,
   navigateToHome: () -> Unit,
   navigateToInspect: (deviceId: Long) -> Unit,
   deviceId: Long,
@@ -224,6 +225,10 @@ internal fun DeviceRoute(
       )
       deviceViewModel.stopMonitoringStateChanges()
     }
+  }
+
+  LaunchedEffect(Unit) {
+    updateTitle("Device")
   }
 
   DeviceScreen(
