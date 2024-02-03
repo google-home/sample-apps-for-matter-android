@@ -18,6 +18,7 @@ package com.google.homesampleapp
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -49,17 +50,25 @@ fun AppNavigation(
   // [Top level Route Composables should not be passed the navController explicitly,
   // as NavController is an unstable type. Indirection like a lambda should be used
   // as the compiler considers lambdas stable.]
-  val navigateToHome: () -> Unit = {
-    navController.navigate(DEST_HOME)
+  val navigateToHome: () -> Unit = remember {
+    {
+      navController.navigate(DEST_HOME)
+    }
   }
-  val navigateToDevice: (deviceId: Long) -> Unit = {
-    navController.navigate("device/$it")
+  val navigateToDevice: (deviceId: Long) -> Unit = remember {
+    {
+      navController.navigate("device/$it")
+    }
   }
-  val navigateToInspect: (deviceId: Long) -> Unit = {
-    navController.navigate("inspect/$it")
+  val navigateToInspect: (deviceId: Long) -> Unit = remember {
+    {
+      navController.navigate("inspect/$it")
+    }
   }
-  val navigateToDeveloperUtilities: () -> Unit = {
-    navController.navigate(DEST_DEVELOPER_UTILITIES)
+  val navigateToDeveloperUtilities: () -> Unit = remember {
+    {
+      navController.navigate(DEST_DEVELOPER_UTILITIES)
+    }
   }
 
   NavHost(navController = navController, startDestination = DEST_HOME) {

@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -56,7 +57,9 @@ fun InspectRoute(
   // Controls the Msg AlertDialog.
   // When the user dismisses the Msg AlertDialog, we "consume" the dialog.
   val msgDialogInfo by inspectViewModel.msgDialogInfo.collectAsState()
-  val onDismissMsgDialog: () -> Unit = { inspectViewModel.dismissMsgDialog() }
+  val onDismissMsgDialog: () -> Unit = remember {
+    { inspectViewModel.dismissMsgDialog() }
+  }
 
   // Observes values needed by the InspectScreen.
   val deviceMatterInfoList by inspectViewModel.deviceMatterInfoList.collectAsState()

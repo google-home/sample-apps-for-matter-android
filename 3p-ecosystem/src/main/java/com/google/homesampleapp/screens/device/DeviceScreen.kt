@@ -60,7 +60,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
-import androidx.navigation.NavController
 import com.google.android.gms.home.matter.Matter
 import com.google.android.gms.home.matter.commissioning.CommissioningWindow
 import com.google.android.gms.home.matter.commissioning.ShareDeviceRequest
@@ -121,25 +120,33 @@ internal fun DeviceRoute(
   // Controls the Msg AlertDialog.
   // When the user dismisses the Msg AlertDialog, we "consume" the dialog.
   val msgDialogInfo by deviceViewModel.msgDialogInfo.collectAsState()
-  val onDismissMsgDialog: () -> Unit = { deviceViewModel.dismissMsgDialog() }
+  val onDismissMsgDialog: () -> Unit = remember {
+    { deviceViewModel.dismissMsgDialog() }
+  }
 
   // Controls whether the "remove device" alert dialog should be shown.
   val showRemoveDeviceAlertDialog by deviceViewModel.showRemoveDeviceAlertDialog.collectAsState()
-  val onRemoveDeviceClick: () -> Unit = { deviceViewModel.showRemoveDeviceAlertDialog() }
-  val onRemoveDeviceOutcome: (doIt: Boolean) -> Unit = { doIt ->
-    deviceViewModel.dismissRemoveDeviceDialog()
-    if (doIt) {
-      deviceViewModel.removeDevice(deviceUiModel!!.device.deviceId)
+  val onRemoveDeviceClick: () -> Unit = remember {
+    { deviceViewModel.showRemoveDeviceAlertDialog() }
+  }
+  val onRemoveDeviceOutcome: (doIt: Boolean) -> Unit = remember {
+    { doIt ->
+      deviceViewModel.dismissRemoveDeviceDialog()
+      if (doIt) {
+        deviceViewModel.removeDevice(deviceUiModel!!.device.deviceId)
+      }
     }
   }
 
   // Controls whether the "confirm device removal" alert dialog should be shown.
   val showConfirmDeviceRemovalAlertDialog by
     deviceViewModel.showConfirmDeviceRemovalAlertDialog.collectAsState()
-  val onConfirmDeviceRemovalOutcome: (doIt: Boolean) -> Unit = { doIt ->
-    deviceViewModel.dismissConfirmDeviceRemovalDialog()
-    if (doIt) {
-      deviceViewModel.removeDeviceWithoutUnlink(deviceUiModel!!.device.deviceId)
+  val onConfirmDeviceRemovalOutcome: (doIt: Boolean) -> Unit = remember {
+    { doIt ->
+      deviceViewModel.dismissConfirmDeviceRemovalDialog()
+      if (doIt) {
+        deviceViewModel.removeDeviceWithoutUnlink(deviceUiModel!!.device.deviceId)
+      }
     }
   }
 
@@ -147,21 +154,24 @@ internal fun DeviceRoute(
     deviceViewModel.devicesStateRepository.lastUpdatedDeviceState.observeAsState()
 
   // On/Off Switch click.
-  val onOnOffClick: (value: Boolean) -> Unit =
+  val onOnOffClick: (value: Boolean) -> Unit = remember {
     { value ->
       deviceViewModel.updateDeviceStateOn(deviceUiModel!!, value)
     }
+  }
 
   // Inspect button click handler.
   // isOnline must be provided in InspectScreen because it is updated there.
-  val onInspect: (isOnline: Boolean) -> Unit = { isOnline ->
-    if (isOnline) {
-      navigateToInspect(deviceUiModel!!.device.deviceId)
-    } else {
-      deviceViewModel.showMsgDialog(
-        "Inspect Device",
-        "Device is offline, so it cannot be inspected.",
-      )
+  val onInspect: (isOnline: Boolean) -> Unit = remember {
+    { isOnline ->
+      if (isOnline) {
+        navigateToInspect(deviceUiModel!!.device.deviceId)
+      } else {
+        deviceViewModel.showMsgDialog(
+          "Inspect Device",
+          "Device is offline, so it cannot be inspected.",
+        )
+      }
     }
   }
 
@@ -196,8 +206,10 @@ internal fun DeviceRoute(
   }
 
   // Share Device button click.
-  val onShareDevice: () -> Unit = {
-    deviceViewModel.openPairingWindow(deviceUiModel!!.device.deviceId)
+  val onShareDevice: () -> Unit = remember {
+    {
+      deviceViewModel.openPairingWindow(deviceUiModel!!.device.deviceId)
+    }
   }
 
   // When app is sent to the background, and pulled back, this kicks in.

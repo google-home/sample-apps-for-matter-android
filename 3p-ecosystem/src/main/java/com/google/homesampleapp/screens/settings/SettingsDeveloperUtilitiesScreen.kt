@@ -28,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -56,13 +57,19 @@ internal fun SettingsDeveloperUtilitiesRoute(
   // Controls the Msg AlertDialog.
   // When the user dismisses the Msg AlertDialog, we "consume" the dialog.
   val msgDialogInfo by developerUtilitiesViewModel.msgDialogInfo.collectAsState()
-  val onDismissMsgDialog: () -> Unit = { developerUtilitiesViewModel.dismissMsgDialog() }
+  val onDismissMsgDialog: () -> Unit = remember {
+    { developerUtilitiesViewModel.dismissMsgDialog() }
+  }
 
   // Log Repos
   val showLogReposDialog by developerUtilitiesViewModel.showLogReposDialog.collectAsState()
-  val onShowLogReposDialog: () -> Unit = { developerUtilitiesViewModel.printRepositories() }
-  val onDismissLogReposDialog: () -> Unit = {
-    developerUtilitiesViewModel.dismissLogRepositoriesDialog()
+  val onShowLogReposDialog: () -> Unit = remember {
+    { developerUtilitiesViewModel.printRepositories() }
+  }
+  val onDismissLogReposDialog: () -> Unit = remember {
+    {
+      developerUtilitiesViewModel.dismissLogRepositoriesDialog()
+    }
   }
 
   // Showing the commissionable devices requires scanning permissions.
@@ -87,29 +94,33 @@ internal fun SettingsDeveloperUtilitiesRoute(
       }
     }
 
-  val onCommissionableDevicesClick: () -> Unit = {
-    developerUtilitiesViewModel.logScanningPermissions(activity!!.applicationContext)
-    if (!developerUtilitiesViewModel.allScanningPermissionsGranted(activity.applicationContext)) {
-      Timber.d("All scanning permissions NOT granted. Asking for them.")
-      scanningPermissionsLauncher.launch(
-        developerUtilitiesViewModel.getRequiredScanningPermissions()
-      )
-    } else {
-      // Check if Bluetooth is enabled.
-      val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
-      if (bluetoothAdapter.isEnabled) {
-        navController.navigate("commissionable_devices")
-      } else {
-        Timber.d("Bluetooth is not enabled") // FIXME
-        developerUtilitiesViewModel.showMsgDialog(
-          "Bluetooth is not enabled",
-          "Bluetooth must be enabled on your phone to allow discovery of matter devices",
+  val onCommissionableDevicesClick: () -> Unit = remember {
+    {
+      developerUtilitiesViewModel.logScanningPermissions(activity!!.applicationContext)
+      if (!developerUtilitiesViewModel.allScanningPermissionsGranted(activity.applicationContext)) {
+        Timber.d("All scanning permissions NOT granted. Asking for them.")
+        scanningPermissionsLauncher.launch(
+          developerUtilitiesViewModel.getRequiredScanningPermissions()
         )
+      } else {
+        // Check if Bluetooth is enabled.
+        val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+        if (bluetoothAdapter.isEnabled) {
+          navController.navigate("commissionable_devices")
+        } else {
+          Timber.d("Bluetooth is not enabled") // FIXME
+          developerUtilitiesViewModel.showMsgDialog(
+            "Bluetooth is not enabled",
+            "Bluetooth must be enabled on your phone to allow discovery of matter devices",
+          )
+        }
       }
     }
   }
 
-  val onThreadClick: () -> Unit = { navController.navigate("thread") }
+  val onThreadClick: () -> Unit = remember {
+    { navController.navigate("thread") }
+  }
 
   SettingsDeveloperUtilitiesScreen(
     navController,

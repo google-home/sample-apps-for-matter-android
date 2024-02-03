@@ -279,7 +279,10 @@ class ThreadNetworkUiState(
 
   /** Stops scanning for border routers in the network */
   fun stopServiceDiscovery() {
-    sd.stop()
+    // FIXME: causes a crash. Commented out for now.
+    //   launch app > settings > developer utilities > thread > home
+    //   java.lang.IllegalArgumentException: listener not registered
+    // sd.stop()
   }
 
   private fun getThreadBorderRoutersList(): List<NsdServiceInfo> {

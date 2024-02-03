@@ -152,33 +152,43 @@ internal fun HomeRoute(
 
   // Controls whether the codelab alert dialog should be shown.
   val showCodelabAlertDialog by userPreferencesViewModel.showCodelabAlertDialog.collectAsState()
-  val onCodelabCheckboxChange: (checked: Boolean) -> Unit = {
-    userPreferencesViewModel.updateHideCodelabInfo(it)
+  val onCodelabCheckboxChange: (checked: Boolean) -> Unit = remember {
+    {
+      userPreferencesViewModel.updateHideCodelabInfo(it)
+    }
   }
 
   // Controls when the "New Device" alert dialog is shown.
   // When that alert dialog completes, control needs to go back to the ViewModel to complete
   // the commissioning flow.
   val showNewDeviceAlertDialog by homeViewModel.showNewDeviceNameAlertDialog.collectAsState()
-  val onCommissionedDeviceNameCaptured: (name: String) -> Unit = {
-    homeViewModel.onCommissionedDeviceNameCaptured(it)
+  val onCommissionedDeviceNameCaptured: (name: String) -> Unit = remember {
+    {
+      homeViewModel.onCommissionedDeviceNameCaptured(it)
+    }
   }
 
   // Controls the Msg AlertDialog.
   // When the user dismisses the Msg AlertDialog, we "consume" the dialog.
   val msgDialogInfo by homeViewModel.msgDialogInfo.collectAsState()
-  val onDismissMsgDialog: () -> Unit = { homeViewModel.dismissMsgDialog() }
+  val onDismissMsgDialog: () -> Unit = remember {
+    { homeViewModel.dismissMsgDialog() }
+  }
 
   // Status of multiadmin commissioning.
   val multiadminCommissionDeviceTaskStatus by
     homeViewModel.multiadminCommissionDeviceTaskStatus.collectAsState()
 
   // Functions invoked when UI controls are clicked on a specific device in the list.
-  val onDeviceClick: (deviceUiModel: DeviceUiModel) -> Unit = {
-    navigateToDevice(it.device.deviceId)
+  val onDeviceClick: (deviceUiModel: DeviceUiModel) -> Unit = remember {
+    {
+      navigateToDevice(it.device.deviceId)
+    }
   }
-  val onOnOffClick: (deviceId: Long, value: Boolean) -> Unit = { deviceId, value ->
-    homeViewModel.updateDeviceStateOn(deviceId, value)
+  val onOnOffClick: (deviceId: Long, value: Boolean) -> Unit = remember {
+    { deviceId, value ->
+      homeViewModel.updateDeviceStateOn(deviceId, value)
+    }
   }
 
   // The device commissioning flow involves multiple steps as it is based on an Activity
@@ -207,11 +217,13 @@ internal fun HomeRoute(
       }
     }
 
-  val onCommissionDevice = {
-    Timber.d("onAddDeviceClick")
-    // fixme deviceAttestationFailureIgnored = false
-    homeViewModel.stopMonitoringStateChanges()
-    commissionDevice(activity!!.applicationContext, commissionDeviceLauncher)
+  val onCommissionDevice: () -> Unit = remember {
+    {
+      Timber.d("onAddDeviceClick")
+      // fixme deviceAttestationFailureIgnored = false
+      homeViewModel.stopMonitoringStateChanges()
+      commissionDevice(activity!!.applicationContext, commissionDeviceLauncher)
+    }
   }
 
   LifecycleResumeEffect {
