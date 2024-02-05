@@ -181,9 +181,10 @@ internal fun DeviceRoute(
   // Step 1 (here) is where an activity launcher is registered.
   // At step 2, the user triggers the "Share Device" action by clicking on the
   // "Share" button on this screen. This creates the proper IntentSender that is then
-  // used in step 3 to call shareDevicelauncher.launch().
+  // used in step 3 to call shareDeviceLauncher.launch().
   // Step 4 is when GPS takes over the sharing flow.
   // Step 5 is when the GPS activity completes and the result is handled here.
+  // CODELAB: shareDeviceLauncher definition
   val shareDeviceLauncher =
     rememberLauncherForActivityResult(
       contract = ActivityResultContracts.StartIntentSenderForResult()
@@ -197,6 +198,7 @@ internal fun DeviceRoute(
         deviceViewModel.shareDeviceFailed(resultCode)
       }
     }
+  // CODELAB SECTION END
 
   // When the pairing window has been open for device sharing.
   val pairingWindowOpenForDeviceSharing by
@@ -505,6 +507,7 @@ fun shareDevice(
   shareDeviceLauncher: ManagedActivityResultLauncher<IntentSenderRequest, ActivityResult>,
   deviceViewModel: DeviceViewModel,
 ) {
+  // CODELAB: shareDevice
   Timber.d("ShareDevice: starting")
 
   val shareDeviceRequest =
@@ -532,13 +535,13 @@ fun shareDevice(
     .shareDevice(shareDeviceRequest)
     .addOnSuccessListener { result ->
       Timber.d("ShareDevice: Success getting the IntentSender: result [${result}]")
-      // Communication with fragment is via livedata
       shareDeviceLauncher.launch(IntentSenderRequest.Builder(result).build())
     }
     .addOnFailureListener { error ->
       Timber.e(error)
       deviceViewModel.showMsgDialog("Share device failed", error.toString())
     }
+  // CODELAB SECTION END
 }
 
 // -----------------------------------------------------------------------------------------------

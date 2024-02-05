@@ -195,6 +195,7 @@ internal fun HomeRoute(
   // used in step 3 to call commissionDevicelauncher.launch().
   // Step 4 is when GPS takes over the commissioning flow.
   // Step 5 is when the GPS activity completes and the result is handled here.
+  // CODELAB: commissionDeviceLauncher definition
   val commissionDeviceLauncher =
     rememberLauncherForActivityResult(
       contract = ActivityResultContracts.StartIntentSenderForResult()
@@ -212,6 +213,7 @@ internal fun HomeRoute(
         homeViewModel.commissionDeviceFailed(resultCode)
       }
     }
+  // CODELAB SECTION END
 
   val onCommissionDevice: () -> Unit = remember {
     {
@@ -555,6 +557,7 @@ fun commissionDevice(
 ) {
   Timber.d("CommissionDevice: starting")
 
+  // CODELAB: commissionDevice
   val commissionDeviceRequest =
     CommissioningRequest.builder()
       .setCommissioningService(ComponentName(context, AppCommissioningService::class.java))
@@ -573,6 +576,7 @@ fun commissionDevice(
       //      _commissionDeviceStatus.postValue(
       //        TaskStatus.Failed("Setting up the IntentSender failed", error))
     }
+  // CODELAB SECTION END
 }
 
 fun multiAdminCommissionDevice(
