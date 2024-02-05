@@ -102,6 +102,19 @@ class DevicesStateRepository @Inject constructor(@ApplicationContext context: Co
     }
   }
 
+  suspend fun loadDeviceState(deviceId: Long) : DeviceState? {
+    val devicesState = devicesStateFlow.first()
+    val devicesStateCount = devicesState.devicesStateCount
+    var updateDone = false
+    for (index in 0 until devicesStateCount) {
+      val deviceState = devicesState.getDevicesState(index)
+      if (deviceId == deviceState.deviceId) {
+        return deviceState
+      }
+    }
+    return null
+  }
+
   suspend fun getAllDevicesState(): DevicesState {
     return devicesStateFlow.first()
   }

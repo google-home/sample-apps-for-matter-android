@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Google LLC
+ * Copyright 2024 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.flow.stateIn
 
 /**
- * [ViewModel] which provides a unified view into nearby [MatterBeacon]s as provided by all bound
+ * ViewModel which provides a unified view into nearby [MatterBeacon]s as provided by all bound
  * [MatterBeaconProducer]s in the dependency injection graph.
  */
 @HiltViewModel
@@ -40,14 +40,10 @@ constructor(producers: Set<@JvmSuppressWildcards MatterBeaconProducer>) : ViewMo
    * amended as more beacons are detected, so can be observed to see the most recently discovered
    * view.
    */
-  val beaconsFlow: Flow<Set<MatterBeacon>> =
-      merge(*producers.map { it.getBeaconsFlow() }.toTypedArray())
-          .runningFold(setOf<MatterBeacon>()) { set, item -> set + item }
-          .stateIn(
-              scope = viewModelScope,
-              started = WhileSubscribed(2000),
-              initialValue = emptySet(),
-          )
+  private val beaconsFlow: Flow<Set<MatterBeacon>> =
+    merge(*producers.map { it.getBeaconsFlow() }.toTypedArray())
+      .runningFold(setOf<MatterBeacon>()) { set, item -> set + item }
+      .stateIn(scope = viewModelScope, started = WhileSubscribed(2000), initialValue = emptySet())
 
   val beaconsLiveData = beaconsFlow.asLiveData()
 }

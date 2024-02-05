@@ -23,6 +23,7 @@ import android.os.Looper
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.FragmentActivity
+import com.google.homesampleapp.Device.DeviceType
 import com.google.protobuf.Timestamp
 import java.io.File
 import java.lang.Long.max
@@ -32,8 +33,6 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
 import timber.log.Timber
-
-/** Variety of constants and utility functions used in the app. */
 
 // -------------------------------------------------------------------------------------------------
 // Various constants
@@ -82,33 +81,71 @@ fun lifeCycleEvent(event: String): String {
   return "[*** LifeCycle ***] $event"
 }
 
+// -----------------------------------------------------------------------------
+// Matter Device Type Display String
+
 /** Set the strings for DeviceType. */
-lateinit var DeviceTypeStrings: MutableMap<Device.DeviceType, String>
+lateinit var DeviceTypeStrings: MutableMap<DeviceType, String>
 
 fun setDeviceTypeStrings(unspecified: String, light: String, outlet: String, unknown: String) {
   DeviceTypeStrings =
-      mutableMapOf(
-          Device.DeviceType.TYPE_UNSPECIFIED to unspecified,
-          Device.DeviceType.TYPE_LIGHT to light,
-          Device.DeviceType.TYPE_OUTLET to outlet,
-          Device.DeviceType.TYPE_UNKNOWN to unknown,
-      )
+    mutableMapOf(
+      DeviceType.TYPE_UNSPECIFIED to unspecified,
+      DeviceType.TYPE_LIGHT to light,
+      DeviceType.TYPE_OUTLET to outlet,
+      DeviceType.TYPE_UNKNOWN to unknown,
+    )
 }
 
 /** Converts the Device.DeviceType enum to a string used in the UI. */
-fun Device.DeviceType.displayString(): String {
+fun DeviceType.displayString(): String {
   return DeviceTypeStrings[this]!!
 }
 
-fun convertToAppDeviceType(matterDeviceType: Long): Device.DeviceType {
+// -----------------------------------------------------------------------------
+// Matter Device Type Display Icon
+
+
+fun getDeviceTypeIconId(deviceType: DeviceType) : Int {
+  return when (deviceType) {
+    DeviceType.TYPE_UNSPECIFIED -> R.drawable.ic_baseline_device_unknown_24
+    DeviceType.TYPE_UNKNOWN -> R.drawable.ic_baseline_device_unknown_24
+    DeviceType.TYPE_LIGHT -> R.drawable.quantum_gm_ic_lights_gha_vd_theme_24
+    DeviceType.TYPE_OUTLET -> R.drawable.ic_baseline_outlet_24
+    DeviceType.TYPE_DIMMABLE_LIGHT -> R.drawable.quantum_gm_ic_lights_gha_vd_theme_24
+    DeviceType.TYPE_COLOR_TEMPERATURE_LIGHT -> R.drawable.quantum_gm_ic_lights_gha_vd_theme_24
+    DeviceType.TYPE_EXTENDED_COLOR_LIGHT -> R.drawable.quantum_gm_ic_lights_gha_vd_theme_24
+    DeviceType.TYPE_LIGHT_SWITCH -> R.drawable.quantum_gm_ic_lights_gha_vd_theme_24
+    DeviceType.UNRECOGNIZED -> R.drawable.ic_baseline_device_unknown_24
+  }
+}
+
+fun getDeviceTypeDisplayStringId(deviceType: DeviceType) : Int {
+  return when (deviceType) {
+    DeviceType.TYPE_UNSPECIFIED -> R.string.device_type_unspecified
+    DeviceType.TYPE_UNKNOWN -> R.string.device_type_unknown
+    DeviceType.TYPE_LIGHT -> R.string.device_type_light
+    DeviceType.TYPE_OUTLET -> R.string.device_type_outlet
+    DeviceType.TYPE_DIMMABLE_LIGHT -> R.string.device_type_dimmable_light
+    DeviceType.TYPE_COLOR_TEMPERATURE_LIGHT -> R.string.device_type_color_temperature_light
+    DeviceType.TYPE_EXTENDED_COLOR_LIGHT -> R.string.device_type_extended_color_light
+    DeviceType.TYPE_LIGHT_SWITCH -> R.string.device_type_light_switch
+    DeviceType.UNRECOGNIZED -> R.string.device_type_unrecognized
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Misc
+
+fun convertToAppDeviceType(matterDeviceType: Long): DeviceType {
   return when (matterDeviceType) {
-    256L -> Device.DeviceType.TYPE_LIGHT // 0x0100 On/Off Light
-    257L -> Device.DeviceType.TYPE_DIMMABLE_LIGHT // 0x0101 Dimmable Light
-    259L -> Device.DeviceType.TYPE_LIGHT_SWITCH // 0x0103 On/Off Light Switch
-    266L -> Device.DeviceType.TYPE_OUTLET // 0x010A (On/Off Plug-in Unit)
-    268L -> Device.DeviceType.TYPE_COLOR_TEMPERATURE_LIGHT // 0x010C Color Temperature Light
-    269L -> Device.DeviceType.TYPE_EXTENDED_COLOR_LIGHT // 0x010D Extended Color Light
-    else -> Device.DeviceType.TYPE_UNKNOWN
+    256L -> DeviceType.TYPE_LIGHT // 0x0100 On/Off Light
+    257L -> DeviceType.TYPE_DIMMABLE_LIGHT // 0x0101 Dimmable Light
+    259L -> DeviceType.TYPE_LIGHT_SWITCH // 0x0103 On/Off Light Switch
+    266L -> DeviceType.TYPE_OUTLET // 0x010A (On/Off Plug-in Unit)
+    268L -> DeviceType.TYPE_COLOR_TEMPERATURE_LIGHT // 0x010C Color Temperature Light
+    269L -> DeviceType.TYPE_EXTENDED_COLOR_LIGHT // 0x010D Extended Color Light
+    else -> DeviceType.TYPE_UNKNOWN
   }
 }
 
@@ -133,12 +170,12 @@ fun stateDisplayString(isOnline: Boolean, isOn: Boolean): String {
 
 fun stringToBoolean(s: String): Boolean {
   val boolValue =
-      when (s) {
-        "true",
-        "True",
-        "TRUE" -> true
-        else -> false
-      }
+    when (s) {
+      "true",
+      "True",
+      "TRUE" -> true
+      else -> false
+    }
   return boolValue
 }
 
@@ -169,7 +206,7 @@ fun displayPreferences(context: Context) {
       val sharedPreferencesFileKey = element.substringBefore(".xml")
       Timber.d("*** FileKey: [${sharedPreferencesFileKey}] ***")
       val sharedPreferences =
-          context.getSharedPreferences(sharedPreferencesFileKey, Context.MODE_PRIVATE)
+        context.getSharedPreferences(sharedPreferencesFileKey, Context.MODE_PRIVATE)
       val allPreferences = sharedPreferences.all
       for ((key, value) in allPreferences.entries) Timber.d("$key [$value]")
     }
@@ -217,13 +254,13 @@ fun <T> MutableList<T>.mapButReplace(targetItem: T, newItem: T) = map {
 /** Generates a random number to be used as a device identifier during device commissioning */
 fun generateNextDeviceId(): Long {
   val secureRandom =
-      try {
-        SecureRandom.getInstance("SHA1PRNG")
-      } catch (ex: Exception) {
-        Timber.w(ex, "Failed to instantiate SecureRandom with SHA1PRNG")
-        // instantiate with the default algorithm
-        SecureRandom()
-      }
+    try {
+      SecureRandom.getInstance("SHA1PRNG")
+    } catch (ex: Exception) {
+      Timber.w(ex, "Failed to instantiate SecureRandom with SHA1PRNG")
+      // instantiate with the default algorithm
+      SecureRandom()
+    }
 
   return max(abs(secureRandom.nextLong()), 1)
 }
@@ -273,11 +310,6 @@ fun showAlertDialog(alertDialog: AlertDialog, title: String?, message: String?) 
   }
   alertDialog.show()
 }
-
-data class ErrorInfo(val title: String?, val message: String?)
-
-// Used by ViewModel to communicate a UI action to be processed by a Fragment.
-data class UiAction(val id: String, val data: String? = null)
 
 // -------------------------------------------------------------------------------------------------
 // Device Sharing constants

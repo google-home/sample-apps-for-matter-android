@@ -187,8 +187,11 @@ dependencies {
     implementation(libs.androidx.compose.runtime.livedata)
     implementation(libs.androidx.compose.ui.tooling.preview)
     debugImplementation(libs.androidx.compose.ui.tooling)
+    implementation(libs.androidx.activity.compose)
 
     // Navigation
+    implementation(libs.navigation.compose)
+    // OLD --- remove eventually
     implementation(libs.navigation.fragment.ktx)
     implementation(libs.navigation.ui.ktx)
 
@@ -210,6 +213,9 @@ dependencies {
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)
     implementation(libs.core)
+    implementation(libs.hilt.navigation.compose)
+    //implementation(libs.hilt.lifecycle)
+    //implementation(libs.hilt.navigation)
 
 
     // Hilt For instrumentation tests
@@ -227,7 +233,7 @@ dependencies {
     implementation(libs.timber)
     // Needed for using BaseEncoding class
     implementation(libs.guava)
-
+ //
     // Test
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
