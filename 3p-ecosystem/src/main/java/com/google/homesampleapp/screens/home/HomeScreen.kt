@@ -131,9 +131,6 @@ internal fun HomeRoute(
   userPreferencesViewModel: UserPreferencesViewModel = hiltViewModel(),
   homeViewModel: HomeViewModel = hiltViewModel(),
 ) {
-  // FIXME[TJ]: does not change the topAppBar title
-//  appViewModel.setAppBarTitle("[HOME]")
-
   // Launching GPS commissioning requires Activity.
   val activity = LocalContext.current.getActivity()
 
@@ -690,7 +687,7 @@ private fun HomeScreenNoDevicesPreview() {
 @Preview
 @Composable
 private fun HomeScreenWithDevicesPreview() {
-  val bogus: (a: Long, b: Boolean) -> Unit = { _, _ -> } // FIXME
+  val bogus: (a: Long, b: Boolean) -> Unit = { _, _ -> }
   val devicesList =
     listOf(
       DeviceUiModel(createDevice(), true, true),
