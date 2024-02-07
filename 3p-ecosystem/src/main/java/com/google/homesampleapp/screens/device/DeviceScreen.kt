@@ -185,20 +185,6 @@ internal fun DeviceRoute(
   // Step 4 is when GPS takes over the sharing flow.
   // Step 5 is when the GPS activity completes and the result is handled here.
   // CODELAB: shareDeviceLauncher definition
-  val shareDeviceLauncher =
-    rememberLauncherForActivityResult(
-      contract = ActivityResultContracts.StartIntentSenderForResult()
-    ) { result ->
-      // Commission Device Step 5.
-      // The Share Device activity in GPS (step 4) has completed.
-      val resultCode = result.resultCode
-      if (resultCode == Activity.RESULT_OK) {
-        deviceViewModel.shareDeviceSucceeded()
-      } else {
-        deviceViewModel.shareDeviceFailed(resultCode)
-      }
-    }
-  // CODELAB SECTION END
 
   // When the pairing window has been open for device sharing.
   val pairingWindowOpenForDeviceSharing by
@@ -508,40 +494,6 @@ fun shareDevice(
   deviceViewModel: DeviceViewModel,
 ) {
   // CODELAB: shareDevice
-  Timber.d("ShareDevice: starting")
-
-  val shareDeviceRequest =
-    ShareDeviceRequest.builder()
-      .setDeviceDescriptor(DeviceDescriptor.builder().build())
-      .setDeviceName("GHSAFM temp device name")
-      .setCommissioningWindow(
-        CommissioningWindow.builder()
-          .setDiscriminator(Discriminator.forLongValue(DISCRIMINATOR))
-          .setPasscode(SETUP_PIN_CODE)
-          .setWindowOpenMillis(SystemClock.elapsedRealtime())
-          .setDurationSeconds(OPEN_COMMISSIONING_WINDOW_DURATION_SECONDS.toLong())
-          .build()
-      )
-      .build()
-  Timber.d(
-    "ShareDevice: shareDeviceRequest " +
-      "onboardingPayload [${shareDeviceRequest.commissioningWindow.passcode}] " +
-      "discriminator [${shareDeviceRequest.commissioningWindow.discriminator}]"
-  )
-
-  // The call to shareDevice() creates the IntentSender that will eventually be launched
-  // in the fragment to trigger the multi-admin activity in GPS (step 3).
-  Matter.getCommissioningClient(context)
-    .shareDevice(shareDeviceRequest)
-    .addOnSuccessListener { result ->
-      Timber.d("ShareDevice: Success getting the IntentSender: result [${result}]")
-      shareDeviceLauncher.launch(IntentSenderRequest.Builder(result).build())
-    }
-    .addOnFailureListener { error ->
-      Timber.e(error)
-      deviceViewModel.showMsgDialog("Share device failed", error.toString())
-    }
-  // CODELAB SECTION END
 }
 
 // -----------------------------------------------------------------------------------------------

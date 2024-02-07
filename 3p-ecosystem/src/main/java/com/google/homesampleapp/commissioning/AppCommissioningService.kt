@@ -95,51 +95,6 @@ class AppCommissioningService : Service(), CommissioningService.Callback {
             "\tpassCode [${metadata.passcode}]")
 
     // CODELAB: onCommissioningRequested()
-    // Perform commissioning on custom fabric for the sample app.
-    serviceScope.launch {
-      val deviceId = getNextDeviceId(DeviceIdGenerator.Random)
-      try {
-        Timber.d(
-            "Commissioning: App fabric -> ChipClient.establishPaseConnection(): deviceId [${deviceId}]")
-        chipClient.awaitEstablishPaseConnection(
-            deviceId,
-            metadata.networkLocation.ipAddress.hostAddress!!,
-            metadata.networkLocation.port,
-            metadata.passcode)
-
-        Timber.d(
-            "Commissioning: App fabric -> ChipClient.commissionDevice(): deviceId [${deviceId}]")
-        chipClient.awaitCommissionDevice(deviceId, null)
-      } catch (e: Exception) {
-        Timber.e(e, "onCommissioningRequested() failed")
-        // No way to determine whether this was ATTESTATION_FAILED or DEVICE_UNREACHABLE.
-        commissioningServiceDelegate
-            .sendCommissioningError(CommissioningError.OTHER)
-            .addOnSuccessListener {
-              Timber.d(
-                  "Commissioning: commissioningServiceDelegate.sendCommissioningError() succeeded")
-            }
-            .addOnFailureListener { e2 ->
-              Timber.e(
-                  e2, "Commissioning: commissioningServiceDelegate.sendCommissioningError() failed")
-            }
-        return@launch
-      }
-
-      Timber.d("Commissioning: Calling commissioningServiceDelegate.sendCommissioningComplete()")
-      commissioningServiceDelegate
-          .sendCommissioningComplete(
-              CommissioningCompleteMetadata.builder().setToken(deviceId.toString()).build())
-          .addOnSuccessListener {
-            Timber.d(
-                "Commissioning: commissioningServiceDelegate.sendCommissioningComplete() succeeded")
-          }
-          .addOnFailureListener { e ->
-            Timber.e(
-                e, "Commissioning: commissioningServiceDelegate.sendCommissioningComplete() failed")
-          }
-    }
-    // CODELAB SECTION END
   }
 
   /**

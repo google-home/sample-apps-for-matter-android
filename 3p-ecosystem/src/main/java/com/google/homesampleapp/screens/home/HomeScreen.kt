@@ -196,24 +196,6 @@ internal fun HomeRoute(
   // Step 4 is when GPS takes over the commissioning flow.
   // Step 5 is when the GPS activity completes and the result is handled here.
   // CODELAB: commissionDeviceLauncher definition
-  val commissionDeviceLauncher =
-    rememberLauncherForActivityResult(
-      contract = ActivityResultContracts.StartIntentSenderForResult()
-    ) { result ->
-      // Commission Device Step 5.
-      // The Commission Device activity in GPS (step 4) has completed.
-      val resultCode = result.resultCode
-      if (resultCode == Activity.RESULT_OK) {
-        Timber.d("CommissionDevice: Success")
-        // We let the ViewModel know that GPS commissioning has completed successfully.
-        // The ViewModel knows that we still need to capture the device name and will\
-        // update UI state to trigger the NewDeviceAlertDialog.
-        homeViewModel.gpsCommissioningDeviceSucceeded(result)
-      } else {
-        homeViewModel.commissionDeviceFailed(resultCode)
-      }
-    }
-  // CODELAB SECTION END
 
   val onCommissionDevice: () -> Unit = remember {
     {
@@ -558,25 +540,6 @@ fun commissionDevice(
   Timber.d("CommissionDevice: starting")
 
   // CODELAB: commissionDevice
-  val commissionDeviceRequest =
-    CommissioningRequest.builder()
-      .setCommissioningService(ComponentName(context, AppCommissioningService::class.java))
-      .build()
-
-  // The call to commissionDevice() creates the IntentSender that will eventually be launched
-  // in the fragment to trigger the commissioning activity in GPS.
-  Matter.getCommissioningClient(context)
-    .commissionDevice(commissionDeviceRequest)
-    .addOnSuccessListener { result ->
-      Timber.d("CommissionDevice: Success getting the IntentSender: result [${result}]")
-      commissionDeviceLauncher.launch(IntentSenderRequest.Builder(result).build())
-    }
-    .addOnFailureListener { error ->
-      Timber.e(error)
-      //      _commissionDeviceStatus.postValue(
-      //        TaskStatus.Failed("Setting up the IntentSender failed", error))
-    }
-  // CODELAB SECTION END
 }
 
 fun multiAdminCommissionDevice(

@@ -280,15 +280,6 @@ constructor(
     viewModelScope.launch {
 
       // CODELAB: toggle
-      Timber.d("Handling real device")
-      try {
-        clustersHelper.setOnOffDeviceStateOnOffCluster(deviceUiModel.device.deviceId, isOn, 1)
-        // We observe state changes there, so we'll get these updates
-        devicesStateRepository.updateDeviceState(deviceUiModel.device.deviceId, true, isOn)
-      } catch (e: Throwable) {
-        Timber.e("Failed setting on/off state")
-      }
-      // CODELAB SECTION END
     }
   }
 
