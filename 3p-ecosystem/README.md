@@ -17,29 +17,8 @@ to debug and troubleshoot interactions with Matter devices.
 
 The Sample app GitHub repository includes third party libraries from the
 [Matter repo (`connectedhomeip`)](https://github.com/project-chip/connectedhomeip).
-These native libraries are over 50MB, and require the use of Git Large File
-Storage (LFS).
 
-To clone the repository, complete the following steps:
-
-1.  Install [Git LFS](https://git-lfs.github.com/).
-
-2.  Initialize Git LFS.
-
-    ```console
-    $ git lfs install
-    ```
-
-    When complete, the console displays the following:
-
-    ```console
-    Updated Git hooks.
-    Git LFS initialized.
-    ```
-
-3.  Once Git LFS is installed and initialized, you're ready to clone the
-    repository. When cloning completes, Git checks out the `main` branch
-    and downloads the native libraries for you.
+To clone the repository, do the following:
 
     ```console
     $ git clone https://github.com/google-home/sample-apps-for-matter-android.git
@@ -64,8 +43,12 @@ https://github.com/google-home/sample-apps-for-matter-android/releases
 * To make sure that your device has the latest Matter support, review the
     [Verify Matter Modules & Services](https://developers.home.google.com/matter/verify-services)
     guide.
-* Build a Matter device with On/Off capabilities. This sample  app works with a virtual device
+* Build a Matter device with On/Off capabilities. This sample app works with a virtual device
     and an ESP32.
+    *   [Matter Virtual Device (MVD)](https://developers.home.google.com/matter/tools/virtual-device) 
+        To minimize environment issues, we strongly suggest that you use MVD
+        to start with. If you ever run into issues, it will be much easier to
+        investigate if the sample app is used against MVD.
     *   [Build a Matter Virtual Device](https://developers.home.google.com/codelabs/matter-device-virtual)
         with the `rootnode_dimmablelight_bCwGYSDpoe` app. When you
         [Create a Matter integration](https://developers.home.google.com/matter/integration/create)
