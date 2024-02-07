@@ -33,3 +33,10 @@ proguard-project.txt
 .idea
 
 .DS_Store
+
+# FIXME: from GHP
+/captures
+.externalNativeBuild
+.cxx
+_versions.txt
+_logs.txt

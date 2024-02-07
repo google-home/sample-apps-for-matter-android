@@ -1,0 +1,49 @@
+// Copyright 2022 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+option java_package = "com.google.homesampleapp";
+option java_multiple_files = true;
+
+// User preferences as well as settings used by the application
+// that are persisted in a Proto DataStore.
+message UserPreferences {
+  // Filter for showing / hiding the codelab information on the Home screen.
+  // Using "hide" instead of show so that the default value (false) is the
+  // default behavior we want.
+  bool hide_codelab_info = 1;
+
+  // Filter for showing / hiding offline devices on the Home screen.
+  // Using "hide" instead of "show" so that the default value (false) is the
+  // default behavior we want (i.e. hide_offline_devices is false by default,
+  // which means that offline devices will be shown by default).
+  bool hide_offline_devices = 2;
+
+  // Filter for showing / hiding HalfSheet Notification.
+  // (proactive commissionable discovery notifications for Matter devices).
+  // See https://developers.home.google.com/reference/com/google/android/gms/home/matter/commissioning/CommissioningClient#suppressHalfSheetNotification().
+  // Default value is false, meaning Using "show" instead of "hide" so that the default value (false) is the
+  // default behavior we want (i.e. show_halfsheet_notification is false by default,
+  // which means that halfsheet notification will be hidden by default).
+  //
+  // Note that notifications may be suppressed only while your application is in the foreground.
+  // Upon leaving the foreground, notifications will automatically be re-enabled.
+  // So if state changes from hide to show: notifications will only be re-enabled when application
+  // leaves the foreground and then re-enters it (since we cannot unsuppress).
+  // If state changes from show to hide: notification can then be suppressed immediately.
+  // For consistency, a change to that setting will only take effect when the application exits
+  // and then reenters the foreground state.
+  bool show_halfsheet_notification = 3;
+}
