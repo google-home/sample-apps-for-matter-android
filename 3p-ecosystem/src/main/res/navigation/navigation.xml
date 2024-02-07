@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ Copyright 2022 Google LLC
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/navigation.xml"
+    app:startDestination="@id/homeFragment">
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="com.google.homesampleapp.screens.home.HomeFragment"
+        android:label="fragment_home"
+        tools:layout="@layout/fragment_home" >
+        <action
+            android:id="@+id/action_homeFragment_to_deviceFragment"
+            app:destination="@id/deviceFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_settingsFragment"
+            app:destination="@id/settingsFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_settingsFragment2"
+            app:destination="@id/settingsFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_settingsNestedFragment"
+            app:destination="@id/settingsNestedFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_settingsDeveloperUtilitiesFragment"
+            app:destination="@id/settingsDeveloperUtilitiesFragment" />
+        <argument
+            android:name="snackbarMsg"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+    </fragment>
+    <fragment
+        android:id="@+id/deviceFragment"
+        android:name="com.google.homesampleapp.screens.device.DeviceFragment"
+        android:label="DeviceFragment" >
+        <action
+            android:id="@+id/action_deviceFragment_to_settingsFragment"
+            app:destination="@id/settingsFragment" />
+        <action
+            android:id="@+id/action_deviceFragment_to_homeFragment"
+            app:destination="@id/homeFragment" />
+        <action
+            android:id="@+id/action_deviceFragment_to_inspectFragment"
+            app:destination="@id/inspectFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="com.google.homesampleapp.screens.settings.SettingsFragment"
+        android:label="fragment_settings"
+        tools:layout="@layout/fragment_settings" >
+        <action
+            android:id="@+id/action_settingsFragment_to_homeFragment"
+            app:destination="@id/homeFragment" />
+        <action
+            android:id="@+id/action_settingsFragment_to_settingsDeveloperUtilitiesFragment"
+            app:destination="@id/settingsDeveloperUtilitiesFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/settingsNestedFragment"
+        android:name="com.google.homesampleapp.screens.settings.SettingsNestedFragment"
+        android:label="SettingsNestedFragment" >
+        <action
+            android:id="@+id/action_settingsNestedFragment_to_settingsDeveloperUtilitiesFragment"
+            app:destination="@id/settingsDeveloperUtilitiesFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/settingsDeveloperUtilitiesFragment"
+        android:name="com.google.homesampleapp.screens.settings.SettingsDeveloperUtilitiesFragment"
+        android:label="SettingsDeveloperUtilitiesFragment" >
+        <action
+            android:id="@+id/action_settingsDeveloperUtilitiesFragment_to_homeFragment"
+            app:destination="@id/homeFragment" />
+        <action
+            android:id="@+id/action_settingsDeveloperUtilitiesFragment_to_discoveryFragment"
+            app:destination="@id/commissionableFragment" />
+        <action
+            android:id="@+id/action_settingsDeveloperUtilitiesFragment_to_threadFragment"
+            app:destination="@id/threadFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/settingsDeveloperUtilitiesNestedFragment"
+        android:name="com.google.homesampleapp.screens.settings.SettingsDeveloperUtilitiesNestedFragment"
+        android:label="SettingsDeveloperUtilitiesNestedFragment" >
+        <action
+            android:id="@+id/action_settingsDeveloperUtilitiesNestedFragment_to_settingsFragment"
+            app:destination="@id/settingsFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/inspectFragment"
+        android:name="com.google.homesampleapp.screens.inspect.InspectFragment"
+        android:label="fragment_inspect"
+        tools:layout="@layout/fragment_inspect" />
+    <fragment
+        android:id="@+id/commissionableFragment"
+        android:name="com.google.homesampleapp.screens.commissionable.CommissionableFragment"
+        android:label="fragment_commissionable"
+        tools:layout="@layout/fragment_commissionable" >
+        <action
+            android:id="@+id/action_commissionableFragment_to_settingsFragment"
+            app:destination="@id/settingsFragment" />
+        <action
+            android:id="@+id/action_commissionableFragment_to_homeFragment"
+            app:destination="@id/homeFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/threadFragment"
+        android:name="com.google.homesampleapp.screens.thread.ThreadFragment"
+        android:label="ThreadFragment" >
+        <action
+            android:id="@+id/action_threadFragment_to_settingsFragment"
+            app:destination="@id/settingsFragment" />
+        <action
+            android:id="@+id/action_threadFragment_to_homeFragment"
+            app:destination="@id/homeFragment" />
+    </fragment>
+</navigation>

@@ -1,0 +1,128 @@
+<!--
+ Copyright 2022 Google LLC
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<resources>
+    <string name="app_name">GHSAFM-3p-ecosystem</string>
+
+    <!-- Device Types -->
+    <string name="device_type_unspecified" translatable="false">unspecified</string>
+    <string name="device_type_light" translatable="false">light</string>
+    <string name="device_type_outlet" translatable="false">outlet</string>
+    <string name="device_type_unknown" translatable="false">unknown</string>
+    <string name="device_type_dimmable_light">dimmable light</string>
+    <string name="device_type_color_temperature_light">color temperature light</string>
+    <string name="device_type_extended_color_light">extended color light</string>
+    <string name="device_type_light_switch">light switch</string>
+    <string name="device_type_unrecognized">unrecognized</string>
+
+    <!-- Generic status messages -->
+    <string name="status_not_started" translatable="false">Not started</string>
+    <string name="status_in_progress" translatable="false">In progress</string>
+    <string name="status_failed_with" translatable="false">Failed with result code %d</string>
+
+    <!-- Home Screen -->
+    <string name="show_offline_devices">Show offline devices</string>
+    <string name="room">Room</string>
+    <string name="type">Type</string>
+    <string name="state">State</string>
+    <string name="name">Name</string>
+    <string name="date_commissioned">Date Commissioned</string>
+
+    <!-- Commission Device -->
+    <string name="commission_device_status_success" translatable="false">Commission device succeeded</string>
+
+    <!-- Share Device -->
+    <string name="share_device_status_success" translatable="false">Share device succeeded</string>
+    <string name="share_device_name" translatable="false">Share %1$s</string>
+    <string name="share_device_info" translatable="false">Added on %1$s \nID: %2$s  \nVendor: %3$s (VID:%4$s) \nProduct: %5$s (PID:%6$s)  \nDevice type: %7$s</string>
+
+    <!-- Inspect Device -->
+    <string name="inspect_device_name" translatable="false">Inspect %1$s</string>
+
+    <string name="no_devices">No devices to show!!!</string>
+    <string name="action_result_label">Action Result Shown Here!</string>
+    <string name="showCodelabMessage">You can learn more about this sample application via its companion codelab available at the &lt;a href="https://developers.home.google.com/codelabs/matter-sample-app">Google Home Developer Center&lt;/a></string>
+    <string name="help_and_feedback">
+        You can learn more about this sample application via its companion codelab available at the &lt;a href="https://developers.home.google.com/codelabs/matter-sample-app">Google Home Developer Center&lt;/a>.&lt;p>
+        To get official guidance from Google on technical questions, see the &lt;a href="https://www.googlenestcommunity.com/t5/Smart-Home-Developer-Forum/bd-p/Smart-Home-Developer-Forum">Smart Home Developer Forum&lt;/a>.&lt;p>
+        To get technical support from the community, see &lt;a href="https://stackoverflow.com/questions/tagged/google-smart-home">Stack Overflow&lt;/a>.&lt;p>
+        Feedback can be filed in the &lt;a href="https://github.com/google-home/sample-app-for-matter-android/issues">Issues section&lt;/a> of the sample application\'s GitHub repository.
+    </string>
+    <string name="accept">Accept</string>
+    <string name="home_label">Home</string>
+    <string name="settings_label">Settings</string>
+    <string name="device_id">Device ID</string>
+    <string name="endpoint_id">Endpoint ID</string>
+    <string name="device_name">Device name</string>
+    <string name="room_name">Room name</string>
+    <string name="cancel">Cancel</string>
+    <string name="create">Create</string>
+    <string name="device_info">Device Info</string>
+    <string name="device_vid">Vendor ID</string>
+    <string name="device_pid">Product ID</string>
+    <string name="device_type">Device Type</string>
+    <string name="online">Online</string>
+    <string name="on">On</string>
+    <string name="admin_label">Admin</string>
+    <string name="info_label">Info</string>
+    <string name="ok">OK</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="add_your_first">Start by adding your first Matter device</string>
+    <string name="no_devices_yet">No devices yet</string>
+    <string name="codelab">Codelab</string>
+    <string name="do_not_show_again">Don\'t show this again</string>
+    <string name="sample_app">Sample App</string>
+    <string name="content_description_settings">Settings icon to manage app settings</string>
+    <string name="general_settings">General settings</string>
+    <string name="developer_utilities">Developer utilities</string>
+    <string name="yes_remove_it">Yes, remove it</string>
+    <string name="inspect">Inspect</string>
+    <string name="inspect_device_capabilities">Select the categories you want to get information about.</string>
+    <string name="log_repos_info">All of the repositories information has been logged in logcat.&lt;p>Use this command  to only view this sample’s app logs:&lt;p>&lt;i>adb logcat --pid=`adb shell pidof -s homesampleapp`&lt;/i></string>
+    <string name="inspect_description">When clicking the OK button below, messages are sent to the Descriptor Cluster of the device to get the following information:&lt;p>&lt;b>Device Types&lt;/b>: List of device types supported by the device&lt;p>&lt;b>Server Clusters:&lt;/b> List of server clusters present on the endpoint instance&lt;p>&lt;b>Client Clusters:&lt;/b> List of client clusters present on the endpoint instance&lt;p>&lt;b>Parts List:&lt;/b> List of parts indicating the composition of the device type instance&lt;p>
+All of the information will be logged in logcat. Use this command  to only view this sample’s app logs:&lt;p>&lt;i>adb logcat --pid=`adb shell pidof -s homesampleapp`&lt;/i></string>
+    <string name="about_app">This app provides downloadable code that shows you how to use Matter APIs in your own Android application.&lt;p>&lt;b>This is not an official Google Home app, it was created as a development tool for sample purposes only.&lt;/b>&lt;p>&lt;i>Google Home Sample Application for Matter&lt;p>Version: %1$s&lt;/i></string>
+    <string name="unspecified">Unspecified</string>
+    <string name="error">Error</string>
+
+    <!-- Matter Beacon -->
+    <string name="beacon_list_title" translatable="false">Scanning for nearby Matter devices…</string>
+    <string name="beacon_detail_text" translatable="false">VID: 0x%04X PID: 0x%04X Disc: 0x%03X</string>
+    <string name="discovery">Discovery</string>
+    <string name="commissionable_devices">Commissionable Devices</string>
+    <string name="halfsheet_notification_alert">
+        Changing the setting for "Halfsheet Notification" will only take effect when the application
+        exits and then re-enters the foreground state.
+    </string>
+    <string name="device_attestation_warning">
+        WARNING: The device attestation failed but was ignored.&lt;p>
+        For details, see &lt;a href="https://github.com/google-home/sample-app-for-matter-android/wiki/Device-Attestation-Failure">Device Attestation Failure&lt;/a>.
+    </string>
+
+    <!--Accessibility component name  -->
+    <string name="back_button">Back</string>
+    <string name="add_device_button">Add device</string>
+    <string name="light_off">Light Off</string>
+    <string name="go_to_home">Home</string>
+    <string name="no_devices_image">No devices image</string>
+    <string name="share_device_body">You can share this device to control it from other apps or services.</string>
+    <string name="share">Share</string>
+    <string name="technical_information">Technical Information</string>
+    <string name="remove_device">Remove device</string>
+    <string name="transport_icon">Transport icon</string>
+
+</resources>
