@@ -102,11 +102,6 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.4"
     }
-    sourceSets {
-        getByName("main") {
-            jniLibs.srcDirs(listOf("third_party/connectedhomeip/libs/jniLibs"))
-        }
-    }
     android.buildFeatures.viewBinding = true
 
     /**
@@ -146,12 +141,12 @@ android {
 }
 
 dependencies {
-    // Native libs
-    implementation(fileTree(mapOf("dir" to "third_party/connectedhomeip/libs", "include" to listOf("*.jar", "*.so"))))
-
     // Connected Home
     implementation(libs.play.services.base)
     implementation(libs.play.services.home)
+
+    // Matter Android Demo SDK
+    implementation(libs.matter.android.demo.sdk)
 
     // Thread Network
     implementation(libs.play.services.threadnetwork)
@@ -233,7 +228,8 @@ dependencies {
     implementation(libs.timber)
     // Needed for using BaseEncoding class
     implementation(libs.guava)
- //
+
+    //
     // Test
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
@@ -243,6 +239,8 @@ dependencies {
     androidTestImplementation(libs.runner)
     androidTestImplementation(libs.rules)
     androidTestImplementation(libs.uiautomator)
+
+
 }
 
 // Issue with androidx.test.espresso:espresso-contrib:3.5.1
